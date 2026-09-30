@@ -1,7 +1,7 @@
 // Story engine: ingestion, duplicate detection, change tracking, status lifecycle, ranking, queries.
 import { canonicalUrl, shortId, sha1, titleTokens, jaccard, truncate, domainOf, localDateKey } from './util.js';
 import { verifyDupage } from './dupage.js';
-import { classify, whyItMatters } from './classify.js';
+import { classify, whyItMatters, detectFlags, productDetails, recallDetails } from './classify.js';
 
 const H = 3600e3;
 const MAX_AGE_DAYS = { default: 7, dupage: 4, recalls: 30, news: 3 };
@@ -235,13 +235,20 @@ export function score(s, nowMs = Date.now()) {
 // Public shape sent to clients.
 export function present(s, nowMs = Date.now()) {
   const status = computeStatus(s, nowMs);
+  const extra = detectFlags(`${s.title}. ${s.summary || ''}`, s.category);
+  const flags = { ...s.flags, limited: extra.limited, discontinued: extra.discontinued, rumor: extra.rumor, leak: extra.leak };
   const tags = [];
-  if (s.flags?.recall) tags.push('RECALL');
+  if (flags.recall) tags.push('RECALL');
   if (s.flags?.deal) tags.push('DEAL');
   if (s.flags?.product) tags.push('LAUNCH');
   if (s.flags?.opening) tags.push('OPENING');
   if (s.flags?.closing) tags.push('CLOSING');
   if (s.nws) tags.push('ALERT');
+  if (flags.limited) tags.push('LIMITED');
+  if (flags.discontinued) tags.push('DISCONTINUED');
+  if (flags.leak) tags.push('LEAK');
+  if (flags.rumor) tags.push('RUMOR');
+  if ((s.alsoReportedBy?.length || 0) >= 3) tags.push('TRENDING');
   if (s.official) tags.push('OFFICIAL');
   const out = {
     id: s.id, title: s.title, summary: s.summary, whyItMatters: s.whyItMatters, imageUrl: s.imageUrl,
@@ -250,6 +257,8 @@ export function present(s, nowMs = Date.now()) {
     publishedAt: s.publishedAt, discoveredAt: s.firstDiscoveredAt, lastSeenAt: s.lastSeenAt, updatedAt: s.updatedAt, expiresAt: s.expiresAt,
     lastChangedAt: s.lastChangedAt || null, changes: s.changes || [], alsoReportedBy: s.alsoReportedBy || [], instruction: s.instruction,
     aiEnriched: !!s.aiEnriched,
+    product: tags.includes('LAUNCH') || tags.includes('DEAL') || tags.includes('LIMITED') || tags.includes('DISCONTINUED') ? productDetails(s.title, s.feedSummary || s.summary) : null,
+    recall: tags.includes('RECALL') ? recallDetails(s.title, s.feedSummary || s.summary || '', { sourceId: s.sourceId, brands: s.brands }) : null,
   };
   out.score = score({ ...s, status }, nowMs);
   return out;
@@ -268,7 +277,7 @@ export function queryStories(state, opts = {}, nowMs = Date.now()) {
     case 'today': list = list.filter((s) => localDateKey(pubMs(s)) === today || (localDateKey(s.discoveredAt) === today && nowMs - pubMs(s) < 36 * H)); break;
     case 'week': list = list.filter((s) => nowMs - pubMs(s) < 7 * H24); break;
     case 'dupage': list = list.filter((s) => s.location && (includeNearby ? true : ['confirmed', 'verified'].includes(s.location.status))); break;
-    case 'products': list = list.filter((s) => s.tags.includes('LAUNCH')); break;
+    case 'products': list = list.filter((s) => s.tags.includes('LAUNCH') || s.tags.includes('LIMITED') || s.tags.includes('DISCONTINUED')); break;
     case 'deals': list = list.filter((s) => s.tags.includes('DEAL')); break;
     case 'recalls': list = list.filter((s) => s.tags.includes('RECALL')); break;
     case 'openings': list = list.filter((s) => s.tags.includes('OPENING') || s.tags.includes('CLOSING')); break;

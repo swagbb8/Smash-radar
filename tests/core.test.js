@@ -200,3 +200,24 @@ test('local incident covered by several outlets merges into one story', () => {
   const shooting = Object.values(state.stories).find((s) => /Oakbrook Center/.test(s.title));
   assert.equal(shooting.alsoReportedBy.length, 2);
 });
+
+test('product + recall details, extra badges', async () => {
+  const { productDetails, recallDetails, detectFlags } = await import('../src/classify.js');
+  const p = productDetails('Celsius launches new Blue Razz Lemonade flavor', 'The 12 fl oz cans are available nationwide starting Oct. 6 for $2.49.');
+  assert.equal(p.price, '$2.49');
+  assert.equal(p.variant, 'Blue Razz Lemonade');
+  assert.equal(p.size, '12 fl oz');
+  assert.match(p.availability, /available nationwide/);
+  const r = recallDetails('ZCK01 Recalls Kesyup Mattresses Due to Risk of Serious Injury or Death from Fire Hazard', 'The mattresses were sold at Amazon.com from June 2025 through August 2026.', { sourceId: 'cpsc-recalls' });
+  assert.equal(r.product, 'Kesyup Mattresses');
+  assert.match(r.reason, /Fire Hazard/);
+  assert.match(r.affected, /sold at Amazon/);
+  assert.match(r.action, /Stop using/);
+  const f = recallDetails('Sierra Nevada Cheese Company Recalls Graziers Raw Milk Cheese Because of Possible Health Risk', '', { sourceId: 'fda-recalls' });
+  assert.equal(f.product, 'Graziers Raw Milk Cheese');
+  assert.match(f.action, /Don't eat/);
+  assert.ok(detectFlags('McDonald\'s is discontinuing the Snack Wrap again', 'food').discontinued);
+  assert.ok(detectFlags('Nike Air Max limited-edition drop', 'clothing').limited);
+  assert.ok(detectFlags('iPhone 18 design leaked in new renders', 'tech').leak);
+  assert.ok(detectFlags('Apple reportedly planning foldable iPhone', 'tech').rumor);
+});

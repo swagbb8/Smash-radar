@@ -12,7 +12,11 @@ const prefs = {
   saved: LS.get('sr.saved', {}),
   dupageInForYou: LS.get('sr.dupageForYou', true),
   nearby: LS.get('sr.nearby', false),
+  customBrands: LS.get('sr.customBrands', []),
+  cats: new Set(LS.get('sr.cats', [])),
 };
+const saveCustom = () => LS.set('sr.customBrands', prefs.customBrands);
+const saveCats = () => LS.set('sr.cats', [...prefs.cats]);
 const saveBrands = () => LS.set('sr.brands', [...prefs.brands]);
 const saveSaved = () => LS.set('sr.saved', prefs.saved);
 
@@ -118,7 +122,7 @@ const CAT = {
   tech: ['📱', 'Tech', 'linear-gradient(135deg,#1a1f3a,#0a0c18)'],
   auto: ['🚗', 'Automotive', 'linear-gradient(135deg,#301a14,#120a08)'],
   gaming: ['🎮', 'Gaming', 'linear-gradient(135deg,#261642,#0d0818)'],
-  energy: ['⚡', 'Energy Drinks', 'linear-gradient(135deg,#243311,#0c1206)'],
+  energy: ['🥤', 'Drinks', 'linear-gradient(135deg,#243311,#0c1206)'],
   fitness: ['🏋️', 'Fitness', 'linear-gradient(135deg,#132a24,#07110e)'],
   food: ['🍔', 'Food', 'linear-gradient(135deg,#33230d,#140d04)'],
   clothing: ['👟', 'Clothing & Shoes', 'linear-gradient(135deg,#2c1628,#11080f)'],
@@ -132,6 +136,7 @@ const INC_ICON = { metra: '🚆', emergency: '🚨', fire: '🔥', crash: '💥'
 const NAV = [
   { group: 'Radar' },
   { r: 'home', label: 'Home', ic: '🏠' },
+  { r: 'daily', label: "Today's Radar", ic: '📡' },
   { r: 'breaking', label: 'Breaking', ic: '🔥', count: 'BREAKING', hot: true },
   { r: 'today', label: 'Today', ic: '🆕', count: 'NEW' },
   { r: 'week', label: 'This Week', ic: '📅' },
@@ -146,7 +151,7 @@ const NAV = [
   { r: 'brands', label: 'My Brands', ic: '⭐' },
   { r: 'favorites', label: 'Favorites', ic: '🔖' },
   { r: 'search', label: 'Search', ic: '🔎' },
-  { r: 'sources', label: 'Sources', ic: '📡' },
+  { r: 'sources', label: 'Sources', ic: '🩺' },
 ];
 const TITLES = Object.fromEntries(NAV.filter((n) => n.r).map((n) => [n.r, n.label]));
 const ICONS = {
@@ -173,12 +178,20 @@ function media(s, eager = false) {
     ? `<img src="${esc(src)}" alt="" loading="${eager ? 'eager' : 'lazy'}" decoding="async" referrerpolicy="no-referrer" onload="this.classList.add('loaded')" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph-fallback'}));window.__phFix&&window.__phFix()">`
     : placeholder(s);
 }
+const TAG_LABEL = { DEAL: 'SALE', RECALL: 'RECALLED', LAUNCH: 'PRODUCT', OPENING: 'OPENING', CLOSING: 'CLOSING', ALERT: 'ALERT', LIMITED: 'LIMITED', DISCONTINUED: 'DISCONTINUED', RUMOR: 'RUMOR', LEAK: 'LEAK', TRENDING: 'TRENDING' };
+const TAG_ORDER = ['RECALL', 'DISCONTINUED', 'LEAK', 'RUMOR', 'LIMITED', 'DEAL', 'TRENDING', 'LAUNCH', 'OPENING', 'CLOSING', 'ALERT'];
 function badges(s, max = 3) {
   const out = [`<span class="badge ${s.status}">${s.status}</span>`];
   if (s.location && ['confirmed', 'verified'].includes(s.location.status)) out.push('<span class="badge t-DUPAGE">DuPage</span>');
-  for (const t of s.tags.filter((t) => t !== 'OFFICIAL').slice(0, max - 1)) out.push(`<span class="badge t-${t}">${t}</span>`);
-  if (s.official && out.length < max + 1) out.push('<span class="badge t-OFFICIAL">Official</span>');
+  const tags = TAG_ORDER.filter((t) => s.tags.includes(t));
+  for (const t of tags.slice(0, Math.max(0, max - out.length + 1))) out.push(`<span class="badge t-${t}">${TAG_LABEL[t] || t}</span>`);
+  if (s.official && out.length <= max) out.push('<span class="badge t-OFFICIAL">Official</span>');
   return out.join('');
+}
+function kicker(s) {
+  const [ic, label] = CAT[s.category] || CAT.news;
+  const who = s.location && ['confirmed', 'verified'].includes(s.location.status) ? s.location.places.filter((p) => p !== 'DuPage County')[0] || 'DuPage County' : s.brands?.[0];
+  return `<div class="kicker">${ic} ${esc(label)}${who ? ` · <b>${esc(who)}</b>` : ''}</div>`;
 }
 const isSaved = (id) => !!prefs.saved[id];
 function card(s, i = 0) {
@@ -187,6 +200,7 @@ function card(s, i = 0) {
   return `<article class="card" style="animation-delay:${Math.min(i, 10) * 30}ms" data-story="${esc(s.id)}">
     <div class="media" data-cat="${esc(s.category)}">${media(s)}<div class="badges">${badges(s)}</div></div>
     <div class="body">
+      ${kicker(s)}
       <h3>${esc(s.title)}</h3>
       ${s.summary ? `<p>${esc(s.summary)}</p>` : ''}
       ${changed}
@@ -222,6 +236,41 @@ function hero(s) {
       <h3>${esc(s.title)}</h3>${s.summary ? `<p>${esc(s.summary)}</p>` : ''}
       <div class="src-line"><b>${esc(s.sourceName)}</b><span>${ago(s.publishedAt || s.discoveredAt)}</span>${s.alsoReportedBy?.length ? `<span>+${s.alsoReportedBy.length} more sources</span>` : ''}</div></div></a>`;
 }
+function detailRows(rows) {
+  return `<dl class="facts">${rows.filter(([, v]) => v).map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>`;
+}
+function productBox(s) {
+  const p = s.product || {};
+  return `<div class="box prod"><h5>Product tracker</h5>${detailRows([['Brand', s.brands?.[0]], ['Price', p.price], ['Availability', p.availability], ['Release', p.releaseDate], ['Flavor / color', p.variant], ['Size', p.size]])}${s.official ? `<a class="src-link" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">Official page ↗</a>` : ''}</div>`;
+}
+function recallBox(s) {
+  const r = s.recall;
+  return `<div class="box recall"><h5>Recall details</h5>${detailRows([['Product', r.product], ['Brand', r.brand], ['Reason', r.reason], ['Affected', r.affected], ['Date', fmt(s.publishedAt || s.discoveredAt)]])}<div class="todo"><b>What to do:</b> ${esc(r.action)}</div></div>`;
+}
+function productCard(s, i = 0) {
+  app.stories.set(s.id, s);
+  const p = s.product || {};
+  const facts = [['Price', p.price], ['Avail.', p.availability], ['Release', p.releaseDate], ['Variant', p.variant || p.size]].filter(([, v]) => v).slice(0, 3);
+  return `<article class="card pcard" style="animation-delay:${Math.min(i, 10) * 30}ms" data-story="${esc(s.id)}">
+    <div class="media">${media(s)}<div class="badges">${badges(s, 3)}</div></div>
+    <div class="body">${kicker(s)}<h3>${esc(s.title)}</h3>
+      ${facts.length ? `<div class="pfacts">${facts.map(([k, v]) => `<span><em>${esc(k)}</em>${esc(v)}</span>`).join('')}</div>` : (s.summary ? `<p>${esc(s.summary)}</p>` : '')}
+      <div class="foot"><span class="src">${esc(s.sourceName)}</span><span>·</span><time datetime="${esc(s.publishedAt || s.discoveredAt)}">${ago(s.publishedAt || s.discoveredAt)}</time>
+      <button class="save ${isSaved(s.id) ? 'on' : ''}" data-save="${esc(s.id)}" aria-label="Save story">${STAR}</button></div></div></article>`;
+}
+function recallCard(s, i = 0) {
+  app.stories.set(s.id, s);
+  const r = s.recall || {};
+  return `<article class="card rcard" style="animation-delay:${Math.min(i, 10) * 30}ms" data-story="${esc(s.id)}">
+    <div class="body">
+      <div class="rhead"><span class="badge t-RECALL">RECALLED</span>${r.official ? '<span class="badge t-OFFICIAL">Official</span>' : ''}<time datetime="${esc(s.publishedAt || s.discoveredAt)}">${ago(s.publishedAt || s.discoveredAt)}</time></div>
+      <h3>${esc(r.product || s.title)}</h3>
+      ${r.product ? `<div class="muted" style="font-size:13px">${esc(s.title)}</div>` : ''}
+      ${detailRows([['Brand', r.brand], ['Reason', r.reason], ['Affected', r.affected]])}
+      <div class="todo"><b>What to do:</b> ${esc(r.action)}</div>
+      <div class="foot"><span class="src">${esc(s.sourceName)}</span><a class="src-link" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">Official notice ↗</a>
+      <button class="save ${isSaved(s.id) ? 'on' : ''}" data-save="${esc(s.id)}" aria-label="Save story">${STAR}</button></div></div></article>`;
+}
 const skeletons = (n = 6) => `<div class="grid">${Array.from({ length: n }, () => '<div class="skeleton sk-card"></div>').join('')}</div>`;
 const empty = (icon, title, text, action = '') => `<div class="empty"><div class="big">${icon}</div><h3>${esc(title)}</h3><p>${text}</p>${action}</div>`;
 function noDataYet() {
@@ -240,38 +289,82 @@ const views = {
   async home() {
     const m = app.meta;
     const c = m?.counts || {};
-    const stats = `<div class="stats">
+    const top = `<div class="updated">Last updated <b>${m?.lastRefreshAt ? `${esc(clock(m.lastRefreshAt))} · ${ago(m.lastRefreshAt)}` : 'not yet'}</b></div>
+      <div class="stats">
+      <a class="stat new" href="#/today"><b>${c.NEW ?? '–'}</b><span>New Today</span></a>
       <a class="stat breaking" href="#/breaking"><b>${c.BREAKING ?? '–'}</b><span>Breaking</span></a>
-      <a class="stat new" href="#/today"><b>${c.NEW ?? '–'}</b><span>New</span></a>
-      <a class="stat updated" href="#/today"><b>${c.UPDATED ?? '–'}</b><span>Updated</span></a>
       <a class="stat dupage" href="#/dupage"><b>${c.dupage ?? '–'}</b><span>DuPage</span></a>
-      <a class="stat" href="#/deals"><b>${c.deals ?? '–'}</b><span>Deals</span></a>
-      <a class="stat" href="#/recalls"><b>${c.recalls ?? '–'}</b><span>Recalls</span></a></div>`;
-    const [all, dup] = await Promise.all([
-      api(`/api/stories?${qs({ view: 'all', limit: 200 })}`),
-      api(`/api/stories?${qs({ view: 'dupage', limit: 6 })}`),
-    ]);
-    if (!all.stories.length) return stats + (noDataYet() || empty('📡', 'Radar is clear', 'Nothing collected yet. Tap Refresh to sweep all sources.'));
+      <a class="stat launch" href="#/products"><b>${c.products ?? '–'}</b><span>Products</span></a>
+      <a class="stat deal" href="#/deals"><b>${c.deals ?? '–'}</b><span>Deals</span></a>
+      <a class="stat recall" href="#/recalls"><b>${c.recalls ?? '–'}</b><span>Recalls</span></a></div>`;
+    const all = await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`);
+    if (!all.stories.length) return top + (noDataYet() || empty('📡', 'Radar is clear', 'Nothing collected yet. Tap Refresh to sweep all sources.'));
     const list = all.stories;
+    const H = 36e5;
+    const pub = (s) => Date.parse(s.publishedAt || s.discoveredAt);
+    const today = dayKey(Date.now());
     const heroStory = list.find((s) => s.status === 'BREAKING' && s.imageUrl) || list.find((s) => s.imageUrl) || list[0];
-    const used = new Set([heroStory.id]);
-    const breaking = list.filter((s) => s.status === 'BREAKING' && !used.has(s.id)).slice(0, 10);
-    breaking.forEach((s) => used.add(s.id));
-    let html = stats + hero(heroStory);
-    if (breaking.length) html += section('Breaking now', '🔥', '#/breaking', `<div class="rail">${breaking.map(card).join('')}</div>`);
-    html += section('DuPage Radar', '📍', '#/dupage', dup.stories.length ? `<div class="rows">${dup.stories.map(row).join('')}</div>` : `<p class="sub">No verified DuPage incidents right now. The verifier only shows stories with a confirmed DuPage location.</p>`);
-    if (prefs.brands.size) {
-      const fy = list.filter((s) => s.brandIds.some((b) => prefs.brands.has(b)) && !used.has(s.id)).slice(0, 10);
-      if (fy.length) html += section('For You', '✨', '#/foryou', `<div class="rail">${fy.map(card).join('')}</div>`);
+    const sections = [
+      ['today', '🆕', 'New Today', '#/today', (s) => s.status === 'NEW' || dayKey(pub(s)) === today],
+      ['week', '🔥', 'New This Week', '#/week', (s) => Date.now() - pub(s) < 7 * 24 * H],
+      ['breaking', '🚨', 'Breaking', '#/breaking', (s) => s.status === 'BREAKING'],
+      ['products', '📦', 'New Products', '#/products', (s) => s.tags.includes('LAUNCH') || s.tags.includes('LIMITED')],
+      ['energy', '🥤', 'Drinks', '#/week?category=energy', (s) => s.categories.includes('energy')],
+      ['fitness', '🏋️', 'Fitness', '#/week?category=fitness', (s) => s.categories.includes('fitness')],
+      ['tech', '📱', 'Technology', '#/week?category=tech', (s) => s.categories.includes('tech')],
+      ['auto', '🚗', 'Automotive', '#/week?category=auto', (s) => s.categories.includes('auto')],
+      ['gaming', '🎮', 'Gaming', '#/week?category=gaming', (s) => s.categories.includes('gaming')],
+      ['food', '🍔', 'Food', '#/week?category=food', (s) => s.categories.includes('food')],
+      ['clothing', '👟', 'Clothing & Shoes', '#/week?category=clothing', (s) => s.categories.includes('clothing')],
+      ['retail', '🛍️', 'Retail', '#/week?category=retail', (s) => s.categories.includes('retail')],
+      ['deals', '💰', 'Deals', '#/deals', (s) => s.tags.includes('DEAL')],
+      ['openings', '🏪', 'New Store Openings', '#/openings', (s) => s.tags.includes('OPENING') || s.tags.includes('CLOSING')],
+      ['recalls', '🚨', 'Recalls', '#/recalls', (s) => s.tags.includes('RECALL')],
+      ['dupage', '📍', 'DuPage County', '#/dupage', (s) => s.location && ['confirmed', 'verified'].includes(s.location.status)],
+      ['news', '🌎', 'US / World', '#/week?category=news', (s) => s.category === 'news'],
+    ];
+    const built = [];
+    const shownTimes = new Map();
+    for (const [id, ic, label, href, fn] of sections) {
+      // keep each rail fresh: skip stories already shown twice above
+      const items = list.filter((s) => fn(s) && s.id !== heroStory.id && (shownTimes.get(s.id) || 0) < 2).slice(0, 12);
+      if (!items.length) continue;
+      items.slice(0, 5).forEach((s) => shownTimes.set(s.id, (shownTimes.get(s.id) || 0) + 1));
+      const inner = id === 'dupage' ? `<div class="rows">${items.slice(0, 6).map(row).join('')}</div>` : `<div class="rail">${items.map(card).join('')}</div>`;
+      built.push([id, ic, label, `<section class="section" id="sec-${id}"><div class="section-head"><h2><span class="ic">${ic}</span>${esc(label)}</h2><a href="${href}">See all →</a></div>${inner}</section>`]);
     }
-    const order = ['tech', 'auto', 'gaming', 'energy', 'fitness', 'food', 'clothing', 'retail', 'deals', 'recalls', 'openings', 'news'];
-    for (const cat of order) {
-      const items = list.filter((s) => s.categories.includes(cat) && !used.has(s.id)).slice(0, 10);
-      if (items.length < 1) continue;
-      items.slice(0, 4).forEach((s) => used.add(s.id));
-      const [ic, label] = CAT[cat];
-      const href = { deals: '#/deals', recalls: '#/recalls', openings: '#/openings' }[cat] || `#/week?category=${cat}`;
-      html += section(label, ic, href, `<div class="rail">${items.map(card).join('')}</div>`);
+    const nav = `<div class="catnav" id="catnav">${built.map(([id, ic, label]) => `<button class="chip" data-jump="sec-${id}">${ic} ${esc(label)}</button>`).join('')}</div>`;
+    return top + hero(heroStory) + nav + built.map((b) => b[3]).join('');
+  },
+
+  async daily() {
+    const all = (await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`)).stories;
+    const m = app.meta;
+    const today = dayKey(Date.now());
+    const fresh = all.filter((s) => dayKey(s.publishedAt || s.discoveredAt) === today || s.status === 'NEW' || s.status === 'BREAKING' || s.status === 'UPDATED');
+    const pool = fresh.length >= 10 ? fresh : all;
+    const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ });
+    let html = `<div class="daily-head"><div class="kick">Today's Radar</div><h2>${esc(dateStr)}</h2><p>${(m?.counts?.NEW || 0) + (m?.counts?.BREAKING || 0) + (m?.counts?.UPDATED || 0)} new or updated stories today · updated ${m?.lastRefreshAt ? esc(clock(m.lastRefreshAt)) : '—'}</p></div>`;
+    if (!pool.length) return html + (noDataYet() || empty('📡', 'Nothing yet today', 'Check back after the next sweep.'));
+    const biggest = pool.slice().sort((a, b) => b.score - a.score).slice(0, 5);
+    html += `<section class="section"><div class="section-head"><h2><span class="ic">⭐</span>Biggest New Things</h2></div><div class="grid">${biggest.map(card).join('')}</div></section>`;
+    const used = new Set(biggest.map((s) => s.id));
+    const groups = [
+      ['🥤', 'Drinks', (s) => s.categories.includes('energy'), '#/week?category=energy'],
+      ['🏋️', 'Fitness', (s) => s.categories.includes('fitness'), '#/week?category=fitness'],
+      ['📱', 'Technology', (s) => s.categories.includes('tech'), '#/week?category=tech'],
+      ['🚗', 'Cars', (s) => s.categories.includes('auto'), '#/week?category=auto'],
+      ['🍔', 'Food', (s) => s.categories.includes('food'), '#/week?category=food'],
+      ['📍', 'DuPage', (s) => s.location && ['confirmed', 'verified'].includes(s.location.status), '#/dupage'],
+      ['💰', 'Deals', (s) => s.tags.includes('DEAL'), '#/deals'],
+      ['⚠️', 'Recalls', (s) => s.tags.includes('RECALL'), '#/recalls'],
+    ];
+    for (const [ic, label, fn, href] of groups) {
+      const src = pool.filter(fn).length ? pool : all;
+      const items = src.filter((s) => fn(s) && !used.has(s.id)).slice(0, 3);
+      if (!items.length) continue;
+      items.forEach((s) => used.add(s.id));
+      html += `<section class="section"><div class="section-head"><h2><span class="ic">${ic}</span>${esc(label)}</h2><a href="${href}">More →</a></div><div class="rows">${items.map(row).join('')}</div></section>`;
     }
     return html;
   },
@@ -279,9 +372,9 @@ const views = {
   breaking: () => listView({ view: 'breaking', title: 'Breaking', sub: 'Fresh, fast-moving stories from the last few hours.', emptyIcon: '🔥', emptyText: 'Nothing breaking right now. That\'s a good thing.' }),
   today: () => listView({ view: 'today', title: 'Today', sub: 'Everything published or discovered today (Central Time).', emptyIcon: '🆕', chips: true }),
   week: () => listView({ view: 'week', title: 'This Week', sub: 'The last 7 days, newest first.', emptyIcon: '📅', chips: true }),
-  products: () => listView({ view: 'products', title: 'Products', sub: 'Launches, reveals, new flavors, drops and releases.', emptyIcon: '📦', chips: true }),
+  products: () => listView({ view: 'products', title: 'Product Tracker', sub: 'New products, flavors, drops and releases — with price, availability and release date when the source gives them.', emptyIcon: '📦', chips: true, render: productCard }),
   deals: () => listView({ view: 'deals', title: 'Deals', sub: 'Price drops, sales and promotions worth knowing about.', emptyIcon: '💰', chips: true }),
-  recalls: () => listView({ view: 'recalls', title: 'Recalls', sub: 'Vehicle, food, drink, supplement and product recalls — including CPSC, FDA and USDA.', emptyIcon: '⚠️', chips: true }),
+  recalls: () => listView({ view: 'recalls', title: 'Recalls', sub: 'Vehicle, food, drink, supplement and product recalls — from CPSC, FDA and news coverage. Always confirm on the official notice.', emptyIcon: '⚠️', chips: true, render: recallCard, grid: 'grid recall-grid' }),
   openings: () => listView({ view: 'openings', title: 'Store Openings', sub: 'New locations, grand openings — and closings.', emptyIcon: '🏪', chips: true }),
 
   async dupage() {
@@ -307,22 +400,36 @@ const views = {
 
   async foryou() {
     const ids = [...prefs.brands];
-    if (!ids.length && !prefs.dupageInForYou) return viewHead('For You') + empty('✨', 'Pick your brands', 'Star the brands you care about and For You fills up with their launches, deals, recalls and news.', '<a class="btn primary" href="#/brands" style="max-width:220px;margin:auto">Choose brands</a>');
-    const brandParam = [...ids, ...(prefs.dupageInForYou ? ['dupage'] : [])].join(',');
-    const data = await api(`/api/stories?${qs({ view: 'foryou', brands: brandParam, limit: 90 })}`);
+    const custom = prefs.customBrands;
+    const cats = [...prefs.cats];
+    if (!ids.length && !custom.length && !cats.length && !prefs.dupageInForYou) return viewHead('For You') + empty('✨', 'Pick your brands', 'Star the brands and categories you care about and For You fills up with their launches, deals, recalls and news.', '<a class="btn primary" href="#/brands" style="max-width:220px;margin:auto">Choose brands</a>');
+    const all = (await api(`/api/stories?${qs({ view: 'week', limit: 200 })}`)).stories;
+    const customRx = custom.map((b) => new RegExp(`\\b${b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'));
+    const ranked = all.map((s) => {
+      const hay = `${s.title} ${s.summary}`;
+      let w = 0;
+      if (s.brandIds.some((b) => prefs.brands.has(b))) w += 3;
+      if (customRx.some((r) => r.test(hay))) w += 3;
+      if (s.categories.some((c) => prefs.cats.has(c))) w += 1.5;
+      if (prefs.dupageInForYou && s.location && ['confirmed', 'verified'].includes(s.location.status)) w += 2;
+      return [s, w];
+    }).filter(([, w]) => w > 0).sort((a, b) => b[1] * 40 + b[0].score - (a[1] * 40 + a[0].score)).map(([s]) => s).slice(0, 90);
     const names = await brandNames();
-    const chips = `<div class="chips">${ids.map((id) => `<a class="chip star on" href="#/brands">★ ${esc(names[id] || id)}</a>`).join('')}${prefs.dupageInForYou ? '<a class="chip star on" href="#/brands">📍 DuPage</a>' : ''}<a class="chip" href="#/brands">＋ Edit</a></div>`;
-    return viewHead('For You', 'Your brands and your area, ranked by what matters now.') + chips +
-      (data.stories.length ? `<div class="grid">${data.stories.map(card).join('')}</div>` : (noDataYet() || empty('✨', 'Nothing yet for your brands', 'As soon as a source mentions one of your brands it will land here.')));
+    const chips = `<div class="chips">${ids.map((id) => `<a class="chip star on" href="#/brands">★ ${esc(names[id] || id)}</a>`).join('')}${custom.map((b) => `<a class="chip star on" href="#/brands">★ ${esc(b)}</a>`).join('')}${cats.map((c) => `<a class="chip on" href="#/brands">${CAT[c]?.[0] || ''} ${esc(CAT[c]?.[1] || c)}</a>`).join('')}${prefs.dupageInForYou ? '<a class="chip star on" href="#/brands">📍 DuPage</a>' : ''}<a class="chip" href="#/brands">＋ Edit</a></div>`;
+    return viewHead('For You', 'Your brands first, then your categories and your area.') + chips +
+      (ranked.length ? `<div class="grid">${ranked.map(card).join('')}</div>` : (noDataYet() || empty('✨', 'Nothing yet for your picks', 'As soon as a source mentions one of your brands it will land here.')));
   },
 
   async brands() {
     const { brands } = await api('/api/brands');
     const byCat = {};
     for (const b of brands) (byCat[b.category] ||= []).push(b);
-    let html = viewHead('My Brands', 'Star brands to build your For You feed. Saved on this device.');
+    let html = viewHead('My Brands', 'Star brands and categories to build For You. Saved on this iPhone.');
+    html += `<div class="box"><h5>Add your own brand</h5><form class="addbrand" id="addBrand"><input name="b" placeholder="e.g. Lucky Charms, Traeger, Stanley" maxlength="40" autocomplete="off"><button class="btn small" type="submit">Add</button></form>
+      ${prefs.customBrands.length ? `<div class="chips" style="margin:10px 0 0">${prefs.customBrands.map((b) => `<button class="chip star on" data-rmbrand="${esc(b)}">★ ${esc(b)} ✕</button>`).join('')}</div>` : '<p class="muted" style="margin:8px 0 0;font-size:13px">Custom brands match any story that mentions them.</p>'}</div>`;
+    html += `<div class="box"><h5>Favorite categories</h5><div class="chips" style="margin:0">${['energy', 'fitness', 'tech', 'auto', 'gaming', 'food', 'clothing', 'retail', 'deals', 'recalls', 'openings', 'news'].map((c) => `<button class="chip ${prefs.cats.has(c) ? 'on' : ''}" data-cat="${c}">${CAT[c][0]} ${esc(CAT[c][1])}</button>`).join('')}</div></div>`;
     html += `<div class="toggle" style="margin-bottom:8px"><span>📍 Include the <b>DuPage Radar</b> in For You</span><button class="switch ${prefs.dupageInForYou ? 'on' : ''}" data-action="dupage-foryou" aria-label="Toggle DuPage in For You"></button></div>`;
-    for (const cat of ['tech', 'auto', 'gaming', 'energy', 'fitness', 'food', 'clothing', 'retail']) {
+    for (const cat of ['energy', 'fitness', 'food', 'clothing', 'tech', 'auto', 'gaming', 'retail']) {
       if (!byCat[cat]) continue;
       html += section(CAT[cat][1], CAT[cat][0], null, `<div class="brand-grid">${byCat[cat].map((b) => `<button class="brand-tile ${prefs.brands.has(b.id) ? 'on' : ''}" data-brand="${esc(b.id)}"><span>${esc(b.name)}<br><span class="n">${b.count} ${b.count === 1 ? 'story' : 'stories'}</span></span><span class="star">★</span></button>`).join('')}</div>`);
     }
@@ -344,7 +451,11 @@ const views = {
       const sugg = ['Naperville', 'I-88', 'Metra', 'recall', 'iPhone', 'Celsius', 'PlayStation', 'Mustang', 'Chick-fil-A', 'Costco', ...[...prefs.brands].map((b) => names[b]).filter(Boolean)];
       return html + `<div class="chips">${[...new Set(sugg)].map((s) => `<a class="chip" href="#/search?q=${encodeURIComponent(s)}">${esc(s)}</a>`).join('')}</div>`;
     }
-    const data = await api(`/api/stories?${qs({ view: 'all', q, limit: 80 })}`);
+    const F = [['', 'All'], ['breaking', 'Breaking'], ['today', 'Today'], ['week', 'This Week'], ['c:dupage', 'DuPage'], ['c:energy', 'Energy'], ['c:fitness', 'Fitness'], ['c:tech', 'Tech'], ['c:auto', 'Automotive'], ['c:gaming', 'Gaming'], ['c:food', 'Food'], ['c:retail', 'Retail'], ['c:clothing', 'Clothing'], ['deals', 'Deals'], ['recalls', 'Recalls']];
+    const f = app.params.f || '';
+    html += `<div class="chips">${F.map(([id, l]) => `<a class="chip ${f === id ? 'on' : ''}" href="#/search?${qs({ q, f: id })}">${esc(l)}</a>`).join('')}</div>`;
+    const fv = f.startsWith('c:') ? { view: 'all', category: f.slice(2) } : { view: f || 'all' };
+    const data = await api(`/api/stories?${qs({ ...fv, q, limit: 80 })}`);
     html += `<div class="toggle" style="margin-bottom:14px"><span>${data.total} stor${data.total === 1 ? 'y' : 'ies'} on the radar for “${esc(q)}”</span>${app.mode === 'server' ? `<button class="btn small" data-action="live-search" data-q="${esc(q)}">🌐 Search the web live</button>` : ''}</div>`;
     html += data.stories.length ? `<div class="grid" id="results">${data.stories.map(card).join('')}</div>` : `<div id="results">${empty('🔎', 'Nothing on the radar yet', 'Run a live web search to pull the newest coverage for this term into SMASH RADAR.')}</div>`;
     return html;
@@ -384,7 +495,7 @@ const views = {
   },
 };
 
-async function listView({ view: v, title, sub, emptyIcon, emptyText, chips }) {
+async function listView({ view: v, title, sub, emptyIcon, emptyText, chips, render: renderItem = card, grid = 'grid' }) {
   const p = app.params;
   const limit = 30;
   const offset = Number(p.offset || 0);
@@ -395,7 +506,7 @@ async function listView({ view: v, title, sub, emptyIcon, emptyText, chips }) {
     html += `<div class="chips"><a class="chip ${!p.category ? 'on' : ''}" href="#/${v === 'week' ? 'week' : v}">All</a>${cats.map((c) => `<a class="chip ${p.category === c ? 'on' : ''}" href="#/${v}?category=${c}">${CAT[c][0]} ${esc(CAT[c][1])}</a>`).join('')}</div>`;
   }
   if (!data.stories.length) return html + (noDataYet() || empty(emptyIcon, `No ${title.toLowerCase()} right now`, emptyText || 'Nothing matches yet — the radar keeps sweeping automatically.'));
-  html += `<div class="grid">${data.stories.map(card).join('')}</div>`;
+  html += `<div class="${grid}">${data.stories.map(renderItem).join('')}</div>`;
   if (data.total > data.stories.length) html += `<div class="more"><a class="btn small" href="#/${v}?${qs({ category: p.category, offset: offset + limit })}">Load more (${data.total - data.stories.length})</a></div>`;
   return html;
 }
@@ -418,13 +529,15 @@ async function openStory(id) {
   sheet.innerHTML = `<div class="grab"></div><button class="close" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     <div class="media">${media(s, true)}</div>
     <div class="content">
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${badges(s, 6)}${s.category !== 'dupage' ? `<span class="badge cat">${esc(CAT[s.category]?.[1] || s.category)}</span>` : ''}${s.brands.map((b) => `<span class="badge cat">${esc(b)}</span>`).join('')}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${badges(s, 6)}${!['dupage', 'recalls', 'deals'].includes(s.category) ? `<span class="badge cat">${esc(CAT[s.category]?.[1] || s.category)}</span>` : ''}${s.brands.map((b) => `<span class="badge cat">${esc(b)}</span>`).join('')}</div>
       <h2>${esc(s.title)}</h2>
       <div class="src-line"><b>${esc(s.sourceName)}</b>${s.sourceDomain ? `<span>${esc(s.sourceDomain)}</span>` : ''}${s.official ? '<span style="color:var(--accent)">Official source</span>' : ''}</div>
       <div class="times"><div><span>Published</span>${esc(fmt(s.publishedAt))}</div><div><span>Discovered</span>${esc(fmt(s.discoveredAt))}</div>
         ${s.lastChangedAt ? `<div><span>Last changed</span>${esc(fmt(s.lastChangedAt))}</div>` : ''}${s.expiresAt ? `<div><span>Expires</span>${esc(fmt(s.expiresAt))}</div>` : ''}</div>
       ${s.summary ? `<div class="summary">${esc(s.summary)}</div>` : '<div class="summary muted">The source didn\'t include a summary — open the original for full details.</div>'}
       ${s.instruction ? `<div class="box alert"><h5>Safety instructions</h5>${esc(s.instruction)}</div>` : ''}
+      ${s.recall ? recallBox(s) : ''}
+      ${s.product ? productBox(s) : ''}
       <div class="box why"><h5>Why it matters</h5>${esc(s.whyItMatters)}</div>
       ${changes ? `<div class="box changed diff"><h5>What changed?</h5>${changes}</div>` : ''}
       ${loc ? `<div class="box loc"><h5>${loc.status === 'nearby' ? 'Location — not verified' : 'DuPage verification'}</h5>${loc.status === 'nearby' ? '≈' : '✓'} ${esc(loc.reason)}${loc.roads?.length ? `<div class="muted" style="margin-top:4px">Roads mentioned: ${esc(loc.roads.join(', '))}</div>` : ''}${loc.incident ? `<div class="muted">Type: ${esc(loc.incident.label)}</div>` : ''}</div>` : ''}
@@ -468,6 +581,7 @@ function toast(msg) {
 
 // ---------------- navigation chrome ----------------
 function renderChrome() {
+  document.documentElement.style.setProperty('--topbar-h', `${$('.topbar').offsetHeight}px`);
   const c = app.meta?.counts || {};
   $('#sideNav').innerHTML = NAV.map((n) => (n.group ? `<div class="group">${n.group}</div>` : `<a href="#/${n.r}" class="${app.route === n.r ? 'active' : ''}"><span class="ic">${n.ic}</span>${n.label}${n.count && c[n.count] ? `<span class="count ${n.hot ? 'hot' : ''}">${c[n.count]}</span>` : ''}</a>`)).join('');
   const tabs = [['home', 'Home'], ['breaking', 'Breaking'], ['dupage', 'DuPage'], ['foryou', 'For You']];
@@ -495,7 +609,7 @@ function updateLive() {
 
 function openMore() {
   const c = app.meta?.counts || {};
-  const items = [['breaking', '🔥', 'Breaking', c.BREAKING], ['dupage', '📍', 'DuPage', c.dupage], ['today', '🆕', 'Today', c.NEW], ['week', '📅', 'This Week'], ['products', '📦', 'Products', c.products], ['deals', '💰', 'Deals', c.deals], ['recalls', '⚠️', 'Recalls', c.recalls], ['openings', '🏪', 'Openings'], ['brands', '⭐', 'My Brands', prefs.brands.size || ''], ['favorites', '🔖', 'Favorites', Object.keys(prefs.saved).length || ''], ['search', '🔎', 'Search'], ['sources', '📡', 'Sources']];
+  const items = [['breaking', '🔥', 'Breaking', c.BREAKING], ['dupage', '📍', 'DuPage', c.dupage], ['daily', '📡', "Today's Radar"], ['today', '🆕', 'Today', c.NEW], ['week', '📅', 'This Week'], ['products', '📦', 'Products', c.products], ['deals', '💰', 'Deals', c.deals], ['recalls', '⚠️', 'Recalls', c.recalls], ['openings', '🏪', 'Openings'], ['brands', '⭐', 'My Brands', prefs.brands.size || ''], ['favorites', '🔖', 'Favorites', Object.keys(prefs.saved).length || ''], ['search', '🔎', 'Search'], ['sources', '🩺', 'Sources']];
   $('#sheet').innerHTML = `<div class="grab"></div><div class="sheet-title">More</div><div class="more-grid">${items.map(([r, ic, l, n]) => `<a href="#/${r}" data-action="close-nav"><span class="ic">${ic}</span>${l}${n ? `<span class="n">${n}</span>` : ''}</a>`).join('')}</div>`;
   $('#sheet').hidden = false;
   $('#sheetBackdrop').hidden = false;
@@ -627,8 +741,16 @@ function connectEvents() {
 
 // ---------------- events ----------------
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source]');
+  const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],.src-link');
   if (!t) return;
+  if (t.classList.contains('src-link')) return; // let links inside cards open normally
+  if (t.dataset.jump) {
+    const el = document.getElementById(t.dataset.jump);
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - ($('.topbar').offsetHeight + $('#catnav').offsetHeight + 8), behavior: 'smooth' });
+    return;
+  }
+  if (t.dataset.rmbrand) { prefs.customBrands = prefs.customBrands.filter((b) => b !== t.dataset.rmbrand); saveCustom(); return render({ quiet: true }); }
+  if (t.dataset.cat) { const c = t.dataset.cat; prefs.cats.has(c) ? prefs.cats.delete(c) : prefs.cats.add(c); saveCats(); t.classList.toggle('on', prefs.cats.has(c)); return; }
   if (t.dataset.save) { e.preventDefault(); e.stopPropagation(); return toggleSave(t.dataset.save); }
   if (t.dataset.brand) {
     const id = t.dataset.brand;
@@ -688,6 +810,12 @@ document.addEventListener('submit', async (e) => {
     e.preventDefault();
     location.hash = `#/search?q=${encodeURIComponent($('#q').value.trim())}`;
   }
+  if (e.target.id === 'addBrand') {
+    e.preventDefault();
+    const v = new FormData(e.target).get('b').toString().trim();
+    if (v && !prefs.customBrands.some((b) => b.toLowerCase() === v.toLowerCase())) { prefs.customBrands.push(v); saveCustom(); toast(`Added ${v}`); }
+    return render({ quiet: true });
+  }
   if (e.target.id === 'addSource') {
     e.preventDefault();
     const f = new FormData(e.target);
@@ -732,7 +860,9 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
   if (!navigator.onLine) $('#offlineBanner').hidden = false;
   await detectMode();
   await loadMeta();
-  render();
+  await render();
+  const sp = document.getElementById('splash');
+  if (sp) { sp.classList.add('out'); setTimeout(() => sp.remove(), 500); }
   if (app.mode === 'server') connectEvents();
   setInterval(async () => { if (app.mode === 'static') await loadStatic(true).catch(() => {}); loadMeta(); }, app.mode === 'static' ? 180e3 : 60e3);
   setInterval(() => { updateLive(); document.querySelectorAll('time[datetime]').forEach((t) => (t.textContent = ago(t.getAttribute('datetime')))); }, 30e3);

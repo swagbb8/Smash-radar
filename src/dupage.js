@@ -23,17 +23,23 @@ export const ROADS = [
 
 export const INCIDENT_TYPES = [
   ['metra', 'Metra', /\b(Metra|BNSF line|UP-W|Union Pacific West|Milwaukee District|train (delay|crash|hit|struck))/i],
-  ['emergency', 'Emergency', /\b(evacuat\w*|hazmat|gas leak|explosion|shelter in place|lockdown|amber alert|missing (child|teen|man|woman|person)|endangered)\b/i],
+  ['missing', 'Missing Person', /\b(missing (child|teen|boy|girl|man|woman|person|senior)|endangered missing|amber alert|silver alert|last seen)\b/i],
+  ['emergency', 'Emergency', /\b(evacuat\w*|hazmat|gas leak|explosion|shelter in place|lockdown)\b/i],
   ['fire', 'Fire', /\b(fire|blaze|flames|firefighters|arson|smoke)\b/i],
   ['crash', 'Crash', /\b(crash\w*|collision|wreck|rollover|hit-and-run|struck by|jackknif\w*|pedestrian (hit|killed|struck))\b/i],
   ['police', 'Police', /\b(police|shooting|shot|stabb\w*|arrest\w*|charged|robbery|burglary|homicide|carjack\w*|SWAT|suspect|sheriff)\b/i],
   ['flooding', 'Flooding', /\b(flood\w*|water rescue|high water)\b/i],
-  ['weather', 'Weather', /\b(tornado|severe (weather|thunderstorm)|thunderstorm|winter storm|blizzard|ice storm|heat advisory|wind advisory|freeze warning|dense fog|weather (warning|watch|advisory))\b/i],
+  ['weather', 'Weather', /\b(tornado|severe (weather|thunderstorm)|thunderstorm|winter storm|blizzard|ice storm|heat advisory|wind advisory|freeze warning|dense fog|weather (warning|watch|advisory)|hydrologic)\b/i],
+  ['trees', 'Downed Trees', /\b(downed (tree|trees|power lines|wires)|trees? (down|fell|fallen|toppled)|fallen trees?|storm damage)\b/i],
   ['outage', 'Outage', /\b(outage|without power|power (is )?restored|ComEd|water main|boil order)\b/i],
-  ['closure', 'Closure', /\b(closed|closure|shut down|lanes? blocked|detour|road closed)\b/i],
+  ['closure', 'Closure', /\b(road closed|closure|shut down|lanes? blocked|detour|closed (to traffic|lanes?|ramps?))\b/i],
   ['construction', 'Construction', /\b(construction|road ?work|resurfac\w*|lane reduction|IDOT|tollway project|bridge work)\b/i],
-  ['traffic', 'Traffic', /\b(traffic|backup|backed up|delays?|congestion|gridlock)\b/i],
+  ['traffic', 'Traffic', /\b(traffic|backup|backed up|congestion|gridlock)\b/i],
+  ['school', 'Schools', /\b(school (closed|closure|closing|cancel\w*|lockdown|board|district)|e-learning day|classes cancel\w*|District \d{2,3})\b/i],
   ['safety', 'Public Safety', /\b(alert|warning|advisory|scam|recall)\b/i],
+  ['business', 'New Business', /\b(grand opening|now open|opens?|opening|ribbon[- ]cutting|new (store|restaurant|location|business)|closing|to close|closes)\b/i],
+  ['development', 'Development', /\b(development|redevelopment|zoning|plan commission|village board|city council|approved|proposal|apartments|construction of|groundbreaking|breaks ground)\b/i],
+  ['event', 'Events', /\b(festival|fest\b|parade|fair|concert|market|tours?|celebration|fundraiser|5K|event)\b/i],
 ];
 
 const IL_CONTEXT = /\b(Illinois|Ill\.|IL\b(?!-)|Chicago|Chicagoland|suburban Chicago|west suburb\w*|northwest suburb\w*|Cook County|Will County|Kane County)/i;

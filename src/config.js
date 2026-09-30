@@ -13,7 +13,7 @@ export const CATEGORIES = [
   { id: 'tech', label: 'Tech', icon: '📱' },
   { id: 'auto', label: 'Automotive', icon: '🚗' },
   { id: 'gaming', label: 'Gaming', icon: '🎮' },
-  { id: 'energy', label: 'Energy Drinks', icon: '⚡' },
+  { id: 'energy', label: 'Drinks', icon: '🥤' },
   { id: 'fitness', label: 'Fitness', icon: '🏋️' },
   { id: 'food', label: 'Food', icon: '🍔' },
   { id: 'clothing', label: 'Clothing & Shoes', icon: '👟' },
@@ -65,7 +65,7 @@ Nintendo|gaming|Switch 2,Nintendo Switch,Super Mario,Zelda,Pokémon,Pokemon
 PlayStation|gaming|PS5,PS Plus,PlayStation 5
 Xbox|gaming|Game Pass
 Steam|gaming|Steam Deck,Valve Corp
-Fortnite|gaming|Epic Games
+Fortnite|gaming|
 Call of Duty|gaming|
 GTA|gaming|GTA 6,GTA VI,Grand Theft Auto,Rockstar Games
 EA Sports|gaming|Madden NFL,EA FC,EA Sports FC
@@ -74,10 +74,9 @@ Monster|energy|Monster Energy,Monster Ultra
 Red Bull|energy|
 Celsius|energy|
 GHOST|energy|Ghost Energy,Ghost Lifestyle
-C4|energy|C4 Energy,Cellucor
+C4|energy|C4 Energy
 Alani Nu|energy|
 PRIME|energy|Prime Hydration,Prime Energy
-Rockstar Energy|energy|
 Bang|energy|Bang Energy
 Reign|energy|Reign Energy
 3D Energy|energy|
@@ -117,6 +116,53 @@ Lowe's|retail|
 GameStop|retail|
 Trader Joe's|retail|
 Aldi|retail|
+Liquid I.V.|energy|Liquid IV,LiquidIV
+5-hour Energy|energy|5 Hour Energy
+NOS Energy|energy|NOS energy drink
+Full Throttle|energy|Full Throttle energy
+Venom Energy|energy|
+Arizona|energy|AriZona,Arizona Iced Tea,Arizona Beverages
+Jocko Fuel|energy|Jocko
+Rockstar|energy|
+KFC|food|Kentucky Fried Chicken
+Gorilla Mode|fitness|
+Redcon1|fitness|
+Cellucor|fitness|
+MuscleTech|fitness|
+Dymatize|fitness|
+Kaged|fitness|
+Transparent Labs|fitness|
+Legion Athletics|fitness|
+JYM|fitness|JYM Supplement
+Reebok|clothing|
+xAI|tech|Grok
+HP|tech|Hewlett-Packard,HP Inc
+ASUS|tech|ROG Ally
+Acer|tech|Predator Helios
+Logitech|tech|
+Beats|tech|Beats by Dre,Powerbeats,Beats Studio,Beats Solo
+Chrysler|auto|Pacifica
+Mazda|auto|Miata,MX-5
+Volkswagen|auto|VW
+Audi|auto|
+Lucid|auto|Lucid Motors,Lucid Air,Lucid Gravity
+Epic Games|gaming|Epic Games Store
+EA|gaming|Electronic Arts
+Activision|gaming|
+Ubisoft|gaming|Assassin's Creed
+Bethesda|gaming|Elder Scrolls,Fallout
+Unreal Engine|gaming|
+Sam's Club|retail|Sams Club
+Dick's Sporting Goods|retail|Dicks Sporting Goods
+AutoZone|retail|
+O'Reilly Auto Parts|retail|O'Reilly Auto
+Advance Auto Parts|retail|
+GM|auto|General Motors
+Cadillac|auto|Escalade,Lyriq
+Buick|auto|
+Lincoln|auto|Lincoln Navigator
+Land Rover|auto|Range Rover,Defender
+Lexus|auto|
 `;
 
 // Brands whose names are also everyday words need topical context nearby to count.
@@ -128,6 +174,14 @@ export const BRAND_CONTEXT = {
   prime: /hydration|energy drink|Logan Paul|KSI|drink/i,
   bang: /energy|drink|Bang Energy|beverage/i,
   reign: /energy|drink|beverage/i,
+  hp: /laptop|printer|PC|computer|Chromebook|OmniBook|Pavilion|Spectre|EliteBook|HP Inc|Hewlett/i,
+  beats: /headphone|earbud|Beats by|Powerbeats|Studio|Solo|Pill|speaker|Apple/i,
+  lucid: /Motors|Air|Gravity|EV|electric|sedan|SUV/i,
+  arizona: /tea|drink|beverage|can|AriZona|99|flavor/i,
+  ea: /game|Sports|FC|Madden|Battlefield|Apex|Sims|studio/i,
+  rockstar: /energy|drink|flavor|Rockstar Energy/i,
+  lincoln: /Navigator|Aviator|Nautilus|Corsair|Ford|vehicle|SUV|recall|dealer|Motor/i,
+  gm: /General Motors|vehicle|truck|recall|Chevrolet|Cadillac|GMC|Buick|EV|Barra|plant|UAW/i,
   ryse: /supplement|pre-?workout|protein|energy|flavor/i,
   ram: /truck|pickup|Stellantis|1500|2500|HD\b|dealer|recall/i,
   target: /store|retail|shopper|Target Corp|Target's|at Target|Target Circle|retailer/i,
@@ -296,6 +350,19 @@ const discovery = [
   ['deals', 'deals', 'normal', 'deal OR sale OR "price drop" Apple OR Samsung OR Nike OR PlayStation OR Xbox'],
   ['recalls-food', 'recalls', 'normal', 'recall food OR drink OR supplement OR product FDA OR CPSC'],
   ['openings', 'openings', 'slow', '"grand opening" OR "new store" Costco OR Target OR Walmart OR "7 Brew" OR "Chick-fil-A" Illinois'],
+  ['drinks-brands-2', 'energy', 'slow', '"Liquid I.V." OR "5-hour Energy" OR "Venom Energy" OR "Full Throttle" OR "Jocko Fuel" OR AriZona new flavor OR launch'],
+  ['drinks-brands-3', 'energy', 'slow', 'PRIME OR "Bucked Up" OR "3D Energy" OR Reign OR Bang OR Rockstar energy drink new'],
+  ['fitness-brands-2', 'fitness', 'slow', 'Redcon1 OR MuscleTech OR Dymatize OR Kaged OR "Transparent Labs" OR "Gorilla Mode" OR JYM new OR launch OR flavor'],
+  ['tech-brands-2', 'tech', 'slow', 'Dell OR HP OR Lenovo OR ASUS OR Acer OR Logitech OR Bose OR Beats OR Garmin OR GoPro OR DJI new OR launch OR announces'],
+  ['tech-rumors', 'tech', 'normal', 'iPhone OR Galaxy OR Pixel OR PlayStation OR Switch leak OR rumor'],
+  ['auto-brands-2', 'auto', 'slow', 'Honda OR Nissan OR Subaru OR Mazda OR Hyundai OR Kia OR Volkswagen OR BMW OR Audi OR Porsche OR Rivian OR Lucid new OR reveal'],
+  ['auto-muscle', 'auto', 'slow', 'Mustang OR Camaro OR Charger OR Challenger OR Corvette new OR engine OR reveal'],
+  ['gaming-publishers', 'gaming', 'slow', '"Epic Games" OR "Rockstar Games" OR EA OR Activision OR Ubisoft OR Bethesda OR Valve announces OR release'],
+  ['gaming-franchises', 'gaming', 'normal', '"Call of Duty" OR GTA OR Fortnite OR Minecraft OR Pokémon new OR update OR release'],
+  ['retail-auto', 'retail', 'slow', '"Sam\'s Club" OR "Dick\'s Sporting Goods" OR GameStop OR AutoZone OR "O\'Reilly Auto Parts" OR "Advance Auto Parts" OR "Home Depot" OR "Lowe\'s" news'],
+  ['food-discontinued', 'food', 'slow', 'discontinued OR "limited time" OR "returning" McDonald\'s OR KFC OR Popeyes OR Chipotle OR "Raising Cane\'s" OR "Burger King"'],
+  ['dupage-schools-events', 'dupage', 'normal', 'DuPage OR Naperville OR Wheaton OR Elmhurst OR Lombard school closed OR "missing" OR "downed trees" OR festival'],
+  ['dupage-development', 'dupage', 'slow', 'Naperville OR Wheaton OR "Downers Grove" OR "Oak Brook" OR Lombard OR Elmhurst development OR redevelopment OR "new business" OR closing'],
 ];
 
 const patchTowns = ['naperville', 'wheaton', 'glenellyn', 'downersgrove', 'lombard', 'elmhurst', 'hinsdale', 'darien', 'woodridge', 'lisle', 'westmont', 'bolingbrook'];
