@@ -54,6 +54,7 @@ jobs:
           AUTOPOST_QUIET_HOURS: ${{ vars.AUTOPOST_QUIET_HOURS }}
           AUTOPOST_RECAP_HOUR: ${{ vars.AUTOPOST_RECAP_HOUR }}
           AUTOPOST_RECAP: ${{ vars.AUTOPOST_RECAP }}
+          AUTOPOST_WEEKLY: ${{ vars.AUTOPOST_WEEKLY }}
           AUTOPOST_SINGLES: ${{ vars.AUTOPOST_SINGLES }}
 
       - name: Auto-post — render images

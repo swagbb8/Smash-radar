@@ -444,6 +444,7 @@ const views = {
     const ap = app.meta?.autopost;
     html += `<div class="box"><h5>Instagram auto-post</h5>${ap?.last ? `On · ${ap.today} post${ap.today === 1 ? '' : 's'} today · last: ${esc(ap.last.kind === 'recap' ? 'Daily Recap' : 'story')} ${ago(ap.last.at)}` : 'Off — add your Instagram connection in the GitHub repo secrets to turn it on.'}${ap?.lastError ? `<div class="err" style="color:var(--breaking);font-size:12.5px;margin-top:4px">Last error: ${esc(ap.lastError.error)}</div>` : ''}</div>`;
     html += `<button class="recap-card" data-action="recap"><span class="big">📡</span><span><b>Daily Recap carousel</b><br><span class="muted">Cover slide + today's top 5 stories, ready to post as one carousel</span></span><span class="go">Make →</span></button>`;
+    html += `<button class="recap-card week" data-action="recap-week"><span class="big">🗓️</span><span><b>Weekly Recap carousel</b><br><span class="muted">This week's biggest story from each category — up to 9 slides + cover</span></span><span class="go">Make →</span></button>`;
     const groups = [
       ['🚨', 'Breaking', (x) => x.status === 'BREAKING'],
       ['📍', 'DuPage', (x) => x.location && ['confirmed', 'verified'].includes(x.location.status)],
@@ -588,6 +589,17 @@ async function copyText(t) {
     try { document.execCommand('copy'); } catch {} ta.remove(); return false;
   }
 }
+// Weekly: rank by how big a story got (coverage, breaking, recalls), not just how recent.
+function pickWeekly(all) {
+  const weekAgo = Date.now() - 7 * 864e5;
+  const pool = all.filter((x) => Date.parse(x.publishedAt || x.discoveredAt) > weekAgo && !x.tags.includes('RUMOR') && !x.tags.includes('LEAK'));
+  const big = (x) => (x.alsoReportedBy?.length || 0) * 10 + (x.tags.includes('TRENDING') ? 20 : 0) + (x.status === 'BREAKING' ? 15 : 0) + (x.tags.includes('RECALL') ? 8 : 0) + (x.tags.includes('LAUNCH') ? 6 : 0) + (x.official ? 5 : 0) + (x.location && ['confirmed', 'verified'].includes(x.location.status) ? 8 : 0) + (x.imageUrl ? 4 : 0) + x.score / 20;
+  const ranked = pool.slice().sort((a, b) => big(b) - big(a));
+  const out = []; const cats = new Set();
+  for (const x of ranked) { if (out.length >= 9) break; if (!cats.has(x.category)) { out.push(x); cats.add(x.category); } }
+  for (const x of ranked) { if (out.length >= 9) break; if (!out.includes(x)) out.push(x); }
+  return out;
+}
 function pickRecap(all) {
   const today = dayKey(Date.now());
   const pool = all.filter((x) => x.status !== 'EARLIER' && (dayKey(x.publishedAt || x.discoveredAt) === today || ['NEW', 'BREAKING', 'UPDATED'].includes(x.status)));
@@ -597,11 +609,11 @@ function pickRecap(all) {
   for (const x of src) { if (out.length >= 5) break; if (!out.includes(x)) out.push(x); }
   return out;
 }
-async function openPostStudio({ ids = [], recap = false, format = 'feed' }) {
-  postState = { ids, recap, format, files: [], caption: '' };
+async function openPostStudio({ ids = [], recap = false, weekly = false, format = 'feed' }) {
+  postState = { ids, recap, weekly, format, files: [], caption: '' };
   const sheet = $('#sheet');
   sheet.innerHTML = `<div class="grab"></div><button class="close" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    <div class="sheet-title">${recap ? 'Daily Recap' : 'Make a Post'}</div>
+    <div class="sheet-title">${recap ? (weekly ? 'Weekly Recap' : 'Daily Recap') : 'Make a Post'}</div>
     <div class="content" style="padding-top:0"><div class="chips" style="margin:0 0 12px">${Object.entries({ feed: 'Feed 4:5', story: 'Story 9:16' }).map(([k, l]) => `<button class="chip ${format === k ? 'on' : ''}" data-fmt="${k}">${l}</button>`).join('')}</div>
     <div class="post-previews" id="postPreviews"><div class="skeleton" style="aspect-ratio:${format === 'feed' ? '4/5' : '9/16'};width:${recap ? '78%' : '100%'};max-width:420px"></div></div>
     <div class="post-actions"><button class="btn primary" data-action="share-post" id="shareBtn" disabled>Rendering…</button><button class="btn" data-action="copy-caption">Copy caption</button></div>
@@ -615,19 +627,19 @@ async function openPostStudio({ ids = [], recap = false, format = 'feed' }) {
     postMod ||= await import('./post.js');
     let stories;
     if (recap) {
-      const all = (await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`)).stories;
-      stories = pickRecap(all);
+      const all = (await api(`/api/stories?${qs({ view: weekly ? 'week' : 'all', limit: 200 })}`)).stories;
+      stories = weekly ? pickWeekly(all) : pickRecap(all);
     } else {
       stories = await Promise.all(ids.map(async (id) => app.stories.get(id) || api(`/api/stories/${encodeURIComponent(id)}`)));
     }
     const canvases = recap
-      ? [await postMod.renderRecapCover(stories, format), ...(await Promise.all(stories.map((x, i) => postMod.renderStoryPost(x, format, { slide: `${i + 2}/${stories.length + 1}` }))))]
+      ? [await postMod.renderRecapCover(stories, format, weekly ? "THIS WEEK'S NEWS" : "TODAY'S NEWS", weekly ? postMod.weekRange() : null), ...(await Promise.all(stories.map((x, i) => postMod.renderStoryPost(x, format, { slide: `${i + 2}/${stories.length + 1}` }))))]
       : await Promise.all(stories.map((x) => postMod.renderStoryPost(x, format)));
     const blobs = await Promise.all(canvases.map(postMod.toBlob));
-    if (postState.ids !== ids || postState.format !== format || postState.recap !== recap) return; // superseded
+    if (postState.ids !== ids || postState.format !== format || postState.recap !== recap || postState.weekly !== weekly) return; // superseded
     const stamp = new Date().toISOString().slice(0, 10);
-    postState.files = blobs.map((b, i) => new File([b], `smash-radar-${stamp}-${recap ? 'recap' : (stories[0].id)}-${i + 1}.jpg`, { type: 'image/jpeg' }));
-    postState.caption = recap ? postMod.recapCaption(stories) : postMod.captionFor(stories[0]);
+    postState.files = blobs.map((b, i) => new File([b], `smash-radar-${stamp}-${recap ? (weekly ? 'weekly' : 'recap') : (stories[0].id)}-${i + 1}.jpg`, { type: 'image/jpeg' }));
+    postState.caption = recap ? postMod.recapCaption(stories, weekly) : postMod.captionFor(stories[0]);
     $('#postPreviews').innerHTML = postState.files.map((f) => `<img src="${URL.createObjectURL(f)}" alt="Post preview" class="${format}">`).join('');
     $('#postCaption').value = postState.caption;
     const btn = $('#shareBtn');
@@ -880,6 +892,7 @@ document.addEventListener('click', async (e) => {
   const a = t.dataset.action;
   if (a === 'close') return closeSheet();
   if (a === 'recap') return openPostStudio({ recap: true });
+  if (a === 'recap-week') return openPostStudio({ recap: true, weekly: true });
   if (a === 'share-post') return sharePost();
   if (a === 'copy-caption') { await copyText($('#postCaption').value); return toast('Caption copied'); }
   if (a === 'close-nav') return closeSheet();

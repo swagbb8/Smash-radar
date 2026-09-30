@@ -26,6 +26,9 @@ const CFG = {
   quiet: env('AUTOPOST_QUIET_HOURS', '23-7'), // no non-urgent posts overnight (Central)
   recapHour: Number(env('AUTOPOST_RECAP_HOUR', 19)), // 7 PM Central
   recap: env('AUTOPOST_RECAP', 'on') !== 'off',
+  weekly: env('AUTOPOST_WEEKLY', 'on') !== 'off',
+  weeklyDay: env('AUTOPOST_WEEKLY_DAY', 'Sun'), // Sun, Mon, …
+  weeklyHour: Number(env('AUTOPOST_WEEKLY_HOUR', 18)),
   singles: env('AUTOPOST_SINGLES', 'on') !== 'off',
   photos: env('AUTOPOST_PHOTOS', 'off') === 'on', // publisher photos are copyrighted — off by default
   format: env('AUTOPOST_FORMAT', 'feed'),
@@ -65,6 +68,19 @@ function plan() {
     for (const s of pool.slice().sort((a, b) => b.score - a.score)) { if (picks.length < 5 && !cats.has(s.category)) { picks.push(s); cats.add(s.category); } }
     for (const s of pool) { if (picks.length >= 5) break; if (!picks.includes(s)) picks.push(s); }
     if (picks.length >= 3) planned.push({ kind: 'recap', storyIds: picks.map((s) => s.id) });
+  }
+  // Weekly recap carousel (default Sunday 6 PM)
+  const weekday = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' }).format(new Date());
+  const lastWeekly = log.posts.filter((p) => p.kind === 'weekly').at(-1);
+  if (CFG.weekly && !planned.length && weekday === CFG.weeklyDay && hourNow() >= CFG.weeklyHour && (!lastWeekly || Date.now() - Date.parse(lastWeekly.at) > 5 * 864e5)) {
+    const weekAgo = Date.now() - 7 * 864e5;
+    const pool = stories.filter((s) => Date.parse(s.publishedAt || s.discoveredAt) > weekAgo && !s.tags.includes('RUMOR') && !s.tags.includes('LEAK'));
+    const big = (x) => (x.alsoReportedBy?.length || 0) * 10 + (x.tags.includes('TRENDING') ? 20 : 0) + (x.status === 'BREAKING' ? 15 : 0) + (x.tags.includes('RECALL') ? 8 : 0) + (x.tags.includes('LAUNCH') ? 6 : 0) + (x.official ? 5 : 0) + (x.location && ['confirmed', 'verified'].includes(x.location.status) ? 8 : 0) + x.score / 20;
+    const ranked = pool.slice().sort((a, b) => big(b) - big(a));
+    const picks = []; const cats = new Set();
+    for (const x of ranked) { if (picks.length < 9 && !cats.has(x.category)) { picks.push(x); cats.add(x.category); } }
+    for (const x of ranked) { if (picks.length >= 9) break; if (!picks.includes(x)) picks.push(x); }
+    if (picks.length >= 3) planned.push({ kind: 'weekly', storyIds: picks.map((x) => x.id) });
   }
   // Single posts: real breaking news + verified, urgent DuPage incidents
   const singlesToday = todays.filter((p) => p.kind === 'single').length;
@@ -125,10 +141,11 @@ async function render() {
     const items = post.storyIds.map((id) => stories.find((s) => s.id === id)).filter(Boolean).map((s) => (CFG.photos ? s : { ...s, imageUrl: null }));
     const result = await page.evaluate(async ({ items, kind, format }) => {
       const m = await import('./post.js');
-      const canv = kind === 'recap'
-        ? [await m.renderRecapCover(items, format), ...(await Promise.all(items.map((s, i) => m.renderStoryPost(s, format, { slide: `${i + 2}/${items.length + 1}` }))))]
+      const multi = kind === 'recap' || kind === 'weekly';
+      const canv = multi
+        ? [await m.renderRecapCover(items, format, kind === 'weekly' ? "THIS WEEK'S NEWS" : "TODAY'S NEWS", kind === 'weekly' ? m.weekRange() : null), ...(await Promise.all(items.map((s, i) => m.renderStoryPost(s, format, { slide: `${i + 2}/${items.length + 1}` }))))]
         : [await m.renderStoryPost(items[0], format)];
-      return { images: canv.map((c) => c.toDataURL('image/jpeg', 0.92)), caption: kind === 'recap' ? m.recapCaption(items) : m.captionFor(items[0]) };
+      return { images: canv.map((c) => c.toDataURL('image/jpeg', 0.92)), caption: multi ? m.recapCaption(items, kind === 'weekly') : m.captionFor(items[0]) };
     }, { items, kind: post.kind, format: CFG.format });
     post.files = result.images.map((d, i) => {
       const name = `${post.kind}-${stamp}-${i + 1}.jpg`;

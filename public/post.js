@@ -302,7 +302,12 @@ function drawFacts(ctx, p, x, y, maxW) {
 }
 
 /** Carousel cover: "Today's Radar" with numbered headlines. */
-export async function renderRecapCover(stories, format = 'feed', title = "TODAY'S NEWS") {
+export function weekRange() {
+  const f = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Chicago' });
+  const end = new Date();
+  return `${f(new Date(end - 6 * 864e5))} – ${f(end)}`;
+}
+export async function renderRecapCover(stories, format = 'feed', title = "TODAY'S NEWS", subtitle = null) {
   await ensureFonts();
   const { w: W, h: H } = FORMATS[format];
   const cv = document.createElement('canvas');
@@ -327,7 +332,7 @@ export async function renderRecapCover(stories, format = 'feed', title = "TODAY'
   y += ts * 0.95;
   ctx.font = `700 44px ${DISPLAY}`;
   ctx.fillStyle = C.lime;
-  ctx.fillText(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago' }).toUpperCase(), M, y);
+  ctx.fillText((subtitle || new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago' })).toUpperCase(), M, y);
   y += 70;
   const maxW = W - M * 2 - 90;
   for (const [i, s] of stories.slice(0, format === 'story' ? 7 : 5).entries()) {
@@ -341,6 +346,8 @@ export async function renderRecapCover(stories, format = 'feed', title = "TODAY'
     for (const l of lines) { ly += 48; ctx.fillText(l, M + 90, ly); }
     y = ly + 44;
   }
+  const shown = format === 'story' ? 7 : 5;
+  if (stories.length > shown) { ctx.font = `700 36px ${DISPLAY}`; ctx.fillStyle = C.lime; ctx.fillText(`+ ${stories.length - shown} MORE INSIDE`, M + 90, Math.min(y + 10, H - 150)); }
   ctx.font = `700 34px ${DISPLAY}`;
   ctx.fillStyle = C.text2;
   ctx.fillText('SWIPE FOR THE DETAILS  →', M, H - 90);
@@ -380,8 +387,8 @@ export function captionFor(s) {
   return parts.join('\n');
 }
 
-export function recapCaption(stories) {
-  const date = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago' });
-  const lines = [`📡 TODAY'S NEWS — ${date}`, '', ...stories.map((s, i) => `${i + 1}. ${s.title}`), '', 'Swipe for the details 👉', '', `Sources: ${[...new Set(stories.map((s) => s.sourceName))].join(', ')}`, '', '#SmashNews #EverythingNew #DailyNews #WhatsNew'];
+export function recapCaption(stories, weekly = false) {
+  const date = weekly ? weekRange() : new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago' });
+  const lines = [`📡 ${weekly ? "THIS WEEK'S NEWS" : "TODAY'S NEWS"} — ${date}`, '', ...stories.map((s, i) => `${i + 1}. ${s.title}`), '', 'Swipe for the details 👉', '', `Sources: ${[...new Set(stories.map((s) => s.sourceName))].join(', ')}`, '', weekly ? '#SmashNews #EverythingNew #WeeklyRecap #ThisWeek #WhatsNew' : '#SmashNews #EverythingNew #DailyNews #WhatsNew'];
   return lines.join('\n');
 }
