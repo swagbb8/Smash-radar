@@ -1,11 +1,11 @@
 // SMASH RADAR service worker — offline app shell + last-sweep data fallback.
-const VERSION = 'sr-v2.2.0';
+const VERSION = 'sr-v2.3.0';
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const IMG = 'sr-img';
 // Paths are relative to the SW scope so the app also works under a subpath (e.g. GitHub Pages /smash-radar/).
 const BASE = new URL('./', self.location).pathname;
-const SHELL_FILES = ['', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'].map((f) => BASE + f);
+const SHELL_FILES = ['', 'index.html', 'styles.css', 'app.js', 'post.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'].map((f) => BASE + f);
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(SHELL_FILES)).then(() => self.skipWaiting()));

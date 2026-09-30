@@ -196,6 +196,7 @@ export const BRAND_CONTEXT = {
 const BRAND_NEGATIVE = {
   ford: /\b(Harrison|Doug|Tom|Gerald|Betty|Christine Blasey) Ford\b|Ford Foundation|Ford's Theatre|Henry Ford (Hospital|Health)/,
   apple: /Big Apple|apple pie|Apple Hill/,
+  honda: /Honda Center|Honda Classic|Honda Battle|American Honda Motor Ice/,
 };
 export { BRAND_NEGATIVE };
 

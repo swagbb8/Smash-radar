@@ -427,3 +427,20 @@ details.rejected .r span { display: block; color: var(--text-3); font-size: 12px
 #splash .word { font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: .06em; }
 #splash .word b { color: var(--accent); }
 #splash .tag { color: var(--text-3); font-size: 13px; margin-top: -10px; letter-spacing: .04em; }
+
+/* ---------- Post Studio ---------- */
+.post-previews { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; scrollbar-width: none; }
+.post-previews::-webkit-scrollbar { display: none; }
+.post-previews img { flex: 0 0 auto; width: 100%; max-width: 420px; border-radius: 14px; border: 1px solid var(--line-2); scroll-snap-align: start; -webkit-touch-callout: default; }
+.post-previews img:not(:only-child) { width: 78%; }
+.post-actions { display: flex; gap: 10px; margin: 14px 0 4px; }
+.post-actions .btn.primary:disabled { opacity: .6; }
+.caption { width: 100%; background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; color: var(--text); font: 14px/1.45 var(--sans); padding: 12px; resize: vertical; margin-bottom: 8px; }
+.recap-card { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 16px; margin: 4px 0 8px; border-radius: 18px; border: 1px solid rgba(198,255,61,.3); background: radial-gradient(120% 140% at 0% 0%, rgba(198,255,61,.16), transparent 60%), var(--panel); }
+.recap-card .big { font-size: 34px; }
+.recap-card b { font-size: 16px; }
+.recap-card .muted { font-size: 13px; }
+.recap-card .go { margin-left: auto; color: var(--accent); font-weight: 700; white-space: nowrap; }
+.post-row { grid-template-columns: 64px 1fr auto; align-items: center; }
+.post-row .thumb { width: 64px; height: 64px; }
+.btn.primary-lite { background: rgba(198,255,61,.12); border-color: rgba(198,255,61,.35); color: var(--accent); }

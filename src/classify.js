@@ -28,7 +28,8 @@ const RX = {
   product: /\b(launch(es|ed|ing)?|unveil(s|ed|ing)?|introduc(es|ed|ing)|debut(s|ed)?|new flavou?rs?|limited[- ]edition|now available|drops? (today|this|on|in)|releases?d?|reveal(s|ed)?|pre-?orders?|coming soon|returns? (to|for)|rolls? out|new (menu|item|product|phone|model|shoe|sneaker|colorway|game|console|GPU|chip|laptop|watch|drink|flavor|collection|trailer|update)|first look|announces? (new|the|its))\b/i,
   opening: /\b(grand opening|now open|opens? (its|a|new|first|in|on|this)|opening (soon|date|day|in)|set to open|to open (in|on|this|next)|ribbon[- ]cutting|new location|coming to|breaks? ground)\b/i,
   closing: /\b(closing (its|all|stores?|locations?|down)|store closures?|to close (its|all|\d+)|shutting down)\b/i,
-  breaking: /\b(breaking|just in|developing|live updates?|urgent|killed|dead|dies|explosion|shooting|earthquake|evacuat\w*|state of emergency|tornado warning|hurricane|wildfire|manhunt|active shooter|plane crash)\b/i,
+  breaking: /(^|\W)(breaking news|breaking:|just in|developing( story)?:?|live updates?|active shooter|state of emergency|tornado warning|evacuat\w+|explosion|earthquake|manhunt|plane crash|mass shooting|(?:\d+|two|three|four|five|six|several|multiple|many|dozens?) (?:people )?(?:dead|killed|injured|hurt|wounded)|shooting (?:at|in|near)|hurricane (?:makes landfall|warning)|wildfire (?:forces|spreads))\b/i,
+  notBreaking: /\b(in case you missed it|ICYMI|recap|review|preview|podcast|opinion|how to|explained|guide|breaking point|breaking bad|breaking dawn|red dead)\b/i,
   limited: /\b(limited[- ](edition|time|run|release|drop|quantities)|while supplies last|for a limited time|exclusive drop|only \d[\d,]* (units|made))\b/i,
   discontinued: /\b(discontinu\w*|no longer (be )?(available|sold|offered|making)|being pulled|pulled from (menus|shelves)|axed|farewell to|last chance|phas(e|ing) out)\b/i,
   rumor: /\b(rumou?r(s|ed)?|reportedly|tipped|unconfirmed|could launch|may launch|expected to (launch|announce|reveal))\b/i,
@@ -42,7 +43,7 @@ export function detectFlags(text, sourceCategory) {
   const opening = RX.opening.test(text);
   const closing = RX.closing.test(text);
   const product = RX.product.test(text) && !recall;
-  const breaking = RX.breaking.test(text);
+  const breaking = RX.breaking.test(text) && !RX.notBreaking.test(text);
   const limited = RX.limited.test(text);
   const discontinued = RX.discontinued.test(text);
   const leak = RX.leak.test(text);

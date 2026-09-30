@@ -148,6 +148,7 @@ const NAV = [
   { r: 'openings', label: 'Openings', ic: '🏪' },
   { group: 'You' },
   { r: 'foryou', label: 'For You', ic: '✨' },
+  { r: 'posts', label: 'Post Studio', ic: '📸' },
   { r: 'brands', label: 'My Brands', ic: '⭐' },
   { r: 'favorites', label: 'Favorites', ic: '🔖' },
   { r: 'search', label: 'Search', ic: '🔎' },
@@ -436,6 +437,27 @@ const views = {
     return html;
   },
 
+  async posts() {
+    const all = (await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`)).stories;
+    if (!all.length) return viewHead('Post Studio') + (noDataYet() || empty('📸', 'Nothing to post yet', 'Posts appear after the first sweep.'));
+    let html = viewHead('Post Studio', 'Turn any story into an Instagram post. Tap a story → Share → Instagram (or Save to Photos). The caption is copied for you.');
+    html += `<button class="recap-card" data-action="recap"><span class="big">📡</span><span><b>Daily Recap carousel</b><br><span class="muted">Cover slide + today's top 5 stories, ready to post as one carousel</span></span><span class="go">Make →</span></button>`;
+    const groups = [
+      ['🚨', 'Breaking', (x) => x.status === 'BREAKING'],
+      ['📍', 'DuPage', (x) => x.location && ['confirmed', 'verified'].includes(x.location.status)],
+      ['📦', 'New Products', (x) => x.tags.includes('LAUNCH') || x.tags.includes('LIMITED')],
+      ['💰', 'Deals', (x) => x.tags.includes('DEAL')],
+      ['⚠️', 'Recalls', (x) => x.tags.includes('RECALL')],
+      ['🔥', 'Trending', (x) => x.tags.includes('TRENDING') || x.alsoReportedBy.length >= 2],
+    ];
+    for (const [ic, label, fn] of groups) {
+      const items = all.filter(fn).slice(0, 6);
+      if (!items.length) continue;
+      html += section(label, ic, null, `<div class="rows">${items.map((x) => { app.stories.set(x.id, x); return `<div class="row post-row"><div class="thumb">${media(x)}</div><div><div class="meta"><span class="badge ${x.status}">${x.status}</span><span>${esc(x.sourceName)}</span><span>${ago(x.publishedAt || x.discoveredAt)}</span></div><h4>${esc(x.title)}</h4></div><button class="btn small primary-lite" data-post="${esc(x.id)}">📸 Post</button></div>`; }).join('')}</div>`);
+    }
+    return html;
+  },
+
   async favorites() {
     const list = Object.values(prefs.saved).sort((a, b) => Date.parse(b.savedAt) - Date.parse(a.savedAt));
     return viewHead('Favorites', 'Stories you saved. Kept on this device — available offline.') +
@@ -545,6 +567,7 @@ async function openStory(id) {
       <div class="muted" style="font-size:12px">ID ${esc(s.id)} · via ${esc(s.feedName || s.sourceName)}${s.aiEnriched ? ' · summary polished by AI from source text' : ''}</div>
       <div class="actions">
         <a class="btn primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">Read original ↗</a>
+        <button class="btn" data-post="${esc(s.id)}" aria-label="Make Instagram post">📸</button>
         <button class="btn ${isSaved(s.id) ? 'on' : ''}" data-save="${esc(s.id)}" aria-label="Save">${STAR}</button>
         <button class="btn" data-action="share" data-id="${esc(s.id)}" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 13v7h14v-7"/></svg></button>
       </div>
@@ -554,6 +577,81 @@ async function openStory(id) {
   sheet.scrollTop = 0;
   document.body.style.overflow = 'hidden';
 }
+// ---------------- Post Studio (Instagram) ----------------
+let postMod = null;
+let postState = { ids: [], recap: false, format: 'feed', files: [], caption: '' };
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch {
+    const ta = Object.assign(document.createElement('textarea'), { value: t }); document.body.append(ta); ta.select();
+    try { document.execCommand('copy'); } catch {} ta.remove(); return false;
+  }
+}
+function pickRecap(all) {
+  const today = dayKey(Date.now());
+  const pool = all.filter((x) => x.status !== 'EARLIER' && (dayKey(x.publishedAt || x.discoveredAt) === today || ['NEW', 'BREAKING', 'UPDATED'].includes(x.status)));
+  const src = (pool.length >= 5 ? pool : all).slice().sort((a, b) => (b.imageUrl ? 8 : 0) + b.score - ((a.imageUrl ? 8 : 0) + a.score));
+  const out = []; const cats = new Set();
+  for (const x of src) { if (out.length >= 5) break; if (!cats.has(x.category)) { out.push(x); cats.add(x.category); } }
+  for (const x of src) { if (out.length >= 5) break; if (!out.includes(x)) out.push(x); }
+  return out;
+}
+async function openPostStudio({ ids = [], recap = false, format = 'feed' }) {
+  postState = { ids, recap, format, files: [], caption: '' };
+  const sheet = $('#sheet');
+  sheet.innerHTML = `<div class="grab"></div><button class="close" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="sheet-title">${recap ? 'Daily Recap' : 'Make a Post'}</div>
+    <div class="content" style="padding-top:0"><div class="chips" style="margin:0 0 12px">${Object.entries({ feed: 'Feed 4:5', story: 'Story 9:16' }).map(([k, l]) => `<button class="chip ${format === k ? 'on' : ''}" data-fmt="${k}">${l}</button>`).join('')}</div>
+    <div class="post-previews" id="postPreviews"><div class="skeleton" style="aspect-ratio:${format === 'feed' ? '4/5' : '9/16'};width:${recap ? '78%' : '100%'};max-width:420px"></div></div>
+    <div class="post-actions"><button class="btn primary" data-action="share-post" id="shareBtn" disabled>Rendering…</button><button class="btn" data-action="copy-caption">Copy caption</button></div>
+    <p class="muted" style="font-size:12.5px;margin:6px 0 10px">Share opens the iPhone share sheet: pick <b>Instagram</b> (Feed/Stories) or <b>Save Image</b>. The caption is copied automatically, so just paste it. You can also press and hold an image to save it.</p>
+    <textarea id="postCaption" class="caption" rows="9" spellcheck="false"></textarea></div>`;
+  $('#sheetBackdrop').hidden = false;
+  sheet.hidden = false;
+  sheet.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+  try {
+    postMod ||= await import('./post.js');
+    let stories;
+    if (recap) {
+      const all = (await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`)).stories;
+      stories = pickRecap(all);
+    } else {
+      stories = await Promise.all(ids.map(async (id) => app.stories.get(id) || api(`/api/stories/${encodeURIComponent(id)}`)));
+    }
+    const canvases = recap
+      ? [await postMod.renderRecapCover(stories, format), ...(await Promise.all(stories.map((x, i) => postMod.renderStoryPost(x, format, { slide: `${i + 2}/${stories.length + 1}` }))))]
+      : await Promise.all(stories.map((x) => postMod.renderStoryPost(x, format)));
+    const blobs = await Promise.all(canvases.map(postMod.toBlob));
+    if (postState.ids !== ids || postState.format !== format || postState.recap !== recap) return; // superseded
+    const stamp = new Date().toISOString().slice(0, 10);
+    postState.files = blobs.map((b, i) => new File([b], `smash-radar-${stamp}-${recap ? 'recap' : (stories[0].id)}-${i + 1}.jpg`, { type: 'image/jpeg' }));
+    postState.caption = recap ? postMod.recapCaption(stories) : postMod.captionFor(stories[0]);
+    $('#postPreviews').innerHTML = postState.files.map((f) => `<img src="${URL.createObjectURL(f)}" alt="Post preview" class="${format}">`).join('');
+    $('#postCaption').value = postState.caption;
+    const btn = $('#shareBtn');
+    btn.disabled = false;
+    btn.textContent = recap ? `Share ${postState.files.length} slides` : 'Share to Instagram';
+  } catch (err) {
+    $('#postPreviews').innerHTML = `<div class="empty"><p>Couldn't render this post: ${esc(err.message)}</p></div>`;
+  }
+}
+async function sharePost() {
+  const { files } = postState;
+  if (!files.length) return;
+  const caption = $('#postCaption').value;
+  copyText(caption);
+  if (navigator.canShare && navigator.canShare({ files })) {
+    try { await navigator.share({ files }); toast('Caption copied — paste it in Instagram'); } catch (err) { if (err.name !== 'AbortError') toast('Share failed — press and hold the image to save it'); }
+    return;
+  }
+  // Desktop fallback: download the images
+  for (const f of files) {
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(f), download: f.name });
+    document.body.append(a); a.click(); a.remove();
+  }
+  toast('Images downloaded · caption copied');
+}
+
 function closeSheet() {
   $('#sheet').hidden = true;
   $('#sheetBackdrop').hidden = true;
@@ -609,7 +707,7 @@ function updateLive() {
 
 function openMore() {
   const c = app.meta?.counts || {};
-  const items = [['breaking', '🔥', 'Breaking', c.BREAKING], ['dupage', '📍', 'DuPage', c.dupage], ['daily', '📡', "Today's Radar"], ['today', '🆕', 'Today', c.NEW], ['week', '📅', 'This Week'], ['products', '📦', 'Products', c.products], ['deals', '💰', 'Deals', c.deals], ['recalls', '⚠️', 'Recalls', c.recalls], ['openings', '🏪', 'Openings'], ['brands', '⭐', 'My Brands', prefs.brands.size || ''], ['favorites', '🔖', 'Favorites', Object.keys(prefs.saved).length || ''], ['search', '🔎', 'Search'], ['sources', '🩺', 'Sources']];
+  const items = [['posts', '📸', 'Post Studio'], ['daily', '📡', "Today's Radar"], ['today', '🆕', 'Today', c.NEW], ['week', '📅', 'This Week'], ['products', '📦', 'Products', c.products], ['deals', '💰', 'Deals', c.deals], ['recalls', '⚠️', 'Recalls', c.recalls], ['openings', '🏪', 'Openings'], ['brands', '⭐', 'My Brands', prefs.brands.size || ''], ['favorites', '🔖', 'Favorites', Object.keys(prefs.saved).length || ''], ['search', '🔎', 'Search'], ['sources', '🩺', 'Sources']];
   $('#sheet').innerHTML = `<div class="grab"></div><div class="sheet-title">More</div><div class="more-grid">${items.map(([r, ic, l, n]) => `<a href="#/${r}" data-action="close-nav"><span class="ic">${ic}</span>${l}${n ? `<span class="n">${n}</span>` : ''}</a>`).join('')}</div>`;
   $('#sheet').hidden = false;
   $('#sheetBackdrop').hidden = false;
@@ -741,9 +839,11 @@ function connectEvents() {
 
 // ---------------- events ----------------
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],.src-link');
+  const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],[data-post],[data-fmt],.src-link');
   if (!t) return;
   if (t.classList.contains('src-link')) return; // let links inside cards open normally
+  if (t.dataset.post) { e.preventDefault(); e.stopPropagation(); return openPostStudio({ ids: [t.dataset.post] }); }
+  if (t.dataset.fmt) return openPostStudio({ ...postState, format: t.dataset.fmt });
   if (t.dataset.jump) {
     const el = document.getElementById(t.dataset.jump);
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - ($('.topbar').offsetHeight + $('#catnav').offsetHeight + 8), behavior: 'smooth' });
@@ -777,6 +877,9 @@ document.addEventListener('click', async (e) => {
   }
   const a = t.dataset.action;
   if (a === 'close') return closeSheet();
+  if (a === 'recap') return openPostStudio({ recap: true });
+  if (a === 'share-post') return sharePost();
+  if (a === 'copy-caption') { await copyText($('#postCaption').value); return toast('Caption copied'); }
   if (a === 'close-nav') return closeSheet();
   if (a === 'more') return openMore();
   if (a === 'refresh') return refreshNow();

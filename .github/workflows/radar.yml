@@ -32,8 +32,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: data
-          key: radar-state-v4-${{ github.run_id }}
-          restore-keys: radar-state-v4-
+          key: radar-state-v5-${{ github.run_id }}
+          restore-keys: radar-state-v5-
 
       - name: Sweep sources + build site
         run: node scripts/build-static.js
@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: data
-          key: radar-state-v4-${{ github.run_id }}
+          key: radar-state-v5-${{ github.run_id }}
 
       - name: Publish to gh-pages
         run: |

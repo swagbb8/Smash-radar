@@ -228,7 +228,7 @@ export function computeStatus(s, nowMs = Date.now(), tz = 'America/Chicago') {
   const inc = s.location?.incident?.id;
   const urgentLocal = s.location && ['confirmed', 'verified'].includes(s.location.status) && ['fire', 'crash', 'emergency', 'metra'].includes(inc);
   const severeNws = s.nws && ['Extreme', 'Severe'].includes(s.nws.severity);
-  if ((s.flags?.breaking && age < 3 * H) || (urgentLocal && age < 4 * H) || severeNws || ((s.alsoReportedBy?.length || 0) >= 3 && age < 3 * H)) return 'BREAKING';
+  if ((s.flags?.breaking && age < 3 * H) || (urgentLocal && age < 4 * H) || severeNws) return 'BREAKING';
   if (s.lastChangedAt && nowMs - Date.parse(s.lastChangedAt) < 24 * H) return 'UPDATED';
   const discoveredToday = localDateKey(s.firstDiscoveredAt, tz) === localDateKey(nowMs, tz);
   if (discoveredToday && age < 36 * H) return 'NEW';
