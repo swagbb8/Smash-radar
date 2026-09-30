@@ -522,7 +522,7 @@ async function openStory(id) {
   let s = app.stories.get(id) || prefs.saved[id];
   try { s = await api(`/api/stories/${encodeURIComponent(id)}`); app.stories.set(id, s); } catch (e) { if (!s) return toast('Story no longer on the radar'); }
   const loc = s.location;
-  const changes = (s.changes || []).map((c) => `<div class="item"><div class="when">${esc(fmt(c.at))}</div>
+  const changes = (s.changes || []).map((c) => `<div class="item"><div class="when">${esc(fmt(c.at))}${c.via ? ` · via ${esc(c.via)}` : ""}</div>
     ${c.title ? `<div><span class="from">${esc(c.title.from)}</span><br><span class="to">→ ${esc(c.title.to)}</span></div>` : ''}
     ${c.summary ? `<div style="margin-top:6px"><span class="from">${esc(c.summary.from)}</span><br><span class="to">→ ${esc(c.summary.to)}</span></div>` : ''}</div>`).join('');
   const sheet = $('#sheet');

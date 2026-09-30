@@ -113,6 +113,7 @@ async function doRefresh(store, { force = false, trigger = 'schedule', deadlineM
     h.lastCheckedAt = new Date().toISOString();
     run.sourcesChecked++;
     try {
+      if (source.type === 'bing') await new Promise((r) => setTimeout(r, 400 + Math.random() * 1600));
       const { items, res, notModified } = await fetchSource(source, h);
       const st = ingest(state, items, source, Date.now());
       h.lastSuccessAt = new Date().toISOString();
@@ -142,14 +143,22 @@ async function doRefresh(store, { force = false, trigger = 'schedule', deadlineM
 
   // Enrichment: real article images + better summaries (bounded per run).
   if (process.env.ENRICH !== 'off') {
-    const queue = Object.values(state.stories)
+    const limit = Number(process.env.ENRICH_LIMIT || 40);
+    const pending = Object.values(state.stories)
       .filter((s) => s.needsEnrich && !s.enrichTried)
-      .sort((a, b) => Date.parse(b.publishedAt || b.firstDiscoveredAt) - Date.parse(a.publishedAt || a.firstDiscoveredAt))
-      .slice(0, Number(process.env.ENRICH_LIMIT || 40));
+      .sort((a, b) => Date.parse(b.publishedAt || b.firstDiscoveredAt) - Date.parse(a.publishedAt || a.firstDiscoveredAt));
+    const isGoogle = (s) => /news\.google\.com/.test(s.link);
+    const direct = pending.filter((s) => !isGoogle(s));
+    const google = pending.filter(isGoogle);
+    const gShare = Math.min(google.length, Math.ceil(limit / 4));
+    const queue = [...direct.slice(0, limit - gShare), ...google.slice(0, gShare)];
+    run.enrichAttempts = queue.length;
     onEvent({ type: 'enrich:start', total: queue.length });
     await mapLimit(queue, 6, async (s) => {
       if (Date.now() > deadline - 3000) return;
-      if (await enrichStory(s)) run.enriched++;
+      const ok = await enrichStory(s);
+      if (ok) run.enriched++;
+      if (/news\.google\.com/.test(s.link) === false && s.enrichGoogle) run.googleDecoded = (run.googleDecoded || 0) + 1;
     });
   }
   if (Date.now() < deadline - 8000) {
@@ -175,6 +184,7 @@ export async function enrichStory(s) {
     if (/news\.google\.com\/rss\/articles\//.test(target)) {
       const decoded = await decodeGoogleNewsUrl(target);
       if (!decoded) return false;
+      s.enrichGoogle = true;
       s.link = decoded;
       s.url = canonicalUrl(decoded);
       s.sourceDomain = domainOf(decoded);
@@ -208,12 +218,16 @@ export async function decodeGoogleNewsUrl(link) {
     const direct = raw.match(/https?:\/\/[\x21-\x7e]+/);
     if (direct && !raw.startsWith('\x08\x13"\x02AU_')) return direct[0].replace(/[\x00-\x1f].*$/, '');
     // Current format: needs signature + timestamp from the article page, then a batchexecute call.
-    const page = await fetchText(`https://news.google.com/rss/articles/${id}`, { timeout: 7000, maxBytes: 400_000 });
-    const sg = page.text.match(/data-n-a-sg="([^"]+)"/)?.[1];
-    const ts = page.text.match(/data-n-a-ts="([^"]+)"/)?.[1];
+    let sg = null; let ts = null;
+    for (const base of ['https://news.google.com/articles/', 'https://news.google.com/rss/articles/']) {
+      const page = await fetchText(`${base}${id}?hl=en-US&gl=US&ceid=US:en`, { timeout: 7000, maxBytes: 600_000, headers: { accept: 'text/html', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36' } }).catch(() => null);
+      sg = page?.text.match(/data-n-a-sg="([^"]+)"/)?.[1];
+      ts = page?.text.match(/data-n-a-ts="([^"]+)"/)?.[1];
+      if (sg && ts) break;
+    }
     if (!sg || !ts) return null;
     const inner = JSON.stringify(['garturlreq', [['X', 'X', ['X', 'X'], null, null, 1, 1, 'US:en', null, 1, null, null, null, null, null, 0, 1], 'X', 'X', 1, [1, 1, 1], 1, 1, null, 0, 0, null, 0], id, Number(ts), sg]);
-    const body = `f.req=${encodeURIComponent(JSON.stringify([[['Fbv4je', inner, null, 'generic']]]))}`;
+    const body = `f.req=${encodeURIComponent(JSON.stringify([[['Fbv4je', inner]]]))}`;
     const r = await fetchText('https://news.google.com/_/DotsSplashUi/data/batchexecute', {
       method: 'POST', body, timeout: 7000, headers: { 'content-type': 'application/x-www-form-urlencoded;charset=UTF-8' },
     });

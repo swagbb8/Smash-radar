@@ -141,6 +141,24 @@ export function ingest(state, items, source, nowMs = Date.now()) {
     const dup = item.nws ? null : (findDuplicate(state, idx, tokens) || findLocalIncidentDup(state, dupage, tokens, pub || nowMs));
     if (dup) {
       dup.lastSeenAt = nowIso;
+      // Track each merged copy so an update from ANY outlet shows up as "What changed?"
+      dup.variants ||= {};
+      const prev = dup.variants[url];
+      if (prev && prev.hash !== hash && (meaningfulChange(prev.summary, item.summary) || meaningfulChange(prev.title, item.title))) {
+        const change = { at: nowIso, via: item.publisher || source.name };
+        if (meaningfulChange(prev.title, item.title)) change.title = { from: prev.title, to: item.title };
+        if (meaningfulChange(prev.summary, item.summary)) change.summary = { from: truncate(prev.summary || '', 400), to: truncate(item.summary || '', 400) };
+        dup.changes = [change, ...(dup.changes || [])].slice(0, 10);
+        dup.lastChangedAt = nowIso;
+        if (item.summary && !dup.enrichedSummary) { dup.summary = truncate(item.summary, 420); dup.feedSummary = item.summary; }
+        dup.variants[url] = { hash, title: item.title, summary: truncate(item.summary || '', 400) };
+        stats.changed++;
+        continue;
+      }
+      if (!prev) {
+        dup.variants[url] = { hash, title: item.title, summary: truncate(item.summary || '', 400) };
+        if (Object.keys(dup.variants).length > 15) delete dup.variants[Object.keys(dup.variants)[0]];
+      }
       const already = canonicalUrl(dup.link || dup.url) === url || (dup.alsoReportedBy || []).some((r) => canonicalUrl(r.url) === url);
       const samePublisher = domainOf(dup.url) === domainOf(item.publisherUrl || url) || (item.publisher && item.publisher === dup.sourceName);
       if (!already && !samePublisher) {

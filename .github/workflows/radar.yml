@@ -32,20 +32,22 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: data
-          key: radar-state-v3-${{ github.run_id }}
-          restore-keys: radar-state-v3-
+          key: radar-state-v4-${{ github.run_id }}
+          restore-keys: radar-state-v4-
 
       - name: Sweep sources + build site
         run: node scripts/build-static.js
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ENRICH_LIMIT: '90'
+          STATIC_MAX_STORIES: '3000'
 
       - name: Save radar memory
         if: always()
         uses: actions/cache/save@v4
         with:
           path: data
-          key: radar-state-v3-${{ github.run_id }}
+          key: radar-state-v4-${{ github.run_id }}
 
       - name: Publish to gh-pages
         run: |
