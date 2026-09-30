@@ -20,8 +20,9 @@ const CFG = {
   token: env('IG_ACCESS_TOKEN'),
   host: env('IG_API_HOST', 'https://graph.facebook.com/v21.0'),
   siteUrl: env('SITE_URL', ''), // e.g. https://swagbb8.github.io/Smash-radar/
-  maxPerDay: Number(env('AUTOPOST_MAX_PER_DAY', 4)),
-  minGapMin: Number(env('AUTOPOST_MIN_GAP_MINUTES', 90)),
+  maxPerDay: Number(env('AUTOPOST_MAX_PER_DAY', 12)),
+  minGapMin: Number(env('AUTOPOST_MIN_GAP_MINUTES', 45)),
+  quiet: env('AUTOPOST_QUIET_HOURS', '23-7'), // no non-urgent posts overnight (Central)
   recapHour: Number(env('AUTOPOST_RECAP_HOUR', 19)), // 7 PM Central
   recap: env('AUTOPOST_RECAP', 'on') !== 'off',
   singles: env('AUTOPOST_SINGLES', 'on') !== 'off',
@@ -67,11 +68,30 @@ function plan() {
   // Single posts: real breaking news + verified, urgent DuPage incidents
   const singlesToday = todays.filter((p) => p.kind === 'single').length;
   if (CFG.singles && gapOk && singlesToday < CFG.maxPerDay && !planned.length) {
-    const fresh = (s) => Date.now() - Date.parse(s.publishedAt || s.discoveredAt) < 3 * 3600e3;
-    const ok = (s) => !posted.has(s.id) && fresh(s) && !s.tags.includes('RUMOR') && !s.tags.includes('LEAK');
-    const local = (s) => s.location && ['confirmed', 'verified'].includes(s.location.status) && URGENT.has(s.location.incident?.id);
-    const pick = stories.filter((s) => ok(s) && local(s)).sort((a, b) => b.score - a.score)[0]
-      || stories.filter((s) => ok(s) && s.status === 'BREAKING').sort((a, b) => b.score - a.score)[0];
+    const age = (s) => Date.now() - Date.parse(s.publishedAt || s.discoveredAt);
+    const clean = (s) => !posted.has(s.id) && !s.tags.includes('RUMOR') && !s.tags.includes('LEAK');
+    const isLocal = (s) => s.location && ['confirmed', 'verified'].includes(s.location.status);
+    const [qs, qe] = CFG.quiet.split('-').map(Number);
+    const h = hourNow();
+    const quiet = Number.isFinite(qs) && (qs > qe ? h >= qs || h < qe : h >= qs && h < qe);
+    const byScore = (a, b) => b.score - a.score;
+    // Priority tiers — urgent news can post any time; everything else waits for daytime.
+    const tiers = [
+      [true, (s) => isLocal(s) && URGENT.has(s.location.incident?.id) && age(s) < 3 * 3600e3],
+      [true, (s) => s.status === 'BREAKING' && age(s) < 3 * 3600e3],
+      [false, (s) => s.tags.includes('RECALL') && age(s) < 12 * 3600e3],
+      [false, (s) => s.tags.includes('TRENDING') && age(s) < 8 * 3600e3],
+      [false, (s) => (s.tags.includes('LAUNCH') || s.tags.includes('LIMITED') || s.tags.includes('DISCONTINUED')) && s.brands.length && age(s) < 8 * 3600e3],
+      [false, (s) => s.tags.includes('DEAL') && s.brands.length && age(s) < 8 * 3600e3],
+      [false, (s) => isLocal(s) && age(s) < 12 * 3600e3],
+      [false, (s) => ['NEW', 'UPDATED'].includes(s.status) && age(s) < 6 * 3600e3],
+    ];
+    let pick = null;
+    for (const [urgent, fn] of tiers) {
+      if (quiet && !urgent) continue;
+      pick = stories.filter((s) => clean(s) && fn(s)).sort(byScore)[0];
+      if (pick) break;
+    }
     if (pick) planned.push({ kind: 'single', storyIds: [pick.id] });
   }
   writeJson(PLAN, { enabled: true, createdAt: new Date().toISOString(), posts: planned });
