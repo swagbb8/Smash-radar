@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SMASH RADAR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="SMASH RADAR — Everything New. Every Day.">
+  <meta name="theme-color" content="#050607">
+  <meta name="color-scheme" content="dark">
+
+  <!-- iPhone Home Screen app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SMASH RADAR">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#/home" aria-label="SMASH RADAR home">
+        <span class="radar-logo" aria-hidden="true"><i></i></span>
+        <span class="brand-text"><b>SMASH</b> RADAR<small>Everything New. Every Day.</small></span>
+      </a>
+      <nav class="side-nav" id="sideNav"></nav>
+      <div class="side-foot" id="sideFoot"></div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <a class="brand compact" href="#/home" aria-label="SMASH RADAR home">
+          <span class="radar-logo" aria-hidden="true"><i></i></span>
+          <span class="brand-text"><b>SMASH</b> RADAR</span>
+        </a>
+        <h1 class="page-title" id="pageTitle">Home</h1>
+        <div class="top-actions">
+          <button class="live-pill" id="livePill" type="button" title="Source health">
+            <span class="dot"></span><span id="liveText">Connecting…</span>
+          </button>
+          <a class="icon-btn" href="#/search" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></a>
+          <button class="icon-btn refresh" id="refreshBtn" type="button" aria-label="Refresh now"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
+        </div>
+        <div class="progress" id="progress"><i></i></div>
+      </header>
+
+      <div class="offline-banner" id="offlineBanner" hidden>You're offline — showing the last radar sweep.</div>
+      <button class="new-pill" id="newPill" type="button" hidden></button>
+
+      <main id="view" class="view" tabindex="-1" aria-live="polite"></main>
+    </div>
+  </div>
+
+  <nav class="tabbar" id="tabbar" aria-label="Tabs"></nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" hidden></section>
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <noscript><p style="padding:24px;color:#fff">SMASH RADAR needs JavaScript.</p></noscript>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+# SMASH RADAR — free hosting: GitHub Actions sweeps the sources on a schedule and publishes to GitHub Pages.
+# One-time setup: repo Settings → Pages → Source: "GitHub Actions".
+name: SMASH RADAR sweep
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # GitHub may delay scheduled runs a few minutes at busy times
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: smash-radar
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The radar's memory (seen stories, change history, source health) carries over between runs.
+      - name: Restore radar memory
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: radar-state-${{ github.run_id }}
+          restore-keys: radar-state-
+
+      - name: Sweep sources + build site
+        run: node scripts/build-static.js
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Save radar memory
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: radar-state-${{ github.run_id }}
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@v4
