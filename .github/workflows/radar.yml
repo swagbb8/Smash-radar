@@ -19,7 +19,7 @@ concurrency:
 jobs:
   sweep:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -42,12 +42,28 @@ jobs:
           ENRICH_LIMIT: '90'
           STATIC_MAX_STORIES: '3000'
 
-      - name: Save radar memory
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: data
-          key: radar-state-v5-${{ github.run_id }}
+      # ---- Instagram auto-post (off until IG secrets are added) ----
+      - name: Auto-post — plan
+        id: plan
+        run: node scripts/autopost.js plan
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          AUTOPOST_MAX_PER_DAY: ${{ vars.AUTOPOST_MAX_PER_DAY }}
+          AUTOPOST_RECAP_HOUR: ${{ vars.AUTOPOST_RECAP_HOUR }}
+          AUTOPOST_RECAP: ${{ vars.AUTOPOST_RECAP }}
+          AUTOPOST_SINGLES: ${{ vars.AUTOPOST_SINGLES }}
+
+      - name: Auto-post — render images
+        if: steps.plan.outputs.has_posts == 'true'
+        run: |
+          sudo apt-get install -y -qq fonts-noto-color-emoji > /dev/null
+          npm i --no-save --silent playwright@1.56
+          npx playwright install --with-deps chromium > /dev/null
+          node scripts/autopost.js render
+        env:
+          AUTOPOST_PHOTOS: ${{ vars.AUTOPOST_PHOTOS }}
+          AUTOPOST_FORMAT: ${{ vars.AUTOPOST_FORMAT }}
 
       - name: Publish to gh-pages
         run: |
@@ -58,3 +74,18 @@ jobs:
           git add -A
           git commit -qm "Radar sweep $(date -u +%FT%TZ)"
           git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
+
+      - name: Auto-post — publish to Instagram
+        if: steps.plan.outputs.has_posts == 'true'
+        run: node scripts/autopost.js publish
+        env:
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
+      - name: Save radar memory
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: radar-state-v5-${{ github.run_id }}

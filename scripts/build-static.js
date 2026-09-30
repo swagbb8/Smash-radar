@@ -39,7 +39,9 @@ const stories = Object.values(state.stories)
   .sort((a, b) => b.score - a.score)
   .slice(0, Number(process.env.STATIC_MAX_STORIES || 1500));
 
-write('meta', { ...(await call('/api/meta')), mode: 'static', refreshing: false, nextRefreshAt: null });
+const apLog = (() => { try { return JSON.parse(fs.readFileSync(path.join(path.dirname(store.file), 'autopost-log.json'), 'utf8')); } catch { return null; } })();
+const autopost = apLog ? { last: apLog.posts.at(-1) || null, today: apLog.posts.filter((p) => p.day === new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date())).length, lastError: apLog.errors?.[0] || null } : null;
+write('meta', { ...(await call('/api/meta')), mode: 'static', refreshing: false, nextRefreshAt: null, autopost });
 write('stories', { total: stories.length, stories });
 write('dupage', await call('/api/dupage'));
 write('brands', await call('/api/brands'));

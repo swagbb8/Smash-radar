@@ -441,6 +441,8 @@ const views = {
     const all = (await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`)).stories;
     if (!all.length) return viewHead('Post Studio') + (noDataYet() || empty('📸', 'Nothing to post yet', 'Posts appear after the first sweep.'));
     let html = viewHead('Post Studio', 'Turn any story into an Instagram post. Tap a story → Share → Instagram (or Save to Photos). The caption is copied for you.');
+    const ap = app.meta?.autopost;
+    html += `<div class="box"><h5>Instagram auto-post</h5>${ap?.last ? `On · ${ap.today} post${ap.today === 1 ? '' : 's'} today · last: ${esc(ap.last.kind === 'recap' ? 'Daily Recap' : 'story')} ${ago(ap.last.at)}` : 'Off — add your Instagram connection in the GitHub repo secrets to turn it on.'}${ap?.lastError ? `<div class="err" style="color:var(--breaking);font-size:12.5px;margin-top:4px">Last error: ${esc(ap.lastError.error)}</div>` : ''}</div>`;
     html += `<button class="recap-card" data-action="recap"><span class="big">📡</span><span><b>Daily Recap carousel</b><br><span class="muted">Cover slide + today's top 5 stories, ready to post as one carousel</span></span><span class="go">Make →</span></button>`;
     const groups = [
       ['🚨', 'Breaking', (x) => x.status === 'BREAKING'],
