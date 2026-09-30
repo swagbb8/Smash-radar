@@ -1,4 +1,4 @@
-// SMASH RADAR — client app (no build step). Hash-routed SPA, installable PWA.
+// SMASH NEWS — client app (no build step). Hash-routed SPA, installable PWA.
 const $ = (s, el = document) => el.querySelector(s);
 const view = $('#view');
 
@@ -136,7 +136,7 @@ const INC_ICON = { metra: '🚆', emergency: '🚨', fire: '🔥', crash: '💥'
 const NAV = [
   { group: 'Radar' },
   { r: 'home', label: 'Home', ic: '🏠' },
-  { r: 'daily', label: "Today's Radar", ic: '📡' },
+  { r: 'daily', label: "Today's News", ic: '📡' },
   { r: 'breaking', label: 'Breaking', ic: '🔥', count: 'BREAKING', hot: true },
   { r: 'today', label: 'Today', ic: '🆕', count: 'NEW' },
   { r: 'week', label: 'This Week', ic: '📅' },
@@ -276,7 +276,7 @@ const skeletons = (n = 6) => `<div class="grid">${Array.from({ length: n }, () =
 const empty = (icon, title, text, action = '') => `<div class="empty"><div class="big">${icon}</div><h3>${esc(title)}</h3><p>${text}</p>${action}</div>`;
 function noDataYet() {
   const m = app.meta;
-  if (m && !m.lastRefreshAt) return empty('📡', 'First sweep hasn\'t finished yet', 'SMASH RADAR is checking its sources for the first time. This usually takes under a minute.', '<button class="btn primary" data-action="refresh" style="max-width:240px;margin:auto">Refresh Now</button>');
+  if (m && !m.lastRefreshAt) return empty('📡', 'First sweep hasn\'t finished yet', 'SMASH NEWS is checking its sources for the first time. This usually takes under a minute.', '<button class="btn primary" data-action="refresh" style="max-width:240px;margin:auto">Refresh Now</button>');
   if (m && m.sourceSummary && m.sourceSummary.healthy === 0) return empty('🛰️', 'No sources reachable', 'The last sweep couldn\'t reach any source. Check this server\'s internet connection, then open Sources &amp; Health.', '<a class="btn small" href="#/sources">Open Sources &amp; Health</a>');
   return null;
 }
@@ -345,7 +345,7 @@ const views = {
     const fresh = all.filter((s) => dayKey(s.publishedAt || s.discoveredAt) === today || s.status === 'NEW' || s.status === 'BREAKING' || s.status === 'UPDATED');
     const pool = fresh.length >= 10 ? fresh : all;
     const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ });
-    let html = `<div class="daily-head"><div class="kick">Today's Radar</div><h2>${esc(dateStr)}</h2><p>${(m?.counts?.NEW || 0) + (m?.counts?.BREAKING || 0) + (m?.counts?.UPDATED || 0)} new or updated stories today · updated ${m?.lastRefreshAt ? esc(clock(m.lastRefreshAt)) : '—'}</p></div>`;
+    let html = `<div class="daily-head"><div class="kick">Today's News</div><h2>${esc(dateStr)}</h2><p>${(m?.counts?.NEW || 0) + (m?.counts?.BREAKING || 0) + (m?.counts?.UPDATED || 0)} new or updated stories today · updated ${m?.lastRefreshAt ? esc(clock(m.lastRefreshAt)) : '—'}</p></div>`;
     if (!pool.length) return html + (noDataYet() || empty('📡', 'Nothing yet today', 'Check back after the next sweep.'));
     const biggest = pool.slice().sort((a, b) => b.score - a.score).slice(0, 5);
     html += `<section class="section"><div class="section-head"><h2><span class="ic">⭐</span>Biggest New Things</h2></div><div class="grid">${biggest.map(card).join('')}</div></section>`;
@@ -481,7 +481,7 @@ const views = {
     const fv = f.startsWith('c:') ? { view: 'all', category: f.slice(2) } : { view: f || 'all' };
     const data = await api(`/api/stories?${qs({ ...fv, q, limit: 80 })}`);
     html += `<div class="toggle" style="margin-bottom:14px"><span>${data.total} stor${data.total === 1 ? 'y' : 'ies'} on the radar for “${esc(q)}”</span>${app.mode === 'server' ? `<button class="btn small" data-action="live-search" data-q="${esc(q)}">🌐 Search the web live</button>` : ''}</div>`;
-    html += data.stories.length ? `<div class="grid" id="results">${data.stories.map(card).join('')}</div>` : `<div id="results">${empty('🔎', 'Nothing on the radar yet', 'Run a live web search to pull the newest coverage for this term into SMASH RADAR.')}</div>`;
+    html += data.stories.length ? `<div class="grid" id="results">${data.stories.map(card).join('')}</div>` : `<div id="results">${empty('🔎', 'Nothing on the radar yet', 'Run a live web search to pull the newest coverage for this term into SMASH NEWS.')}</div>`;
     return html;
   },
 
@@ -491,7 +491,7 @@ const views = {
     const bad = sources.filter((s) => s.enabled && s.lastStatus === 'error');
     const sorted = [...sources].sort((a, b) => (b.lastStatus === 'error') - (a.lastStatus === 'error') || a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
     const run = runs[0];
-    let html = viewHead('Sources & Health', 'Every feed SMASH RADAR watches, when it was last checked, and whether it worked.');
+    let html = viewHead('Sources & Health', 'Every feed SMASH NEWS watches, when it was last checked, and whether it worked.');
     html += `<div class="stats">
       <div class="stat"><b>${m?.sourceSummary?.enabled ?? sources.length}</b><span>Enabled</span></div>
       <div class="stat new"><b>${m?.sourceSummary?.healthy ?? '–'}</b><span>Healthy</span></div>
@@ -688,7 +688,7 @@ function renderChrome() {
   const inMore = !tabs.some(([r]) => r === app.route);
   $('#tabbar').innerHTML = tabs.map(([r, l]) => `<a href="#/${r}" class="${app.route === r ? 'active' : ''}">${ICONS[r]}<span>${l}</span>${r === 'breaking' && c.BREAKING ? `<span class="badge">${c.BREAKING}</span>` : ''}</a>`).join('') +
     `<button type="button" data-action="more" class="${inMore ? 'active' : ''}">${ICONS.more}<span>More</span></button>`;
-  $('#pageTitle').textContent = TITLES[app.route] || 'SMASH RADAR';
+  $('#pageTitle').textContent = TITLES[app.route] || 'SMASH NEWS';
   const m = app.meta;
   $('#sideFoot').innerHTML = m && app.mode === 'static' ? `Auto-sweep by GitHub Actions about every 10 min.<br>Last sweep ${clock(m.lastRefreshAt)}` : m ? `Auto-sweep: fast sources every ${m.intervals.fast}m, the rest every ${m.intervals.normal}–${m.intervals.slow}m.<br>Next sweep ${m.nextRefreshAt ? clock(m.nextRefreshAt) : 'on schedule'}${m.ai ? '<br>AI summaries: on' : ''}` : '';
   updateLive();
@@ -709,7 +709,7 @@ function updateLive() {
 
 function openMore() {
   const c = app.meta?.counts || {};
-  const items = [['posts', '📸', 'Post Studio'], ['daily', '📡', "Today's Radar"], ['today', '🆕', 'Today', c.NEW], ['week', '📅', 'This Week'], ['products', '📦', 'Products', c.products], ['deals', '💰', 'Deals', c.deals], ['recalls', '⚠️', 'Recalls', c.recalls], ['openings', '🏪', 'Openings'], ['brands', '⭐', 'My Brands', prefs.brands.size || ''], ['favorites', '🔖', 'Favorites', Object.keys(prefs.saved).length || ''], ['search', '🔎', 'Search'], ['sources', '🩺', 'Sources']];
+  const items = [['posts', '📸', 'Post Studio'], ['daily', '📡', "Today's News"], ['today', '🆕', 'Today', c.NEW], ['week', '📅', 'This Week'], ['products', '📦', 'Products', c.products], ['deals', '💰', 'Deals', c.deals], ['recalls', '⚠️', 'Recalls', c.recalls], ['openings', '🏪', 'Openings'], ['brands', '⭐', 'My Brands', prefs.brands.size || ''], ['favorites', '🔖', 'Favorites', Object.keys(prefs.saved).length || ''], ['search', '🔎', 'Search'], ['sources', '🩺', 'Sources']];
   $('#sheet').innerHTML = `<div class="grab"></div><div class="sheet-title">More</div><div class="more-grid">${items.map(([r, ic, l, n]) => `<a href="#/${r}" data-action="close-nav"><span class="ic">${ic}</span>${l}${n ? `<span class="n">${n}</span>` : ''}</a>`).join('')}</div>`;
   $('#sheet').hidden = false;
   $('#sheetBackdrop').hidden = false;
@@ -891,7 +891,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'share') {
     const s = app.stories.get(t.dataset.id);
     if (!s) return;
-    if (navigator.share) return navigator.share({ title: s.title, text: `${s.title} — via SMASH RADAR`, url: s.url }).catch(() => {});
+    if (navigator.share) return navigator.share({ title: s.title, text: `${s.title} — via SMASH NEWS`, url: s.url }).catch(() => {});
     await navigator.clipboard?.writeText(s.url).catch(() => {});
     return toast('Link copied');
   }

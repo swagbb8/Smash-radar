@@ -1,8 +1,8 @@
-// SMASH RADAR — source registry, brands, categories, DuPage geography.
+// SMASH NEWS — source registry, brands, categories, DuPage geography.
 // Everything the collector watches lives here. Edit this file to add/remove sources.
 
 export const APP = {
-  name: 'SMASH RADAR',
+  name: 'SMASH NEWS',
   tagline: 'Everything New. Every Day.',
   timezone: 'America/Chicago',
 };

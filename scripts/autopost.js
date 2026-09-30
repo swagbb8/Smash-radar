@@ -1,4 +1,4 @@
-// SMASH RADAR auto-poster (Instagram Graph API). Runs inside the GitHub Action.
+// SMASH NEWS auto-poster (Instagram Graph API). Runs inside the GitHub Action.
 //   node scripts/autopost.js plan     → decide what to post now (writes data/autopost-plan.json)
 //   node scripts/autopost.js render   → render planned posts to dist/posts/*.jpg (needs Playwright)
 //   node scripts/autopost.js publish  → wait for the images to be live on GitHub Pages, then post them

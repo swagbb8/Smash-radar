@@ -444,3 +444,4 @@ details.rejected .r span { display: block; color: var(--text-3); font-size: 12px
 .post-row { grid-template-columns: 64px 1fr auto; align-items: center; }
 .post-row .thumb { width: 64px; height: 64px; }
 .btn.primary-lite { background: rgba(198,255,61,.12); border-color: rgba(198,255,61,.35); color: var(--accent); }
+.hero .ph { place-items: start center; padding-top: 18%; } .hero .ph .glyph { font-size: 64px; }

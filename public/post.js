@@ -1,4 +1,4 @@
-// SMASH RADAR Post Studio — renders stories into Instagram-ready images (in the browser, no server needed).
+// SMASH NEWS Post Studio — renders stories into Instagram-ready images (in the browser, no server needed).
 // Feed: 1080×1350 (4:5)   Story/Reel cover: 1080×1920 (9:16)
 const C = {
   bg: '#050607', panel: '#0f1317', text: '#f2f5f3', text2: '#b9c2bc', text3: '#7c8680',
@@ -126,8 +126,8 @@ function wordmark(ctx, x, y, size) {
   ctx.font = `800 ${size}px ${DISPLAY}`;
   ctx.fillStyle = C.lime; ctx.fillText('SMASH', x, y);
   const w = ctx.measureText('SMASH ').width;
-  ctx.fillStyle = C.text; ctx.fillText('RADAR', x + w, y);
-  return w + ctx.measureText('RADAR').width;
+  ctx.fillStyle = C.text; ctx.fillText('NEWS', x + w, y);
+  return w + ctx.measureText('NEWS').width;
 }
 function drawCover(ctx, img, x, y, w, h) {
   const r = Math.max(w / img.naturalWidth, h / img.naturalHeight);
@@ -302,7 +302,7 @@ function drawFacts(ctx, p, x, y, maxW) {
 }
 
 /** Carousel cover: "Today's Radar" with numbered headlines. */
-export async function renderRecapCover(stories, format = 'feed', title = "TODAY'S RADAR") {
+export async function renderRecapCover(stories, format = 'feed', title = "TODAY'S NEWS") {
   await ensureFonts();
   const { w: W, h: H } = FORMATS[format];
   const cv = document.createElement('canvas');
@@ -369,7 +369,7 @@ export function captionFor(s) {
   }
   if (s.tags?.includes('RUMOR') || s.tags?.includes('LEAK')) parts.push('', '⚠️ Unconfirmed — treat as a rumor until official.');
   parts.push('', `Source: ${s.sourceName}${s.sourceDomain ? ` (${s.sourceDomain})` : ''}`);
-  const tags = new Set(['#SmashRadar', '#EverythingNew']);
+  const tags = new Set(['#SmashNews', '#EverythingNew']);
   for (const b of (s.brands || []).slice(0, 3)) tags.add(tagify(b));
   const catTags = { dupage: ['#DuPageCounty', '#Chicagoland'], tech: ['#Tech', '#TechNews'], auto: ['#Cars', '#CarNews'], gaming: ['#Gaming', '#GamingNews'], energy: ['#EnergyDrinks', '#NewFlavor'], fitness: ['#Fitness', '#Supplements'], food: ['#FastFood', '#NewMenuItem'], clothing: ['#Sneakers', '#Fashion'], retail: ['#Retail', '#Shopping'], deals: ['#Deals', '#Sale'], recalls: ['#Recall', '#ConsumerAlert'], openings: ['#GrandOpening', '#NowOpen'], news: ['#News', '#BreakingNews'] }[s.category] || [];
   catTags.forEach((t) => tags.add(t));
@@ -382,6 +382,6 @@ export function captionFor(s) {
 
 export function recapCaption(stories) {
   const date = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago' });
-  const lines = [`📡 TODAY'S RADAR — ${date}`, '', ...stories.map((s, i) => `${i + 1}. ${s.title}`), '', 'Swipe for the details 👉', '', `Sources: ${[...new Set(stories.map((s) => s.sourceName))].join(', ')}`, '', '#SmashRadar #EverythingNew #DailyNews #WhatsNew'];
+  const lines = [`📡 TODAY'S NEWS — ${date}`, '', ...stories.map((s, i) => `${i + 1}. ${s.title}`), '', 'Swipe for the details 👉', '', `Sources: ${[...new Set(stories.map((s) => s.sourceName))].join(', ')}`, '', '#SmashNews #EverythingNew #DailyNews #WhatsNew'];
   return lines.join('\n');
 }

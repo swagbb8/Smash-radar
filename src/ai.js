@@ -10,7 +10,7 @@ export async function aiEnrich(stories) {
   const batch = stories.filter((s) => !s.aiEnriched && (s.summary || '').length > 40).slice(0, Number(process.env.AI_LIMIT || 15));
   if (!batch.length) return 0;
   const payload = batch.map((s) => ({ id: s.id, headline: s.title, source_text: s.summary, category: s.category, brands: s.brands, location: s.location?.places || null }));
-  const prompt = `You write for SMASH RADAR, a personal news radar for a reader in DuPage County, Illinois.
+  const prompt = `You write for SMASH NEWS, a personal news radar for a reader in DuPage County, Illinois.
 For each item, write:
 - "summary": 1–2 plain sentences restating ONLY facts present in headline/source_text. Never add facts, numbers, or speculation.
 - "why": one short sentence on why it matters to a regular consumer / local resident.

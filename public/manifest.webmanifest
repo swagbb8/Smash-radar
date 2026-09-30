@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "SMASH RADAR",
-  "short_name": "SMASH RADAR",
+  "name": "SMASH NEWS",
+  "short_name": "SMASH NEWS",
   "description": "Everything New. Every Day. Live radar for DuPage County, brands, launches, deals, recalls and breaking news.",
   "start_url": "./?source=homescreen#/home",
   "scope": "./",

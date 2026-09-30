@@ -1,4 +1,4 @@
-# SMASH RADAR
+# SMASH NEWS
 **Everything New. Every Day.**
 
 Personal live radar: DuPage County incidents, brand launches, deals, recalls, store openings, and breaking US/world news, pulled from real sources on a schedule. It's an installable dark iPhone PWA.
@@ -55,7 +55,7 @@ Favorite brands and saved stories stay on your device (localStorage).
 ## Put it on your iPhone (free: GitHub Pages)
 1. Push this folder to a **public** GitHub repo (free unlimited Actions minutes).
 2. Repo **Settings → Pages → Source: GitHub Actions**.
-3. **Actions** tab → "SMASH RADAR sweep" → **Run workflow** (after that it runs by itself about every 10 minutes).
+3. **Actions** tab → "SMASH NEWS sweep" → **Run workflow** (after that it runs by itself about every 10 minutes).
 4. Open `https://<you>.github.io/<repo>/` in Safari → Share → **Add to Home Screen**.
 
 In this mode GitHub's servers do the sweeping and publish a JSON snapshot, and the app filters it on your phone. The radar's memory (NEW/ONGOING/UPDATED history, source health) is carried between runs in the Actions cache. Refresh Now loads the newest sweep. To add feeds, edit `src/config.js`. Optional: add an `ANTHROPIC_API_KEY` repo secret for AI summaries.
