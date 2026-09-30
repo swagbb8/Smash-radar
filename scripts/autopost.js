@@ -18,7 +18,8 @@ const env = (k, d) => (process.env[k] === undefined || process.env[k] === '' ? d
 const CFG = {
   userId: env('IG_USER_ID'),
   token: env('IG_ACCESS_TOKEN'),
-  host: env('IG_API_HOST', 'https://graph.facebook.com/v21.0'),
+  // Instagram-Login tokens (start with "IG") use graph.instagram.com; Facebook-Login tokens ("EAA…") use graph.facebook.com.
+  host: env('IG_API_HOST', /^IG/.test(env('IG_ACCESS_TOKEN', '')) ? 'https://graph.instagram.com/v21.0' : 'https://graph.facebook.com/v21.0'),
   siteUrl: env('SITE_URL', ''), // e.g. https://swagbb8.github.io/Smash-radar/
   maxPerDay: Number(env('AUTOPOST_MAX_PER_DAY', 12)),
   minGapMin: Number(env('AUTOPOST_MIN_GAP_MINUTES', 45)),
