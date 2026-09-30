@@ -1,5 +1,5 @@
 # SMASH RADAR — free hosting: GitHub Actions sweeps the sources on a schedule and publishes to GitHub Pages.
-# One-time setup: repo Settings → Pages → Source: "GitHub Actions".
+# Publishes to the gh-pages branch (GitHub Pages serves it automatically).
 name: SMASH RADAR sweep
 
 on:
@@ -10,9 +10,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: smash-radar
@@ -22,9 +20,6 @@ jobs:
   sweep:
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -52,9 +47,12 @@ jobs:
           path: data
           key: radar-state-${{ github.run_id }}
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-      - id: deploy
-        uses: actions/deploy-pages@v4
+      - name: Publish to gh-pages
+        run: |
+          cd dist
+          git init -q -b gh-pages
+          git config user.name "smash-radar-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Radar sweep $(date -u +%FT%TZ)"
+          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
