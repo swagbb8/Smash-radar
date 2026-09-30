@@ -43,6 +43,26 @@ function findDuplicate(state, idx, tokens) {
   return bestScore >= DUP_THRESHOLD ? best : null;
 }
 
+// Local incidents are covered by many outlets with very different headlines.
+// Same incident type + same DuPage place + within 8h + some headline overlap = same event.
+function findLocalIncidentDup(state, dupage, tokens, pubMs) {
+  if (!dupage?.incident || !['confirmed', 'verified'].includes(dupage.status)) return null;
+  const places = dupage.places.filter((p) => p !== 'DuPage County');
+  if (!places.length) return null;
+  let best = null;
+  let bestScore = 0;
+  for (const s of Object.values(state.stories)) {
+    const loc = s.location;
+    if (!loc?.incident || loc.incident.id !== dupage.incident.id) continue;
+    if (!loc.places.some((p) => places.includes(p))) continue;
+    const t = Date.parse(s.publishedAt || s.firstDiscoveredAt);
+    if (Math.abs(t - pubMs) > 8 * H) continue;
+    const score = jaccard(tokens, s.tokens || []);
+    if (score >= 0.2 && score > bestScore) { best = s; bestScore = score; }
+  }
+  return best;
+}
+
 function indexAdd(idx, story) {
   for (const tok of story.tokens) {
     if (!idx.has(tok)) idx.set(tok, new Set());
@@ -118,10 +138,10 @@ export function ingest(state, items, source, nowMs = Date.now()) {
     }
 
     const tokens = titleTokens(item.title);
-    const dup = item.nws ? null : findDuplicate(state, idx, tokens);
+    const dup = item.nws ? null : (findDuplicate(state, idx, tokens) || findLocalIncidentDup(state, dupage, tokens, pub || nowMs));
     if (dup) {
       dup.lastSeenAt = nowIso;
-      const already = dup.sourceId === source.id || (dup.alsoReportedBy || []).some((r) => r.url === url);
+      const already = canonicalUrl(dup.link || dup.url) === url || (dup.alsoReportedBy || []).some((r) => canonicalUrl(r.url) === url);
       const samePublisher = domainOf(dup.url) === domainOf(item.publisherUrl || url) || (item.publisher && item.publisher === dup.sourceName);
       if (!already && !samePublisher) {
         dup.alsoReportedBy = [...(dup.alsoReportedBy || []), { name: item.publisher || source.name, url: item.link, sourceId: source.id }].slice(0, 12);

@@ -183,3 +183,20 @@ test('queries: views + For You + search', () => {
   const openings = queryStories(state, { view: 'openings' }).stories.map((s) => s.title);
   assert.ok(openings.some((t) => t.includes('closing')) && openings.some((t) => t.includes('grand opening')));
 });
+
+test('local incident covered by several outlets merges into one story', () => {
+  const state = emptyState();
+  const now = Date.now();
+  const mk = (title, link, publisher, h) => ({ title, link, summary: '', publisher, publishedAt: new Date(now - h * 3600e3).toISOString() });
+  const items = [
+    mk('Oakbrook Center Shooting in Oak Brook, Illinois', 'https://hoodline.com/a', 'Hoodline', 1),
+    mk('Shooting Reported At Oakbrook Center: Police', 'https://patch.com/illinois/elmhurst/a', 'Patch', 1.2),
+    mk('Police respond to shooting at Oakbrook Center', 'https://www.dailyherald.com/a', 'Daily Herald', 0.8),
+    mk('Oak Brook police investigate burglary at car dealership', 'https://www.dailyherald.com/b', 'Daily Herald', 0.5),
+  ];
+  const r = ingest(state, items, src({ id: 'd', category: 'dupage' }), now);
+  assert.equal(r.added, 2, 'shooting (merged) + separate burglary');
+  assert.equal(r.duplicates, 2);
+  const shooting = Object.values(state.stories).find((s) => /Oakbrook Center/.test(s.title));
+  assert.equal(shooting.alsoReportedBy.length, 2);
+});

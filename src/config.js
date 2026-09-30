@@ -246,7 +246,6 @@ const officialFeeds = [
   // Government recalls / safety
   ['cpsc-recalls', 'CPSC Recalls', 'https://www.cpsc.gov/Newsroom/CPSC-RSS-Feed/Recalls-RSS', 'recalls', 'normal'],
   ['fda-recalls', 'FDA Food Safety Recalls', 'https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/food-safety-recalls/rss.xml', 'recalls', 'normal'],
-  ['fsis-recalls', 'USDA FSIS Recalls', 'https://www.fsis.usda.gov/fsis-content/rss/recalls.xml', 'recalls', 'slow'],
 ];
 
 const publisherFeeds = [
@@ -259,9 +258,7 @@ const publisherFeeds = [
   ['electrek', 'Electrek', 'https://electrek.co/feed/', 'auto', 'normal'],
   ['motor1', 'Motor1', 'https://www.motor1.com/rss/news/all/', 'auto', 'normal'],
   ['ign', 'IGN', 'https://feeds.feedburner.com/ign/all', 'gaming', 'normal'],
-  ['chewboom', 'Chew Boom', 'https://www.chewboom.com/feed/', 'food', 'normal'],
   ['bevnet', 'BevNET', 'https://www.bevnet.com/feed', 'energy', 'slow'],
-  ['hypebeast-footwear', 'Hypebeast Footwear', 'https://hypebeast.com/footwear/feed', 'clothing', 'slow'],
   ['slickdeals', 'Slickdeals Frontpage', 'https://feeds.feedburner.com/SlickdealsnetFP', 'deals', 'normal'],
 ];
 
