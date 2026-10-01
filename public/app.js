@@ -532,7 +532,7 @@ const views = {
     let recaps = []; try { recaps = (await api('/api/recaps')).recaps || []; } catch {}
     app.recaps = recaps;
     const hlGames = finals.filter((g) => g.clips?.length || g.mainHighlight);
-    if (hlGames.length) html += section('Highlight Mode', '⚡', null, `<div class="gr-pick">${hlGames.map((g) => `<button class="gr" data-action="hl-mode" data-id="${esc(g.id)}">${[g.away, g.home].map((x) => `<span class="${x.winner ? 'w' : ''}">${x.logo ? `<img src="${esc(imgUrl(x.logo))}" alt="" referrerpolicy="no-referrer">` : ''}${esc(x.abbr)} <b>${esc(x.score)}</b></span>`).join('')}<em>⚡ ${(g.clips?.length || 0) + (g.mainHighlight ? 1 : 0)} clips</em></button>`).join('')}</div>`);
+    if (hlGames.length) html += section('Highlight Mode', '⚡', null, `<div class="gr-pick">${hlGames.map((g) => `<button class="gr" data-action="rm-mode" data-id="${esc(g.id)}">${[g.away, g.home].map((x) => `<span class="${x.winner ? 'w' : ''}">${x.logo ? `<img src="${esc(imgUrl(x.logo))}" alt="" referrerpolicy="no-referrer">` : ''}${esc(x.abbr)} <b>${esc(x.score)}</b></span>`).join('')}<em>⚡ ${(g.clips?.length || 0) + (g.mainHighlight ? 1 : 0)} clips</em></button>`).join('')}</div>`);
     if (recaps.length) html += section('SMASH recaps — every game', '🎬', null, `<div class="recaps">${recaps.slice(0, 20).map(recapCard).join('')}</div>`);
     if (live.length) html += section('Live now', '🔴', null, `<div class="games">${live.map(gameCard).join('')}</div>`);
     if (finals.length) html += section('Final scores', '🏁', null, `<div class="games">${finals.map(gameCard).join('')}</div>`);
@@ -876,7 +876,7 @@ function openGame(id) {
   const nClips = (g.clips?.length || 0) + (g.mainHighlight ? 1 : 0);
   openSheetHtml(`${g.highlight ? `<div class="video-wrap"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(g.highlight.videoId)}?playsinline=1&rel=0" title="Highlights" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>` : ''}
     <div class="content">
-    ${g.state !== 'pre' ? `<div class="actions">${nClips ? `<button class="btn primary" data-action="hl-mode" data-id="${esc(g.id)}">⚡ Watch highlights · ${nClips} clips</button>` : `<a class="btn primary" href="${esc(ytSearch(g))}" target="_blank" rel="noopener">▶ Find highlights on YouTube</a>`}${g.state === 'post' ? `<button class="btn" data-action="game-reel" data-id="${esc(g.id)}">🎬 Reel</button>` : ''}</div>` : ''}
+    ${g.state !== 'pre' ? `<div class="actions">${nClips ? `<button class="btn primary" data-action="rm-mode" data-id="${esc(g.id)}">🎞️ 60-sec highlight reel</button><button class="btn" data-action="hl-mode" data-id="${esc(g.id)}">⚡ All ${nClips} clips</button>` : `<a class="btn primary" href="${esc(ytSearch(g))}" target="_blank" rel="noopener">▶ Find highlights on YouTube</a>`}${g.state === 'post' ? `<button class="btn" data-action="game-reel" data-id="${esc(g.id)}">🎬 Reel</button>` : ''}</div>` : ''}
     <div class="kicker">🏈 NFL${g.week ? ` · Week ${g.week}` : ''} · ${esc(g.state === 'pre' ? 'Upcoming' : g.detail)}</div>
     <div class="bigscore"><div>${g.away.logo ? `<img src="${esc(imgUrl(g.away.logo))}" alt="">` : ''}<b>${esc(g.away.score)}</b><span>${esc(g.away.full)}</span></div><i>at</i><div>${g.home.logo ? `<img src="${esc(imgUrl(g.home.logo))}" alt="">` : ''}<b>${esc(g.home.score)}</b><span>${esc(g.home.full)}</span></div></div>
     ${box}
@@ -941,6 +941,63 @@ function loadYT() {
   if (app.ytLoading) return app.ytLoading;
   app.ytLoading = new Promise((res) => { window.onYouTubeIframeAPIReady = () => res(); const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; document.head.append(sc); });
   return app.ytLoading;
+}
+// ---------- Reel Mode: 30–60 sec vertical highlight reel from official clips (YouTube player, start/end trimmed)
+const PLAY_RANK = [[/touchdown|\bTD\b|scores?\b|to the house|walk-?off/i, 6], [/intercept|\bINT\b|\bpick(-six| 6)?\b/i, 5], [/sack|strip|forced fumble|fumble/i, 4], [/catch|grab|snag|one-?hand/i, 3], [/run\b|scramble|breaks? free|juke/i, 2], [/field goal|game-?winn|clutch|4th down/i, 3]];
+function rankClip(v) {
+  let sc = 0; for (const [re, w] of PLAY_RANK) if (re.test(v.title)) sc += w;
+  const yd = +(String(v.title).match(/(\d{2,3})[- ]?(?:yard|yd)/i)?.[1] || 0); sc += Math.min(4, yd / 20);
+  if (v.seconds && v.seconds > 240) sc -= 3; // long compilations last
+  return sc;
+}
+function playKind(t) { return /touchdown|\bTD\b|scores?\b/i.test(t) ? 'TOUCHDOWN' : /intercept|\bINT\b|\bpick\b/i.test(t) ? 'INTERCEPTION' : /sack/i.test(t) ? 'SACK' : /fumble|strip/i.test(t) ? 'TAKEAWAY' : /catch|grab|snag/i.test(t) ? 'BIG CATCH' : /run|scramble/i.test(t) ? 'BIG RUN' : /field goal/i.test(t) ? 'FIELD GOAL' : 'BIG PLAY'; }
+async function openReelMode(id) {
+  let nfl = app.nfl; if (!nfl) { try { nfl = app.nfl = await api('/api/nfl'); } catch {} }
+  const g = nfl?.games?.find((x) => String(x.id) === String(id)); if (!g) return toast('Game not found');
+  // 1-2. best plays from the official clips, trimmed so the reel lands at 30–60 s
+  let pool = (g.clips || []).map((v) => ({ ...v, rank: rankClip(v) })).sort((a, b) => b.rank - a.rank);
+  const segs = []; let total = 0;
+  for (const v of pool) { if (total >= 52) break; const len = v.seconds || 20; const d = Math.max(6, Math.min(12, len - 1)); segs.push({ ...v, start: 0, end: d, kind: playKind(v.title) }); total += d + 1; }
+  if (!segs.length && g.mainHighlight) for (let k = 0; k < 5; k++) segs.push({ ...g.mainHighlight, start: 20 + k * 90, end: 31 + k * 90, kind: 'HIGHLIGHT' });
+  if (!segs.length) { window.open(ytSearch(g), '_blank'); return; }
+  app.rm = { g, segs, i: -1 };
+  const f = g.fantasy;
+  const fzSide = (k) => { const t = f?.[k]; const team = g[k]; return `<div class="rm-fz-t" style="--tc:${esc(team.color || '#444')}"><div class="rm-fz-h">${team.logo ? `<img src="${esc(imgUrl(team.logo))}" alt="" referrerpolicy="no-referrer">` : ''}<span>${esc(team.abbr)}</span><b id="rmTot-${k}">${t ? '0.0' : '—'}</b></div>
+    ${(t?.players || []).filter((p) => p.pos !== 'D/ST').slice(0, 4).map((p) => `<div class="rm-fz-p" data-pl="${esc(p.player.toLowerCase())}"><i>${esc(p.pos)}</i><span>${esc(p.short || p.player)}</span><em>${p.pts.toFixed(1)}</em></div>`).join('')}</div>`; };
+  openSheetHtml(`<div class="rm">
+    <div class="rm-top"><div class="hl-bug"><i></i><b>SMASH</b> NEWS · HIGHLIGHT REEL</div>
+      <div class="rm-game">${esc(g.away.abbr)} <b>${esc(g.away.score)}</b> <span>${g.week ? `WK ${g.week} · ` : ''}${esc(g.detail || 'FINAL')}</span> <b>${esc(g.home.score)}</b> ${esc(g.home.abbr)}</div>
+      <div class="rm-cap" id="rmCap"><span class="rm-kind" id="rmKind">${segs.length} BEST PLAYS</span><b id="rmTitle">${esc(g.away.name)} vs ${esc(g.home.name)}</b></div></div>
+    <div class="rm-video"><div id="rmp"></div><div class="rm-card show" id="rmCard"><div class="hl-n">HIGHLIGHT REEL</div><div class="hl-t">${segs.length} plays · about ${Math.round(total)} sec · official clips</div><button class="hl-go" data-action="rm-start">▶ Play reel</button></div></div>
+    <div class="rm-bar"><i id="rmProg"></i></div>
+    ${f ? `<div class="rm-fz"><div class="rm-fz-title">🏆 FANTASY SHOWDOWN <small>ESPN PPR</small></div><div class="rm-fz-cols">${fzSide('away')}<div class="rm-vs">VS</div>${fzSide('home')}</div></div>` : ''}
+    <p class="muted rm-note">Plays the official NFL / team / network clips inside YouTube's player (original audio). Watch-only — the footage can't be saved as a file.</p></div>`);
+  document.getElementById('sheet').classList.add('sheet-full');
+  loadYT();
+}
+function rmTotals(p) { // fantasy totals count up as the reel plays
+  const f = app.rm?.g?.fantasy; if (!f) return;
+  for (const k of ['away', 'home']) { const e = document.getElementById(`rmTot-${k}`); if (e) e.textContent = (f[k].total * Math.min(1, p)).toFixed(1); }
+}
+async function rmPlay(i) {
+  const r = app.rm; if (!r) return;
+  const card = $('#rmCard');
+  if (i >= r.segs.length) { rmTotals(1); if (card) { card.innerHTML = `<div class="hl-n">FINAL</div><div class="hl-t">${esc(r.g.away.abbr)} ${esc(r.g.away.score)} – ${esc(r.g.home.score)} ${esc(r.g.home.abbr)}${r.g.fantasy ? ` · Fantasy ${r.g.fantasy.away.total.toFixed(1)}–${r.g.fantasy.home.total.toFixed(1)}` : ''}</div><button class="hl-go" data-action="rm-start">↻ Replay</button>`; card.classList.add('show'); } return; }
+  r.i = i; const v = r.segs[i];
+  const kind = $('#rmKind'); const title = $('#rmTitle');
+  if (kind) kind.textContent = `${v.kind} · ${i + 1}/${r.segs.length}`;
+  if (title) title.textContent = String(v.title).replace(/\s*\|.*$/, '').replace(/\s*-\s*NFL.*$/i, '');
+  const lt = String(v.title).toLowerCase();
+  document.querySelectorAll('.rm-fz-p').forEach((e) => e.classList.toggle('on', lt.includes(e.dataset.pl.split(' ').slice(-1)[0])));
+  if (card) { card.innerHTML = `<div class="hl-n">${esc(v.kind)}</div><div class="hl-t">${esc(title?.textContent || '')}</div>`; card.classList.remove('show'); void card.offsetWidth; card.classList.add('show'); }
+  rmTotals((i + 1) / r.segs.length);
+  const prog = $('#rmProg'); if (prog) prog.style.width = `${((i + 1) / r.segs.length) * 100}%`;
+  await loadYT();
+  const go = () => { if (app.rm === r && r.i === i) $('#rmCard')?.classList.remove('show'); };
+  const opts = { videoId: v.videoId, startSeconds: v.start, endSeconds: v.end };
+  if (!r.player) r.player = new YT.Player('rmp', { host: 'https://www.youtube-nocookie.com', videoId: v.videoId, playerVars: { playsinline: 1, rel: 0, modestbranding: 1, autoplay: 1, controls: 0, start: v.start, end: v.end },
+    events: { onReady: (e) => { e.target.playVideo(); setTimeout(go, 900); }, onStateChange: (e) => { if (e.data === 0 && app.rm === r) rmPlay(r.i + 1); }, onError: () => rmPlay(r.i + 1) } });
+  else { r.player.loadVideoById(opts); setTimeout(go, 900); }
 }
 async function openHighlightMode(id) {
   let nfl = app.nfl; if (!nfl) { try { nfl = app.nfl = await api('/api/nfl'); } catch {} }
@@ -1163,6 +1220,7 @@ function initTv(sh) {
 
 function closeSheet() {
   try { app.hl?.player?.destroy(); } catch {} app.hl = null;
+  try { app.rm?.player?.destroy(); } catch {} app.rm = null; $('#sheet')?.classList.remove('sheet-full');
   $('#sheet').hidden = true;
   $('#sheetBackdrop').hidden = true;
   document.body.style.overflow = '';
@@ -1401,6 +1459,8 @@ document.addEventListener('click', async (e) => {
   if (a === 'reel-make') return runReel();
   if (a === 'game-reel') return runGameReel(t.dataset.id);
   if (a === 'hl-mode') return openHighlightMode(t.dataset.id);
+  if (a === 'rm-mode') return openReelMode(t.dataset.id);
+  if (a === 'rm-start') return rmPlay(0);
   if (a === 'hl-start') return hlPlay(0);
   if (a === 'hl-next') return hlPlay((app.hl?.i ?? -1) + 1);
   if (a === 'hl-prev') return hlPlay(Math.max(0, (app.hl?.i ?? 1) - 1));
