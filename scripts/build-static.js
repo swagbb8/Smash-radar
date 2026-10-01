@@ -180,14 +180,39 @@ async function roadWatch(list) {
   if (keep[0]) { rw.video = `roads/${keep[0]}`; rw.videoAt = new Date(Number(keep[0].match(/\d+/)[0])).toISOString(); }
   rw.history = keep.map((f) => ({ video: `roads/${f}`, at: new Date(Number(f.match(/\d+/)[0])).toISOString() }));
   write('roadwatch', rw);
+  // one video per state: Illinois every update + 5 more states in rotation (busiest first), so every state stays fresh
+  const SD = path.join(WORK, 'states');
+  if (!fs.existsSync(SD)) {
+    fs.mkdirSync(SD, { recursive: true });
+    try { (await import('node:child_process')).execSync(`git fetch -q --depth 1 origin gh-pages && git archive FETCH_HEAD roads/states | tar -x -C ${JSON.stringify(SD)} --strip-components=2`, { cwd: ROOT, stdio: 'ignore', timeout: 120000 }); } catch {}
+  }
+  const slug = (n) => n.toLowerCase().replace(/[^a-z]+/g, '-');
+  fs.mkdirSync(path.join(OUT, 'roads', 'states'), { recursive: true });
+  rw.stateVideos = {};
+  for (const f of fs.readdirSync(SD).filter((x) => /^[a-z-]+\.mp4$/.test(x))) {
+    fs.copyFileSync(path.join(SD, f), path.join(OUT, 'roads', 'states', f));
+    rw.stateVideos[f.replace(/\.mp4$/, '')] = { video: `roads/states/${f}`, at: fs.statSync(path.join(SD, f)).mtime.toISOString() };
+  }
+  rw.stateSlugs = Object.fromEntries(JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', 'us-map.json'), 'utf8')).states.map((x) => [x.name, slug(x.name)]));
+  write('roadwatch', rw);
   const lock = path.join(WORK, 'rendering.lock');
-  if (fs.existsSync(lock) && Date.now() - fs.statSync(lock).mtimeMs < 20 * 60e3) return;
-  if (!rw.states.length) return;
+  if (fs.existsSync(lock) && Date.now() - fs.statSync(lock).mtimeMs < 25 * 60e3) return;
   const stamp = Date.now();
+  // all states (perState 4) for the per-state videos
+  const full = buildRoadWatch(list, Date.now(), { hours: 12, zones, maxStates: 60, perState: 4 });
   fs.writeFileSync(path.join(WORK, 'in.json'), JSON.stringify(rw));
+  fs.writeFileSync(path.join(WORK, 'states.json'), JSON.stringify(full));
+  const all = Object.keys(rw.stateSlugs);
+  const busy = full.states.map((x) => x.name);
+  const order = [...busy, ...all.filter((x) => !busy.includes(x))].filter((x) => x !== 'Illinois');
+  const rotFile = path.join(WORK, 'rotation.json');
+  let rot = 0; try { rot = JSON.parse(fs.readFileSync(rotFile, 'utf8')).i || 0; } catch {}
+  const batch = ['Illinois', ...Array.from({ length: 5 }, (_, k) => order[(rot + k) % order.length])];
+  fs.writeFileSync(rotFile, JSON.stringify({ i: (rot + 5) % order.length }));
   fs.writeFileSync(lock, String(stamp));
   const out = path.join(WORK, `road-watch-${stamp}.mp4`);
-  const cmd = `(command -v ffmpeg >/dev/null || sudo apt-get install -y -qq ffmpeg >/dev/null 2>&1); (python3 -c 'import playwright, numpy' 2>/dev/null || pip install -q playwright numpy >/dev/null 2>&1); python3 scripts/road_video.py ${JSON.stringify(path.join(WORK, 'in.json'))} ${JSON.stringify(out)}; rm -f ${JSON.stringify(lock)}`;
+  const per = batch.map((st) => `python3 scripts/road_video.py ${JSON.stringify(path.join(WORK, 'states.json'))} ${JSON.stringify(path.join(SD, `${slug(st)}.mp4`))} ${JSON.stringify(st)}`).join('; ');
+  const cmd = `(command -v ffmpeg >/dev/null || sudo apt-get install -y -qq ffmpeg >/dev/null 2>&1); (python3 -c 'import playwright, numpy' 2>/dev/null || pip install -q playwright numpy >/dev/null 2>&1); ${per}; python3 scripts/road_video.py ${JSON.stringify(path.join(WORK, 'in.json'))} ${JSON.stringify(out)}; rm -f ${JSON.stringify(lock)}`;
   spawn('bash', ['-c', cmd], { cwd: ROOT, detached: true, stdio: ['ignore', fs.openSync(path.join(WORK, 'worker.log'), 'a'), fs.openSync(path.join(WORK, 'worker.log'), 'a')] }).unref();
-  console.log(`road watch: ${rw.total} incidents in ${rw.stateCount} states, video rendering`);
+  console.log(`road watch: ${rw.total} incidents in ${rw.stateCount} states; rendering national + ${batch.join(', ')}`);
 }

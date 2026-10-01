@@ -4,6 +4,7 @@ import { fetchText } from './collector.js';
 
 const REGISTRY = 'https://data.transportation.gov/api/views/69qe-yiui/rows.csv?accessType=DOWNLOAD';
 const STATE_FIX = { 'new hampshire/vermont/maine': 'New England', nps: null, 'n/a': null };
+const NEW_ENGLAND = 'New England';
 const title = (s) => String(s || '').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
 function parseCsv(text) {
@@ -57,7 +58,7 @@ export function normalizeEvent(f, feed, now = Date.now()) {
   const desc = String(core.description || p.description || '').replace(/\s+/g, ' ').trim().slice(0, 220);
   return {
     id: `${feed.name}|${core.data_source_id || ''}|${f.id || p.road_event_id || pts[0].join(',')}`,
-    state: feed.stateName, source: feed.name.split('/')[0],
+    state: feed.stateName === 'New England' ? (pts[0][0] > -71.1 && pts[0][1] > 43.05 ? 'Maine' : pts[0][0] < -71.5 ? 'Vermont' : 'New Hampshire') : feed.stateName, source: feed.name.split('/')[0],
     type: closed ? 'closure' : 'construction', impact: impact.replace(/-/g, ' '),
     road: roads.filter(Boolean).slice(0, 2).join(' / ') || null, direction: core.direction || p.direction || null,
     from: p.beginning_cross_street || null, to: p.ending_cross_street || null,
@@ -85,7 +86,7 @@ export async function fetchWorkZones({ perState = 40, now = Date.now() } = {}) {
       const j = JSON.parse(txt);
       const feats = j.features || j.road_events || [];
       const evs = feats.map((f) => { try { return normalizeEvent(f, feed, now); } catch { return null; } }).filter(Boolean);
-      (out.states[st] ||= []).push(...evs);
+      for (const e of evs) (out.states[e.state] ||= []).push(e);
       out.feeds.push({ state: st, name: feed.name, ok: true, events: evs.length, ms: Date.now() - t0 });
     } catch (e) { out.feeds.push({ state: st, name: feed.name, ok: false, error: String(e.message).slice(0, 120) }); }
   }));

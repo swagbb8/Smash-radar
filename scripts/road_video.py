@@ -40,12 +40,12 @@ const $=(s)=>document.querySelector(s);const clamp=(x,a=0,b=1)=>Math.max(a,Math.
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PROJ=(c)=>window.d3?d3.geoAlbersUsa().scale(1300).translate([487.5,305])(c):null;
 const KC={crash:'#ff3d2e',closure:'#ff9f1c',construction:'#ffd400',police:'#3d8bff',fire:'#ff6b2e',weather:'#22c3ee',traffic:'#c6ff3d'};
-let M,D,SC,cur=-1;const US=[-10,-10,995,630];
+let M,D,SC,cur=-1,d0;const US=[-10,-10,995,630];
 function vb(b){$('#map').setAttribute('viewBox',b.map(x=>x.toFixed(2)).join(' '));}
 function boxFor(bb){const pad=Math.max(bb[2]-bb[0],bb[3]-bb[1])*0.18+12;let x0=bb[0]-pad,y0=bb[1]-pad,w=bb[2]-bb[0]+2*pad,h=bb[3]-bb[1]+2*pad;const ar=1080/900;if(w/h<ar){const nw=h*ar;x0-=(nw-w)/2;w=nw}else{const nh=w/ar;y0-=(nh-h)/2;h=nh}return[x0,y0,w,h];}
 const lerpB=(a,b,p)=>a.map((x,i)=>x+(b[i]-x)*p);
-window.setup=(d)=>{D=d.rw;M=d.map;SC=d.scenes;
- $('#clock').textContent=d.clock;$('#h1').innerHTML='ROAD <em>WATCH</em>';$('#sub').textContent=`${D.total} INCIDENTS · ${D.stateCount} STATES · UPDATED ${d.clock}`;
+window.setup=(d)=>{d0=d;D=d.rw;M=d.map;SC=d.scenes;
+ $('#clock').textContent=d.clock;$('#h1').innerHTML=D.single?`${esc(D.single.toUpperCase())} <em>ROADS</em>`:'ROAD <em>WATCH</em>';$('#sub').textContent=D.single?`${D.total} CLOSURES, CONSTRUCTION & CRASHES · UPDATED ${d.clock}`:`${D.total} INCIDENTS · ${D.stateCount} STATES · UPDATED ${d.clock}`;
  const hot=new Set(D.states.map(s=>s.name));
  $('#gs').innerHTML=M.states.map(s=>`<path class="s ${hot.has(s.name)?'hot':''}" id="s-${s.id}" d="${s.d}"/>`).join('');
  $('#gc').innerHTML=M.ilCounties.map(c=>`<path class="c" id="c-${c.id}" d="${c.d}" style="opacity:0"/>`).join('');
@@ -74,13 +74,14 @@ window.frame=(t)=>{let i=SC.findIndex(s=>t<s.start+s.dur);if(i<0)i=SC.length-1;c
  if(sc.kind==='intro'){vb(US);document.querySelectorAll('.s.hot').forEach(e=>e.style.fillOpacity=.6+.4*Math.sin(t*6));$('#cards').innerHTML='';$('#lbls').innerHTML='';fin.style.display='none';
    $('#map').style.opacity=seg(lt,0,.6);$('#h1').style.transform=`scale(${2-ob(seg(lt,.1,.6))})`;
    document.querySelectorAll('.pin').forEach((p,k)=>{const q=seg(lt,.6+k*.04,.9+k*.04);p.querySelector('.dot').setAttribute('r',(3*ob(q)).toFixed(2));});return;}
- if(sc.kind==='outro'){fin.style.display='flex';fin.style.opacity=seg(lt,0,.4);if(!fin.dataset.d){fin.dataset.d=1;fin.innerHTML=`<h2>${D.total}</h2><p>ROAD INCIDENTS · ${D.stateCount} STATES</p><small>SMASH ROAD WATCH · NEW EVERY 10 MINUTES</small>`;}
+ if(sc.kind==='outro'){fin.style.display='flex';fin.style.opacity=seg(lt,0,.4);if(!fin.dataset.d){fin.dataset.d=1;fin.innerHTML=D.single?`<h2>${D.total}</h2><p>${D.total?'ROAD ISSUES':'ALL CLEAR'} IN ${esc(D.single.toUpperCase())}</p><small>SMASH ROAD WATCH · UPDATED ${esc(d0.clock)}</small>`:`<h2>${D.total}</h2><p>ROAD INCIDENTS · ${D.stateCount} STATES</p><small>SMASH ROAD WATCH · NEW EVERY 10 MINUTES</small>`;}
    fin.querySelector('h2').style.transform=`scale(${2-ob(seg(lt,.1,.6))})`;vb(lerpB(SC[i-1]?.box||US,US,ioc(seg(lt,0,.8))));return;}
  fin.style.display='none';
  const s=D.states[sc.si];const prev=SC[i-1]?.box||US;vb(lerpB(prev,sc.box,ioc(seg(lt,0,.9))));
  if(i!==cur){cur=i;document.querySelectorAll('.s').forEach(e=>{e.classList.remove('on');e.style.fillOpacity=''});const el=document.getElementById('s-'+sc.sid);el&&el.classList.add('on');
    const il=s.name==='Illinois';const cs=new Set(s.incidents.map(x=>x.county).filter(Boolean));document.querySelectorAll('.c').forEach(c=>{c.style.opacity=il?1:0;c.classList.toggle('on',il&&cs.has(M.ilCounties.find(x=>'c-'+x.id===c.id)?.name))});
    const ago=(a)=>{const m=Math.max(1,Math.round((Date.parse(SC.now)-Date.parse(a))/6e4));return m<60?`${m}m ago`:`${Math.round(m/60)}h ago`};
+   if(!s.incidents.length){$('#cards').innerHTML=`<div class="sname"><b>${esc(s.name.toUpperCase())}</b><span style="color:#c6ff3d">ALL CLEAR</span></div><div class="card" style="--k:#c6ff3d"><div class="ic">✅</div><div class="tx"><div class="t">No closures, construction or crashes reported right now.</div></div></div>`;}else
    $('#cards').innerHTML=`<div class="sname"><b>${esc(s.name.toUpperCase())}</b><span>${s.count} INCIDENT${s.count>1?'S':''}</span></div>`+s.incidents.map(it=>`<div class="card" style="--k:${KC[it.type]}"><div class="ic">${it.icon}</div><div class="tx"><div class="k">${it.label}${it.place?` · ${esc(it.place.toUpperCase())}`:''}</div><div class="t">${esc(it.title)}</div><div class="m">${it.official?`since ${new Date(it.at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}`:ago(it.at)} · ${esc(it.source||'')}${it.est?` · <b>Est: ${esc(it.est)}</b>`:''}</div></div></div>`).join('');}
  const z=sc.box[2]/975;
  document.querySelectorAll('.pin').forEach(p=>{const on=+p.dataset.s===sc.si;const k=+p.dataset.k;const q=on?seg(lt,.8+k*.18,1.1+k*.18):0;
@@ -95,8 +96,11 @@ window.frame=(t)=>{let i=SC.findIndex(s=>t<s.start+s.dur);if(i<0)i=SC.length-1;c
 </script></body></html>"""
 
 
-def build(rw_path, out, clock=None):
+def build(rw_path, out, clock=None, state=None):
     rw = json.load(open(rw_path))
+    if state:  # one state's own video
+        s = next((x for x in rw['states'] if x['name'] == state), None) or {'name': state, 'count': 0, 'zones': 0, 'incidents': []}
+        rw = dict(rw, states=[s], total=s['count'], stateCount=1, single=state)
     mp = json.load(open(os.path.join(ROOT, 'assets', 'us-map.json')))
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -153,4 +157,4 @@ def build(rw_path, out, clock=None):
 
 
 if __name__ == '__main__':
-    build(sys.argv[1], sys.argv[2])
+    build(sys.argv[1], sys.argv[2], state=sys.argv[3] if len(sys.argv) > 3 else None)

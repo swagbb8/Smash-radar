@@ -561,6 +561,9 @@ const views = {
     if (rw?.video) html += `<div class="rw-box"><div class="rw-head"><b>🗺️ Road Watch video</b><span class="muted">${rw.total} incidents · ${rw.stateCount} states · updated ${esc(clock(rw.videoAt || rw.createdAt))}</span></div>
       <div class="video-wrap tall rw-vid"><video src="${esc(rw.video)}" controls playsinline muted loop preload="metadata" poster=""></video></div>
       <div class="actions"><button class="btn primary" data-action="rw-save">⬇ Save video</button>${(rw.history || []).length > 1 ? `<span class="muted">New one every 10 minutes</span>` : ''}</div></div>`;
+    const sv = Object.entries(rw?.stateSlugs || {}).filter(([, sl]) => rw.stateVideos?.[sl]).sort(([a], [b]) => (a === 'Illinois' ? -1 : b === 'Illinois' ? 1 : a.localeCompare(b)));
+    if (sv.length) html += `<div class="rw-box"><div class="rw-head"><b>📍 Every state's road video</b><span class="muted">${sv.length} states ready · Illinois refreshes every 10 min, the rest rotate through</span></div>
+      <div class="st-vids">${sv.map(([name, sl]) => `<button class="chip" data-action="st-vid" data-st="${esc(name)}">${esc(name)} <small>${esc(ago(rw.stateVideos[sl].at))}</small></button>`).join('')}</div></div>`;
     html += `<div class="chips"><a class="chip ${!p.county ? 'on' : ''}" href="${link({ county: '' })}">All counties</a>${counties.map((c) => `<a class="chip ${p.county === c ? 'on' : ''}" href="${link({ county: c })}">${esc(c)} <span class="n">${data.stories.filter((s) => countyOf(s) === c).length}</span></a>`).join('')}</div>`;
     html += `<div class="chips">${types.map(([id, l]) => `<a class="chip ${(p.type || '') === id ? 'on' : ''}" href="${link({ type: id })}">${l}</a>`).join('')}</div>`;
     html += list.length ? `<div class="rows">${list.map(roadRow).join('')}</div>` : (noDataYet() || empty('🚦', 'All clear', 'No road or safety reports match right now. This page updates every 10 minutes.'));
@@ -1513,6 +1516,12 @@ document.addEventListener('click', async (e) => {
   if (a === 'reel-clear') { prefs.reel = []; saveReel(); return; }
   if (a === 'reel-add') { const s2 = app.stories.get(t.dataset.id); if (s2 && !prefs.reel.some((x) => x.id === s2.id)) { prefs.reel.push(s2); saveReel(); } toast(`Added to reel (${prefs.reel.length}) — open Reel Studio to make it`); return; }
   if (a === 'road-map') return openRoadMap();
+  if (a === 'st-vid' || a === 'st-save') {
+    const name = t.dataset.st; const sl = app.rw?.stateSlugs?.[name]; const v = app.rw?.stateVideos?.[sl]; if (!v) return;
+    if (a === 'st-save') return saveFile(v.video, `smash-roads-${sl}.mp4`, 'video/mp4');
+    openSheetHtml(`<div class="video-wrap tall"><video src="${esc(v.video)}" controls playsinline autoplay></video></div><div class="content"><h2>${esc(name)} roads</h2><p class="muted">Updated ${esc(ago(v.at))}</p><div class="actions"><button class="btn primary" data-action="st-save" data-st="${esc(name)}">⬇ Save video</button></div></div>`);
+    return;
+  }
   if (a === 'rm-state') { const b = app.roadStates?.[t.dataset.st]; if (b && app.lmap) app.lmap.fitBounds(b, { padding: [20, 20] }); return; }
   if (a === 'rw-save') { if (app.rw?.video) saveFile(app.rw.video, `smash-road-watch-${(app.rw.videoAt || '').slice(0, 16).replace(/[:T]/g, '-')}.mp4`, 'video/mp4'); return; }
   if (a === 'fz-save') { const r = app.recaps?.find((x) => x.id === t.dataset.id); if (!r) return; return r.fantasyPage ? saveFile(r.fantasyPage, `smash-fantasy-${r.away.abbr}-at-${r.home.abbr}.mp4`.toLowerCase(), 'video/mp4') : window.open(r.fantasyVideo, '_blank'); }
