@@ -44,14 +44,14 @@ const out = (k, v) => { if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process
 const URGENT = new Set(['fire', 'crash', 'police', 'emergency', 'missing', 'weather', 'flooding', 'closure', 'metra', 'trees', 'outage']);
 
 function plan() {
-  const enabled = !!(CFG.userId && CFG.token);
+  const enabled = !!(CFG.userId && CFG.token) || !!process.env.POSTIZ_API_KEY;
   const log = readJson(LOG, { posts: [] });
   const today = dayKey();
   const todays = log.posts.filter((p) => p.day === today);
   const stories = readJson(path.join(DIST, 'api', 'stories.json'), { stories: [] }).stories;
   const planned = [];
   if (!enabled) {
-    console.log('autopost: disabled (set IG_USER_ID and IG_ACCESS_TOKEN repo secrets to turn it on)');
+    console.log('autopost: disabled (set POSTIZ_API_KEY, or IG_USER_ID + IG_ACCESS_TOKEN, as repo secrets to turn it on)');
     writeJson(PLAN, { enabled: false, posts: [] });
     out('has_posts', 'false');
     return;
@@ -186,10 +186,33 @@ async function waitLive(url) {
   throw new Error(`image never went live: ${url}`);
 }
 
+// Postiz: Instagram connected once inside Postiz (official login); we upload the rendered images and post through its CLI.
+async function publishPostiz(p, log) {
+  const { execFileSync } = await import('node:child_process');
+  const pz = (...a) => execFileSync('postiz', a, { encoding: 'utf8', env: process.env, timeout: 120000 });
+  try { execFileSync('postiz', ['--help'], { stdio: 'ignore' }); } catch { execFileSync('npm', ['i', '-g', '--silent', 'postiz'], { stdio: 'ignore' }); }
+  const list = JSON.parse(pz('integrations:list'));
+  const ig = (Array.isArray(list) ? list : list.output || []).filter((x) => /instagram/i.test(x.identifier || x.providerIdentifier || '') && !x.disabled);
+  if (!ig.length) { console.log('publish: Postiz has no Instagram channel connected'); return; }
+  for (const post of p.posts) {
+    try {
+      const media = post.files.slice(0, 10).map((f) => JSON.parse(pz('upload', path.join(DIST, f))).path);
+      const when = new Date(Date.now() + 2 * 60e3).toISOString();
+      const res = pz('posts:create', '-c', post.caption, '-m', media.join(','), '-s', when, '--settings', JSON.stringify({ post_type: 'post' }), '-i', ig.map((x) => x.id).join(','));
+      log.posts.push({ at: new Date().toISOString(), day: dayKey(), kind: post.kind, storyIds: post.storyIds, via: 'postiz', result: res.slice(0, 200) });
+      console.log(`publish (postiz): scheduled ${post.kind} with ${media.length} image(s)`);
+    } catch (e) {
+      log.errors = [{ at: new Date().toISOString(), kind: post.kind, error: `postiz: ${e.message}` }, ...(log.errors || [])].slice(0, 20);
+      console.log(`publish (postiz): FAILED ${post.kind}: ${e.message}`);
+    }
+  }
+}
+
 async function publish() {
   const p = readJson(PLAN, { posts: [] });
   const log = readJson(LOG, { posts: [] });
   if (!p.posts.length) return console.log('publish: nothing planned');
+  if (process.env.POSTIZ_API_KEY && !CFG.dryRun) { await publishPostiz(p, log); log.posts = log.posts.slice(-300); writeJson(LOG, log); return; }
   const site = CFG.siteUrl.replace(/\/?$/, '/');
   for (const post of p.posts) {
     const urls = post.files.map((f) => new URL(f, site).toString());
