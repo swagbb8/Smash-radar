@@ -1,5 +1,5 @@
 // SMASH NEWS service worker — offline app shell + last-sweep data fallback.
-const VERSION = 'sr-v4.0.0';
+const VERSION = 'sr-v4.0.1';
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const IMG = 'sr-img';
@@ -64,7 +64,8 @@ self.addEventListener('fetch', (e) => {
       e.respondWith(fetch(req).catch(async () => (await caches.match(`${BASE}index.html`)) || Response.error()));
       return;
     }
-    e.respondWith(staleWhileRevalidate(req, SHELL));
+    // app code: newest from the network, cached copy only when offline
+    e.respondWith(networkFirst(req, SHELL));
     return;
   }
   // Fonts: cache-first. Story images: cache as they're viewed so recent cards work offline.

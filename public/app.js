@@ -1391,5 +1391,16 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
   if (app.mode === 'server') connectEvents();
   setInterval(async () => { if (app.mode === 'static') await loadStatic(true).catch(() => {}); loadMeta(); }, app.mode === 'static' ? 180e3 : 60e3);
   setInterval(() => { updateLive(); document.querySelectorAll('time[datetime]').forEach((t) => (t.textContent = ago(t.getAttribute('datetime')))); }, 30e3);
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // always pick up the newest version: check on open + when coming back, and reload once when it lands
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+      reg.update().catch(() => {});
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+    }).catch(() => {});
+    let reloaded = false;
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+  }
+  window.addEventListener('error', (e) => toast(`Something broke: ${e.message}`));
+  window.addEventListener('unhandledrejection', (e) => toast(`Something broke: ${e.reason?.message || e.reason}`));
 })();
