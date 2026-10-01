@@ -101,7 +101,7 @@ async function staticApi(path, opts) {
   if (method !== 'GET') throw new Error('Not available in the free hosted version — edit src/config.js in the repo instead');
   const d = await loadStatic();
   if (p === 'api/meta') return { ...d.meta, refreshing: false, mode: 'static' };
-  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
+  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
   if (p === 'api/dupage') return d.dupage;
   if (p === 'api/brands') return d.brands;
   if (p === 'api/sources') return d.sources;
@@ -488,8 +488,11 @@ const views = {
       <button class="chip" data-action="tv-top">⏪ From the top</button>
       <button class="chip ${prefs.tvCC === false ? '' : 'on'}" data-action="tv-cc" id="tvCCBtn">CC</button>
       <button class="chip" data-action="tv-mode">📺 TV mode</button>
+      <button class="chip" data-action="tv-script">📄 Save script</button>
     </div>
     <div class="ls-meta">Show from <b>${esc(clock(sh.startsAt || sh.createdAt))}</b> · ${Math.round((sh.totalSeconds || 0) / 60)} min · ${sh.segments.filter((g) => g.title).length} stories · ${esc(voiceLabel)} · brand-new show every 30 minutes</div>
+    <h3 class="sec-title">🎬 Saved shows</h3>
+    <div class="rows tv-vids" id="tvVids">${await videosHtml()}</div>
     <h3 class="sec-title">📝 What Smash is saying</h3>
     <div class="tv-transcript" id="tvTranscript">${transcriptHtml(sh)}</div>
     <h3 class="sec-title">Rundown</h3>
@@ -855,6 +858,37 @@ function markTranscript(k) {
   p.classList.add('on');
   box.scrollTo({ top: p.offsetTop - box.offsetTop - 40, behavior: 'smooth' }); // scroll inside the box only
 }
+async function videosHtml() {
+  let v = [];
+  try { v = (await api('/api/videos')).videos || []; } catch {}
+  app.tvVideos = v;
+  if (!v.length) return '<div class="muted tv-vid-empty">Every show is saved as a video a few minutes after it airs. The first one will show up here soon.</div>';
+  return v.map((x, k) => `<div class="tv-vid"><div class="tv-vid-i">🎬</div><div class="tv-vid-t"><b>${esc(clock(x.startsAt))} show</b><span class="muted">${x.minutes} min · ${x.stories} stories · ${(x.bytes / 1e6).toFixed(0)} MB</span></div>
+    <button class="chip" data-action="vid-play" data-k="${k}">▶</button><button class="chip on" data-action="vid-save" data-k="${k}">⬇ Video</button>${x.script ? `<button class="chip" data-action="vid-script" data-k="${k}">📄</button>` : ''}</div>`).join('');
+}
+function showScript(sh) {
+  let sec = null;
+  const lines = [`SMASH NEWS — Smash the lion's show (${clock(sh.startsAt || sh.createdAt)})`];
+  for (const g of sh.segments) { if (g.section !== sec) { sec = g.section; lines.push('', `== ${sec} ==`); } lines.push(`[${mmss(g.start || 0)}] ${g.text}`); }
+  return `${lines.join('\n')}\n`;
+}
+/** Save a file to the phone: the iPhone share sheet (Save Video / Save to Files), or a normal download elsewhere. */
+async function saveFile(blobOrUrl, name, type) {
+  try {
+    toast('Getting it ready…');
+    const blob = typeof blobOrUrl === 'string' ? await (await fetch(blobOrUrl)).blob() : blobOrUrl;
+    const file = new File([blob], name, { type });
+    if (navigator.canShare?.({ files: [file] })) {
+      if (typeof blobOrUrl !== 'string') { await navigator.share({ files: [file], title: name }); return; }
+      // downloading took a moment, so iPhone needs a fresh tap before it opens the share sheet
+      app.pendingFile = file;
+      openSheetHtml(`<div class="content"><h2>${type.startsWith('video') ? '🎬 Video ready' : '📄 Script ready'}</h2><p class="muted">${esc(name)} · ${(blob.size / 1e6).toFixed(1)} MB</p><div class="actions"><button class="btn primary" data-action="file-share">${type.startsWith('video') ? 'Save video' : 'Save script'}</button></div><p class="muted">On iPhone pick <b>Save Video</b> (Photos) or <b>Save to Files</b>.</p></div>`);
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30e3);
+  } catch (e) { if (e?.name !== 'AbortError') toast(`Couldn't save: ${e.message}`); }
+}
 function livePos(sh) {
   const total = sh.totalSeconds || 1;
   const e = (Date.now() - Date.parse(sh.startsAt || sh.createdAt)) / 1000;
@@ -1186,6 +1220,17 @@ document.addEventListener('click', async (e) => {
   const a = t.dataset.action;
   if (a === 'close') return closeSheet();
   if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
+  if (a === 'file-share') { if (app.pendingFile) navigator.share({ files: [app.pendingFile], title: app.pendingFile.name }).catch(() => {}); return; }
+  if (a === 'tv-script') { const sh = app.tvShow; if (sh) saveFile(new Blob([showScript(sh)], { type: 'text/plain' }), `smash-news-script-${(sh.slot || 'show').replace(/[:T]/g, '-')}.txt`, 'text/plain'); return; }
+  if (a === 'vid-play' || a === 'vid-save' || a === 'vid-script') {
+    const v = app.tvVideos?.[Number(t.dataset.k)]; if (!v) return;
+    const base = `smash-news-${v.slot.replace(/[:T]/g, '-')}`;
+    if (a === 'vid-save') return saveFile(v.video, `${base}.mp4`, 'video/mp4');
+    if (a === 'vid-script') return saveFile(v.script, `${base}.txt`, 'text/plain');
+    if (app.show?.playing) { app.show.pause(); setLive(false); }
+    openSheetHtml(`<div class="video-wrap tall"><video src="${esc(v.video)}" controls playsinline autoplay preload="metadata"></video></div><div class="content"><h2>${esc(clock(v.startsAt))} SMASH NEWS show</h2><div class="actions"><button class="btn primary" data-action="vid-save" data-k="${esc(t.dataset.k)}">⬇ Save video</button>${v.script ? `<button class="btn" data-action="vid-script" data-k="${esc(t.dataset.k)}">📄 Save script</button>` : ''}</div></div>`);
+    return;
+  }
   if (a === 'lion-play') { if (!app.show) return; if (app.show.playing) { app.show.pause(); setLive(false); return; } if (!app.tvStarted) return tvGoLive(); app.tvStarted = true; app.show.play(app.show.i); return; }
   if (a === 'lion-next') { app.tvStarted = true; setLive(false); return app.show?.next(); }
   if (a === 'lion-prev') { app.tvStarted = true; setLive(false); return app.show?.prev(); }

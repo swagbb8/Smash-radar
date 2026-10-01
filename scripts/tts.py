@@ -1,7 +1,7 @@
 """Give SMASH the lion a real voice: turn the 10-minute briefing and the 30-minute live show into neural-voice MP3s.
 Runs in GitHub Actions after build-static.js. Uses Microsoft Edge's free neural voices via the edge-tts package.
 Clips are cached by text, so each one is only generated once. If anything fails, the app falls back to the phone's voice."""
-import asyncio, json, os, sys, hashlib, shutil, time
+import asyncio, json, os, sys, hashlib, shutil, time, glob
 from datetime import datetime, timezone
 
 DIST = os.environ.get('STATIC_OUT', 'dist')
@@ -93,11 +93,80 @@ async def main():
             if keep.get('pendingVoice'): keep['startsAt'] = None
             json.dump(keep, open(os.path.join(DATA, 'show.json'), 'w'))
         print(f"show: {len(s['segments'])} segments, {s['totalSeconds'] / 60:.1f} min, on air since {s['startsAt']}")
+        start_video(s)
+    publish_videos()
     # prune clips not used for 6 hours
     cutoff = time.time() - 6 * 3600
     for f in os.listdir(CACHE) if os.path.isdir(CACHE) else []:
         p = os.path.join(CACHE, f)
         if os.path.getmtime(p) < cutoff:
             os.remove(p)
+
+VIDEO_DIR = os.environ.get('VIDEO_DIR', '/tmp/smash-video')
+KEEP_VIDEOS = int(os.environ.get('KEEP_VIDEOS', '3'))
+
+
+def slot_name(s):
+    return (s.get('slot') or s['id']).replace(':', '-')
+
+
+def script_text(s):
+    lines, sec = [], None
+    when = s.get('slot', '').replace('T', ' ')
+    lines.append(f"SMASH NEWS — Smash the lion's show ({when} Central)")
+    for g in s['segments']:
+        if g.get('section') != sec:
+            sec = g.get('section'); lines.append(f"\n== {sec} ==")
+        t = int(g.get('start', 0))
+        lines.append(f"[{t // 60}:{t % 60:02d}] {g['text']}")
+    return '\n'.join(lines) + '\n'
+
+
+def start_video(s):
+    """Render this show to MP4 in the background (takes a few minutes; it's published on a later update)."""
+    if not s.get('audioReady') or s.get('pendingVoice'):
+        return
+    os.makedirs(VIDEO_DIR, exist_ok=True)
+    name = slot_name(s)
+    mp4 = os.path.join(VIDEO_DIR, f"{name}.mp4")
+    lock = os.path.join(VIDEO_DIR, 'rendering.lock')
+    if os.path.exists(mp4) or (os.path.exists(lock) and time.time() - os.path.getmtime(lock) < 1500):
+        return
+    sp = os.path.join(VIDEO_DIR, f"{name}.json")
+    json.dump(s, open(sp, 'w'))
+    open(os.path.join(VIDEO_DIR, f"{name}.txt"), 'w').write(script_text(s))
+    open(lock, 'w').write(name)
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cmd = (f"(command -v ffmpeg >/dev/null || sudo apt-get install -y -qq ffmpeg >/dev/null 2>&1); "
+           f"(python3 -c 'import playwright' 2>/dev/null || pip install -q playwright >/dev/null 2>&1); "
+           f"cd '{root}' && python3 scripts/video.py '{sp}' '{CACHE}' '{mp4}'; rm -f '{lock}'")
+    import subprocess
+    subprocess.Popen(['bash', '-c', cmd], stdout=open(os.path.join(VIDEO_DIR, 'render.log'), 'a'), stderr=subprocess.STDOUT, start_new_session=True)
+    print(f"video: rendering {name} in the background")
+
+
+def publish_videos():
+    """Copy the newest finished videos (and their scripts) into the site + list them in api/videos.json."""
+    vids = sorted(glob.glob(os.path.join(VIDEO_DIR, '*.mp4')), key=os.path.getmtime, reverse=True) if os.path.isdir(VIDEO_DIR) else []
+    for old in vids[KEEP_VIDEOS:]:
+        for ext in ('.mp4', '.json', '.txt'):
+            try: os.remove(old[:-4] + ext)
+            except OSError: pass
+    out = []
+    os.makedirs(os.path.join(DIST, 'video'), exist_ok=True)
+    for v in vids[:KEEP_VIDEOS]:
+        name = os.path.basename(v)[:-4]
+        shutil.copyfile(v, os.path.join(DIST, 'video', f"{name}.mp4"))
+        txt = v[:-4] + '.txt'
+        if os.path.exists(txt): shutil.copyfile(txt, os.path.join(DIST, 'video', f"{name}.txt"))
+        meta = {}
+        try: meta = json.load(open(v[:-4] + '.json'))
+        except Exception: pass
+        out.append({'slot': meta.get('slot', name), 'video': f"video/{name}.mp4", 'script': f"video/{name}.txt" if os.path.exists(txt) else None,
+                    'bytes': os.path.getsize(v), 'minutes': round((meta.get('totalSeconds') or 0) / 60), 'startsAt': meta.get('startsAt'),
+                    'stories': len([g for g in meta.get('segments', []) if g.get('title')])})
+    json.dump({'videos': out}, open(os.path.join(DIST, 'api', 'videos.json'), 'w'))
+    if out: print(f"videos: {len(out)} published ({', '.join(x['slot'] for x in out)})")
+
 
 asyncio.run(main())

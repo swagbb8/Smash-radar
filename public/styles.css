@@ -600,3 +600,14 @@ body.tv-mode .tv-stage .ls-lion { width: min(70%, 520px); }
 .tv-transcript p .tr-t { display: inline-block; min-width: 40px; font-size: 11px; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .tv-transcript p.on { color: var(--text); background: rgba(198,255,61,.09); box-shadow: inset 3px 0 0 var(--accent); }
 .tv-transcript p.on .tr-t { color: var(--accent); }
+/* Saved show videos */
+.tv-vids { gap: 8px; }
+.tv-vid { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+.tv-vid-i { font-size: 24px; }
+.tv-vid-t { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; }
+.tv-vid-t .muted { font-size: 12px; }
+.tv-vid .chip { height: 34px; padding: 0 11px; }
+.tv-vid .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 800; }
+.tv-vid-empty { padding: 12px; font-size: 13.5px; border-radius: 14px; background: var(--panel); border: 1px dashed var(--line-2); }
+.video-wrap.tall { aspect-ratio: 9 / 16; max-height: 70vh; margin: 0 auto; background: #000; }
+.video-wrap.tall video { width: 100%; height: 100%; object-fit: contain; background: #000; }
