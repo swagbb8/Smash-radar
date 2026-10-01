@@ -16,7 +16,8 @@ The first sweep starts about 2 seconds after boot and takes 20–60 seconds. Aft
 
 
 ## What's in the app (latest)
-- **Smash Live (24/7 TV channel)** — Smash the lion hosts a 30-minute news show, live around the clock: TOP STORIES, DuPage Desk, Roads & Police, Chicagoland, NFL Zone, New Drops, Deal Den, Recall Check, Grand Openings, Around the U.S., State by State, Tech, Games, Food, Cars and Quick Hits. A brand-new show every half hour, voiced with a neural AI voice (Microsoft Edge neural TTS, generated in GitHub Actions). You join live mid-show like real TV, with a LIVE bug, clock, chyron, ticker, captions, section bumpers, rundown and full-screen TV mode. Funny on fun stories, serious on emergencies, always clean.
+- **Reel Studio** — pick stories, deals or drops and the app makes an animated 9:16 reel with an original beat, right on the phone (canvas + Web Audio + MediaRecorder). Save straight to Photos.
+- **NFL recaps** — every finished game gets a broadcast-style motion-graphics recap video (score reveal, quarter-by-quarter, every scoring play, player of the game, team stats) with voice-over and an original music bed. Made automatically in GitHub Actions, kept forever in the `nfl-recaps` release.
 - **NFL** — live + final scores, quarter-by-quarter, game leaders (player stats), official highlight videos, NFL news (ESPN public API + NFL YouTube).
 - **Roads & Safety** — crashes, closures, construction, traffic, police, fire for DuPage, Cook, Kane, Will, Lake, McHenry, Kendall, DeKalb (every item tied to a real county/town).
 - **Local & States** — Chicagoland county news + all 50 states.

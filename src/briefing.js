@@ -177,7 +177,7 @@ export function buildBriefing(stories, now = Date.now(), { nfl = null } = {}) {
   return { id: `b-${now}`, createdAt: new Date(now).toISOString(), segments, script: segments.map((x) => x.text).join(' ') };
 }
 
-function speakStat(v = '') {
+export function speakStat(v = '') {
   return String(v)
     .replace(/(\d+)\/(\d+)/g, '$1 of $2')
     .replace(/\bYDS\b/gi, 'yards').replace(/\bTDs?\b/g, 'touchdowns').replace(/\bCAR\b/gi, 'carries')

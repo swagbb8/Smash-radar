@@ -76,3 +76,27 @@ export async function fetchNfl() {
   out.games.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
   return out;
 }
+
+/** Full game detail for recap videos: every scoring play, team stats, per-team stat leaders. */
+export async function fetchGameSummary(id) {
+  const d = await getJson(`${ESPN}/summary?event=${encodeURIComponent(id)}`);
+  const comp = d.header?.competitions?.[0] || {};
+  const teams = {};
+  for (const c of comp.competitors || []) {
+    const t = c.team || {};
+    teams[c.homeAway] = { id: t.id, abbr: t.abbreviation, name: t.name || t.shortDisplayName || t.displayName, full: t.displayName, color: t.color ? `#${t.color}` : null, alt: t.alternateColor ? `#${t.alternateColor}` : null, logo: t.logos?.[0]?.href || t.logo || null, score: c.score ?? '', record: c.record?.[0]?.summary || c.record?.[0]?.displayValue || '', winner: !!c.winner, linescores: (c.linescores || []).map((l) => l.displayValue ?? l.value) };
+  }
+  const scoring = (d.scoringPlays || []).map((p) => ({
+    type: p.type?.text || p.scoringType?.displayName || '', abbr: p.type?.abbreviation || '', text: p.text || '',
+    period: p.period?.number ?? null, clock: p.clock?.displayValue || '', team: p.team?.abbreviation || '', away: p.awayScore, home: p.homeScore,
+  }));
+  const teamStats = (d.boxscore?.teams || []).map((t) => ({ abbr: t.team?.abbreviation, stats: Object.fromEntries((t.statistics || []).map((s) => [s.name, s.displayValue])) }));
+  const leaders = [];
+  for (const tl of d.leaders || []) {
+    for (const cat of tl.leaders || []) {
+      const l = cat.leaders?.[0];
+      if (l?.athlete) leaders.push({ team: tl.team?.abbreviation, category: cat.displayName || cat.name, key: cat.name, player: l.athlete.displayName, position: l.athlete.position?.abbreviation || '', value: l.displayValue || '' });
+    }
+  }
+  return { id, teams, scoring, teamStats, leaders, venue: d.gameInfo?.venue?.fullName || '', week: d.header?.week ?? null, season: d.header?.season?.year ?? null, date: comp.date || null };
+}

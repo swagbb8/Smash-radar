@@ -1,6 +1,7 @@
 // SMASH NEWS — client app (no build step). Hash-routed SPA, installable PWA.
 const $ = (s, el = document) => el.querySelector(s);
-import { lionSVG, LionShow } from './lion.js';
+import { makeReel, reelSupported } from './reel.js';
+const lionSVG = () => ''; const LionShow = null; // Smash the lion is retired
 const view = $('#view');
 
 // ---------------- local persistence (favorites live on the device) ----------------
@@ -16,12 +17,14 @@ const prefs = {
   lionAuto: LS.get('sr.lionAuto', true),
   tvCC: LS.get('sr.tvCC', true),
   customBrands: LS.get('sr.customBrands', []),
+  reel: LS.get('sr.reel', []),
   cats: new Set(LS.get('sr.cats', [])),
 };
 const saveCustom = () => LS.set('sr.customBrands', prefs.customBrands);
 const saveCats = () => LS.set('sr.cats', [...prefs.cats]);
 const saveBrands = () => LS.set('sr.brands', [...prefs.brands]);
 const saveSaved = () => LS.set('sr.saved', prefs.saved);
+const saveReel = () => { LS.set('sr.reel', prefs.reel); const b = document.querySelector('#reelBar b'); if (b) b.textContent = prefs.reel.length; document.querySelectorAll('[data-reel]').forEach((e) => e.classList.toggle('on', prefs.reel.some((x) => x.id === e.dataset.reel))); };
 
 // ---------------- API ----------------
 // Two modes: "server" (Node/Netlify backend at api/*) and "static" (GitHub Pages: pre-built api/*.json
@@ -101,7 +104,7 @@ async function staticApi(path, opts) {
   if (method !== 'GET') throw new Error('Not available in the free hosted version — edit src/config.js in the repo instead');
   const d = await loadStatic();
   if (p === 'api/meta') return { ...d.meta, refreshing: false, mode: 'static' };
-  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos' || p === 'api/archive') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
+  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos' || p === 'api/archive' || p === 'api/recaps') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
   if (p === 'api/dupage') return d.dupage;
   if (p === 'api/brands') return d.brands;
   if (p === 'api/sources') return d.sources;
@@ -148,8 +151,7 @@ const INC_ICON = { metra: '🚆', emergency: '🚨', fire: '🔥', crash: '💥'
 const NAV = [
   { group: 'Radar' },
   { r: 'home', label: 'Home', ic: '🏠' },
-  { r: 'lion', label: 'Smash Live', ic: '🦁' },
-  { r: 'shows', label: 'Saved Shows', ic: '🎬' },
+  { r: 'reels', label: 'Reel Studio', ic: '🎬' },
   { r: 'daily', label: "Today's News", ic: '📡' },
   { r: 'breaking', label: 'Breaking', ic: '🔥', count: 'BREAKING', hot: true },
   { r: 'today', label: 'Today', ic: '🆕', count: 'NEW' },
@@ -173,6 +175,7 @@ const NAV = [
 ];
 const TITLES = Object.fromEntries(NAV.filter((n) => n.r).map((n) => [n.r, n.label]));
 const ICONS = {
+  reels: '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M3.5 8.5h17M8 3.5l3 5M13.5 3.5l3 5"/><path d="M10 12v5l4.2-2.5z" fill="currentColor"/></svg>',
   lion: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" stroke-dasharray="2.4 1.6"/><circle cx="12" cy="12.5" r="5"/><path d="M10.2 14.2q1.8 1.3 3.6 0"/><circle cx="10.3" cy="11.6" r=".6" fill="currentColor"/><circle cx="13.7" cy="11.6" r=".6" fill="currentColor"/></svg>',
   roads: '<svg viewBox="0 0 24 24"><path d="M8 3 5 21M16 3l3 18M12 4v3M12 10v4M12 17v3"/></svg>',
   nfl: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9.5" ry="6" transform="rotate(-35 12 12)"/><path d="m9.5 14.5 5-5M10.5 11.2l2.3 2.3M12 9.7l2.3 2.3"/></svg>',
@@ -318,7 +321,7 @@ const views = {
       <a class="stat launch" href="#/products"><b>${c.products ?? '–'}</b><span>Products</span></a>
       <a class="stat deal" href="#/deals"><b>${c.deals ?? '–'}</b><span>Deals</span></a>
       <a class="stat recall" href="#/recalls"><b>${c.recalls ?? '–'}</b><span>Recalls</span></a></div>`;
-    const banner = `<a class="live-banner" href="#/lion"><span class="lb-lion">${lionSVG()}</span><span><b>▶ Smash Live</b><br><span class="muted">Smash the lion's 2-minute rundown of the big stuff · new one every 10 min</span></span><span class="lb-live">● LIVE</span></a>`;
+    const banner = `<a class="live-banner reel-banner" href="#/reels"><span class="lb-ic">🎬</span><span><b>Reel Studio</b><br><span class="muted">Pick stories, deals or drops → get an animated reel in seconds</span></span><span class="lb-live" style="background:var(--accent);color:var(--accent-ink);animation:none">NEW</span></a>`;
     const all = await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`);
     if (!all.stories.length) return banner + top + (noDataYet() || empty('📡', 'Radar is clear', 'Nothing collected yet. Tap Refresh to sweep all sources.'));
     const list = all.stories;
@@ -459,48 +462,32 @@ const views = {
   },
 
 
-  async lion() {
-    let sh;
-    try { sh = await api('/api/show'); } catch {
-      try { sh = asShow(await api('/api/briefing')); } catch { return viewHead('Smash Live') + empty('🦁', 'Smash is getting ready', 'The first show goes on air after the next update. Check back in a few minutes.'); }
+  async lion() { location.replace('#/reels'); return ''; },
+
+  async reels() {
+    const tab = app.params.t || app.reelTab || 'top';
+    app.reelTab = tab;
+    const TABS = [['top', '🔥 Top'], ['dupage', '📍 DuPage'], ['roads', '🚧 Roads'], ['products', '📦 New drops'], ['deals', '💰 Deals'], ['recalls', '⚠️ Recalls'], ['today', '🆕 Today'], ['saved', '⭐ Saved']];
+    let list = [];
+    if (tab === 'saved') list = Object.values(prefs.saved);
+    else {
+      const q = tab === 'top' ? { view: 'home', limit: 60 } : { view: tab, limit: 60 };
+      try { list = (await api(`/api/stories?${qs(q)}`)).stories || []; } catch {}
     }
-    app.tvShow = sh;
-    const voiceLabel = sh.voice ? '🎙️ Real human-style voice' : 'Real voice arrives with the next update';
-    const html = `<div class="live-stage tv-stage" id="liveStage">
-      <div class="ls-top"><span class="ls-live">● LIVE</span><span class="ls-brand"><b>SMASH</b> NEWS <small>24/7</small></span><span class="ls-time" id="tvClock"></span></div>
-      <div class="ls-lion">${lionSVG()}</div>
-      <div class="ls-desk"><span class="radar-logo"><i></i></span><b>SMASH</b>&nbsp;NEWS</div>
-      <div class="ls-graphic" id="lsGraphic"></div>
-      <div class="tv-bumper" id="tvBumper"></div>
-      <div class="tv-cc ${prefs.tvCC === false ? 'off' : ''}" id="lsCaption"></div>
-      <div class="tv-chyron"><span class="tc-sec" id="tvSec">SMASH NEWS</span><span class="tc-head" id="tvHead">Smash the lion is on air</span></div>
-      <div class="tv-ticker"><span class="tt-label">LATEST</span><div class="tt-track"><div class="tt-run" id="tvTicker">${tickerHtml(sh)}</div></div></div>
-      <div class="tv-progress"><i id="tvProg"></i></div>
-      <button class="tv-tap" data-action="tv-start" id="tvTap"><span class="tt-play">▶</span><b>Watch live</b><small>Smash is on air right now</small></button>
-      <button class="tv-exit" data-action="tv-mode" aria-label="Exit TV mode">✕</button>
-    </div>
-    <div class="ls-controls">
-      <button class="ls-btn" data-action="lion-prev" aria-label="Previous">⏮</button>
-      <button class="ls-btn big" data-action="lion-play" id="lionPlay" aria-label="Play">▶</button>
-      <button class="ls-btn" data-action="lion-next" aria-label="Next">⏭</button>
-    </div>
-    <div class="tv-row">
-      <button class="chip tv-golive" data-action="tv-live" id="tvGoLive">● Live</button>
-      <button class="chip" data-action="tv-top">⏪ From the top</button>
-      <button class="chip ${prefs.tvCC === false ? '' : 'on'}" data-action="tv-cc" id="tvCCBtn">CC</button>
-      <button class="chip" data-action="tv-mode">📺 TV mode</button>
-    </div>
-    <button class="btn primary tv-scriptbtn" data-action="tv-script">📄 Read the script — everything Smash says</button>
-    <div class="ls-meta">Show from <b>${esc(clock(sh.startsAt || sh.createdAt))}</b> · ${Math.round((sh.totalSeconds || 0) / 60)} min · ${sh.segments.filter((g) => g.title).length} stories · ${esc(voiceLabel)} · new rundown every 10 minutes</div>
-    <h3 class="sec-title">📝 What Smash is saying</h3>
-    <div class="tv-transcript" id="tvTranscript">${transcriptHtml(sh)}</div>
-    <h3 class="sec-title">🎬 Saved shows</h3>
-    <div class="rows tv-vids" id="tvVids">${await videosHtml(6)}</div>
-    <a class="btn tv-allshows" href="#/shows">See every saved show →</a>
-    <h3 class="sec-title">Rundown</h3>
-    <div class="rows ls-list">${rundown(sh)}</div>`;
-    setTimeout(() => initTv(sh), 0);
-    return html;
+    list.forEach((x) => app.stories.set(x.id, x));
+    let recaps = [];
+    try { recaps = (await api('/api/recaps')).recaps || []; } catch {}
+    app.recaps = recaps;
+    const sel = new Set(prefs.reel.map((x) => x.id));
+    const ok = reelSupported();
+    return `${viewHead('Reel Studio', 'Tap stories to add them (up to 8), then hit <b>Make reel</b>. You get an animated 9:16 reel with its own beat — ready for Instagram.')}
+      ${ok ? '' : '<div class="box alert">This browser can\'t record video. Update iOS / Safari to make reels.</div>'}
+      <div class="chips">${TABS.map(([k, l]) => `<a class="chip ${k === tab ? 'on' : ''}" href="#/reels?t=${k}">${l}</a>`).join('')}</div>
+      <div class="reel-pick">${list.length ? list.map((x) => `<button class="rp ${sel.has(x.id) ? 'on' : ''}" data-reel="${esc(x.id)}">
+        <span class="rp-img">${x.imageUrl ? `<img src="${esc(imgUrl(x.imageUrl))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span>${esc(CAT[x.category]?.[0] || '📰')}</span>`}</span>
+        <span class="rp-t"><small>${esc((CAT[x.category]?.[1] || x.category || '').toUpperCase())} · ${esc(x.sourceName || '')}</small>${esc(x.title)}</span><span class="rp-check">✓</span></button>`).join('') : empty('🎬', 'Nothing here yet', 'Try another tab.')}</div>
+      ${recaps.length ? section('NFL game recaps', '🏈', null, `<div class="recaps">${recaps.slice(0, 30).map(recapCard).join('')}</div>`) : ''}
+      <div class="reel-bar" id="reelBar"><span><b>${prefs.reel.length}</b> picked</span><button class="btn" data-action="reel-clear">Clear</button><button class="btn primary" data-action="reel-make">🎬 Make reel</button></div>`;
   },
 
   async nfl() {
@@ -511,6 +498,9 @@ const views = {
     const finals = d.games.filter((g) => g.state === 'post').reverse();
     const upcoming = d.games.filter((g) => g.state === 'pre');
     let html = viewHead('NFL', `${d.week ? `Week ${d.week} · ` : ''}Scores, player stats and highlights for every game. Updated ${ago(d.updatedAt)}.`);
+    let recaps = []; try { recaps = (await api('/api/recaps')).recaps || []; } catch {}
+    app.recaps = recaps;
+    if (recaps.length) html += section('SMASH recaps — every game', '🎬', null, `<div class="recaps">${recaps.slice(0, 20).map(recapCard).join('')}</div>`);
     if (live.length) html += section('Live now', '🔴', null, `<div class="games">${live.map(gameCard).join('')}</div>`);
     if (finals.length) html += section('Final scores', '🏁', null, `<div class="games">${finals.map(gameCard).join('')}</div>`);
     if (d.videos.length) html += section('Highlights', '🎬', null, `<div class="rail">${d.videos.slice(0, 24).map(videoCard).join('')}</div>`);
@@ -700,6 +690,7 @@ async function openStory(id) {
       <div class="actions">
         <a class="btn primary" href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">Read original ↗</a>
         <button class="btn" data-post="${esc(s.id)}" aria-label="Make Instagram post">📸</button>
+        <button class="btn" data-action="reel-add" data-id="${esc(s.id)}" aria-label="Add to reel">🎬</button>
         <button class="btn ${isSaved(s.id) ? 'on' : ''}" data-save="${esc(s.id)}" aria-label="Save">${STAR}</button>
         <button class="btn" data-action="share" data-id="${esc(s.id)}" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 13v7h14v-7"/></svg></button>
       </div>
@@ -876,6 +867,32 @@ function markTranscript(k) {
   p.classList.add('on');
   box.scrollTo({ top: p.offsetTop - box.offsetTop - 40, behavior: 'smooth' }); // scroll inside the box only
 }
+function recapCard(r) {
+  const t = (k) => `<span class="rc-t ${r.winner === k ? 'w' : ''}">${r[k].logo ? `<img src="${esc(imgUrl(r[k].logo))}" alt="" referrerpolicy="no-referrer">` : ''}<b>${esc(r[k].abbr)}</b><i>${esc(r[k].score)}</i></span>`;
+  return `<div class="recap"><div class="rc-score">${t('away')}<em>FINAL</em>${t('home')}</div><div class="rc-meta">${r.week ? `Week ${r.week} · ` : ''}${r.plays || 0} scoring plays</div>
+    <div class="rc-actions">${r.page || r.video ? `<button class="btn primary" data-action="recap-play" data-id="${esc(r.id)}">▶ Watch</button>` : ''}${r.page || r.video ? `<button class="btn" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save</button>` : ''}</div></div>`;
+}
+async function runReel() {
+  const picks = prefs.reel.slice(0, 8);
+  if (!picks.length) return toast('Pick at least one story first');
+  if (!reelSupported()) return toast('This browser can\'t record video');
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const actx = new AC(); actx.resume?.(); // must start inside the tap
+  openSheetHtml(`<div class="content reel-make"><h2>🎬 Making your reel</h2><p class="muted" id="rmStatus">Getting ready…</p>
+    <div class="rm-prog"><i id="rmBar"></i></div><div class="rm-stage"><canvas id="rmCanvas"></canvas></div><p class="muted">Keep this screen open while it records (about ${Math.round(4.6 + picks.length * 4.3)} seconds).</p></div>`);
+  try {
+    const stories = picks.map((p) => app.stories.get(p.id) || p);
+    const res = await makeReel(stories, { canvas: $('#rmCanvas'), base: './', audioCtx: actx, title: stories.length === 1 ? 'BREAKING DOWN' : `TOP ${stories.length} STORIES`,
+      onProgress: (p, msg) => { const b = $('#rmBar'); if (b) b.style.width = `${(p * 100).toFixed(1)}%`; const st = $('#rmStatus'); if (st) st.textContent = msg; } });
+    const ext = res.type.includes('mp4') ? 'mp4' : 'webm';
+    const url = URL.createObjectURL(res.blob);
+    app.pendingFile = new File([res.blob], `smash-news-reel-${Date.now()}.${ext}`, { type: res.type });
+    openSheetHtml(`<div class="content reel-make"><h2>🔥 Your reel is ready</h2><div class="video-wrap tall"><video src="${url}" controls playsinline autoplay loop></video></div>
+      <div class="actions"><button class="btn primary" data-action="file-share">Save / share reel</button><button class="btn" data-action="reel-make">Make again</button></div>
+      <p class="muted">${Math.round(res.seconds)} sec · ${(res.blob.size / 1e6).toFixed(1)} MB · ${ext.toUpperCase()}. On iPhone tap <b>Save / share</b> → <b>Save Video</b>.</p></div>`);
+  } catch (e) { toast(`Reel failed: ${e.message}`); }
+  finally { setTimeout(() => actx.close?.(), 2000); }
+}
 function openScript(text, name, when) {
   app.scriptText = text; app.scriptName = name;
   openSheetHtml(`<div class="content"><div class="kicker">🦁 SMASH NEWS · ${esc(when || '')}</div><h2>The script</h2><p class="muted">Everything Smash says in this rundown, word for word.</p>
@@ -1045,7 +1062,7 @@ function renderChrome() {
   document.documentElement.style.setProperty('--topbar-h', `${$('.topbar').offsetHeight}px`);
   const c = app.meta?.counts || {};
   $('#sideNav').innerHTML = NAV.map((n) => (n.group ? `<div class="group">${n.group}</div>` : `<a href="#/${n.r}" class="${app.route === n.r ? 'active' : ''}"><span class="ic">${n.ic}</span>${n.label}${n.count && c[n.count] ? `<span class="count ${n.hot ? 'hot' : ''}">${c[n.count]}</span>` : ''}</a>`)).join('');
-  const tabs = [['home', 'Home'], ['lion', 'Live'], ['roads', 'Roads'], ['nfl', 'NFL']];
+  const tabs = [['home', 'Home'], ['reels', 'Reels'], ['roads', 'Roads'], ['nfl', 'NFL']];
   const inMore = !tabs.some(([r]) => r === app.route);
   $('#tabbar').innerHTML = tabs.map(([r, l]) => `<a href="#/${r}" class="${app.route === r ? 'active' : ''}">${ICONS[r]}<span>${l}</span>${r === 'breaking' && c.BREAKING ? `<span class="badge">${c.BREAKING}</span>` : ''}</a>`).join('') +
     `<button type="button" data-action="more" class="${inMore ? 'active' : ''}">${ICONS.more}<span>More</span></button>`;
@@ -1203,9 +1220,15 @@ function connectEvents() {
 
 // ---------------- events ----------------
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],[data-post],[data-fmt],[data-seg],[data-game],[data-video],.src-link');
+  const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],[data-post],[data-fmt],[data-seg],[data-game],[data-video],[data-reel],.src-link');
   if (!t) return;
   if (t.classList.contains('src-link')) return; // let links inside cards open normally
+  if (t.dataset.reel) {
+    const id = t.dataset.reel; const i = prefs.reel.findIndex((x) => x.id === id);
+    if (i >= 0) prefs.reel.splice(i, 1);
+    else { if (prefs.reel.length >= 8) return toast('Max 8 stories per reel'); const s2 = app.stories.get(id); if (s2) prefs.reel.push({ id, title: s2.title, imageUrl: s2.imageUrl, category: s2.category, sourceName: s2.sourceName, tags: s2.tags, status: s2.status, location: s2.location, region: s2.region }); }
+    saveReel(); return;
+  }
   if (t.dataset.seg) { if (!app.show) return; app.tvStarted = true; setLive(false); app.show.stop(); app.show.play(Number(t.dataset.seg)); if (t.tagName !== 'P') window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (t.dataset.game) return openGame(t.dataset.game);
   if (t.dataset.video) return openVideo(t.dataset.video, t.dataset.vtitle || 'Highlights');
@@ -1245,6 +1268,16 @@ document.addEventListener('click', async (e) => {
   const a = t.dataset.action;
   if (a === 'close') return closeSheet();
   if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
+  if (a === 'reel-make') return runReel();
+  if (a === 'reel-clear') { prefs.reel = []; saveReel(); return; }
+  if (a === 'reel-add') { const s2 = app.stories.get(t.dataset.id); if (s2 && !prefs.reel.some((x) => x.id === s2.id)) { prefs.reel.push(s2); saveReel(); } toast(`Added to reel (${prefs.reel.length}) — open Reel Studio to make it`); return; }
+  if (a === 'recap-play' || a === 'recap-save') {
+    const r = app.recaps?.find((x) => x.id === t.dataset.id); if (!r) return;
+    const src = r.page || r.video;
+    if (a === 'recap-save') return r.page ? saveFile(r.page, `smash-news-${r.away.abbr}-at-${r.home.abbr}.mp4`.toLowerCase(), 'video/mp4') : window.open(r.video, '_blank');
+    openSheetHtml(`<div class="video-wrap tall"><video src="${esc(src)}" controls playsinline autoplay></video></div><div class="content"><h2>${esc(r.title)}</h2><div class="actions"><button class="btn primary" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save video</button></div></div>`);
+    return;
+  }
   if (a === 'file-share') { if (app.pendingFile) navigator.share({ files: [app.pendingFile], title: app.pendingFile.name }).catch(() => {}); return; }
   if (a === 'tv-script') { const sh = app.tvShow; if (sh) openScript(showScript(sh), `smash-news-script-${(sh.slot || 'show').replace(/[:T]/g, '-')}.txt`, clock(sh.startsAt || sh.createdAt)); return; }
   if (a === 'script-copy') { navigator.clipboard?.writeText(app.scriptText || '').then(() => toast('Script copied ✓'), () => toast('Long-press the text to copy')); return; }

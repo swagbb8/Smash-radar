@@ -620,3 +620,34 @@ body.tv-mode .tv-stage .ls-lion { width: min(70%, 520px); }
 .arch-day .tv-vid { border-radius: 0; border: 0; border-top: 1px solid var(--line); }
 .arch-day .tv-vid-t .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 a.chip { text-decoration: none; }
+/* ===== Reel Studio ===== */
+.reel-banner .lb-ic { font-size: 38px; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(135deg, var(--accent), #00e0a4); flex: none; }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 800; }
+.reel-pick { display: grid; grid-template-columns: 1fr; gap: 8px; padding-bottom: 90px; }
+@media (min-width: 700px) { .reel-pick { grid-template-columns: 1fr 1fr; } }
+.rp { position: relative; display: flex; gap: 12px; align-items: center; text-align: left; padding: 8px; border-radius: 16px; background: var(--panel); border: 2px solid var(--line); transition: border-color .15s, transform .1s; }
+.rp:active { transform: scale(.98); }
+.rp-img { flex: none; width: 76px; height: 96px; border-radius: 10px; overflow: hidden; background: var(--panel-2); display: grid; place-items: center; font-size: 30px; }
+.rp-img img { width: 100%; height: 100%; object-fit: cover; }
+.rp-t { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.rp-t small { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; color: var(--text-3); margin-bottom: 3px; }
+.rp-check { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line-2); display: grid; place-items: center; font-weight: 900; color: transparent; }
+.rp.on { border-color: var(--accent); background: rgba(198,255,61,.07); }
+.rp.on .rp-check { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.reel-bar { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 60; display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 16px; border-radius: 18px; background: rgba(15,18,23,.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line-2); box-shadow: 0 12px 40px rgba(0,0,0,.5); max-width: 640px; margin: 0 auto; }
+.reel-bar span { flex: 1; font-size: 14px; color: var(--text-2); } .reel-bar b { color: var(--accent); font-size: 18px; }
+@media (min-width: 1024px) { .reel-bar { bottom: 20px; } }
+.reel-make .rm-prog { height: 8px; border-radius: 99px; background: var(--panel-2); overflow: hidden; margin: 10px 0 14px; }
+.reel-make .rm-prog i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }
+.reel-make .rm-stage { width: min(62vw, 300px); margin: 0 auto 12px; border-radius: 16px; overflow: hidden; background: #000; aspect-ratio: 9 / 16; }
+.reel-make .rm-stage canvas { width: 100%; height: 100%; display: block; }
+/* NFL recaps */
+.recaps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.recap { padding: 14px; border-radius: 18px; background: linear-gradient(160deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); }
+.rc-score { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.rc-score em { font-style: normal; font-size: 11px; font-weight: 900; letter-spacing: .14em; color: var(--accent); }
+.rc-t { display: flex; align-items: center; gap: 6px; opacity: .7; } .rc-t.w { opacity: 1; }
+.rc-t img { width: 34px; height: 34px; object-fit: contain; } .rc-t b { font-size: 14px; } .rc-t i { font-style: normal; font-family: var(--display); font-weight: 800; font-size: 26px; }
+.rc-t.w i { color: var(--accent); }
+.rc-meta { font-size: 12px; color: var(--text-3); margin: 6px 0 10px; }
+.rc-actions { display: flex; gap: 8px; } .rc-actions .btn { flex: 1; }
