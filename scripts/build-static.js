@@ -49,6 +49,16 @@ if (process.env.NFL !== 'off') {
   try { const { fetchNfl } = await import('../src/nfl.js'); nfl = await fetchNfl(); write('nfl', nfl); console.log(`nfl: ${nfl.games.length} games, ${nfl.videos.length} videos, ${nfl.news.length} news${nfl.errors.length ? ` (errors: ${nfl.errors.join('; ')})` : ''}`); }
   catch (e) { console.log('nfl failed:', e.message); }
 }
+if (nfl && process.env.NFL_CLIPS !== 'off') { // official highlight clips for Highlight Mode
+  try {
+    const { addClips } = await import('../src/nflclips.js');
+    const cf = path.join(path.dirname(store.file), 'nfl-clips.json');
+    let cache = {}; try { cache = JSON.parse(fs.readFileSync(cf, 'utf8')); } catch {}
+    const n = await addClips(nfl, cache);
+    fs.writeFileSync(cf, JSON.stringify(cache)); write('nfl', nfl);
+    console.log(`nfl clips: searched ${n} games, ${nfl.games.filter((g) => g.clips?.length).length} games have clips`);
+  } catch (e) { console.log('nfl clips failed:', e.message); }
+}
 if (!nfl) { try { nfl = JSON.parse(fs.readFileSync(path.join(OUT, 'api', 'nfl.json'), 'utf8')); } catch { nfl = { games: [], news: [], videos: [], errors: ['not loaded'] }; write('nfl', nfl); } }
 if (process.env.LION === 'on') { // the talking-lion show is retired (off unless LION=on)
 write('briefing', buildBriefing(stories, Date.now(), { nfl }));

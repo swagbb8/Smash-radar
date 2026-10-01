@@ -531,6 +531,8 @@ const views = {
     let html = viewHead('NFL', `${d.week ? `Week ${d.week} · ` : ''}Scores, player stats and highlights for every game. Updated ${ago(d.updatedAt)}.`);
     let recaps = []; try { recaps = (await api('/api/recaps')).recaps || []; } catch {}
     app.recaps = recaps;
+    const hlGames = finals.filter((g) => g.clips?.length || g.mainHighlight);
+    if (hlGames.length) html += section('Highlight Mode', '⚡', null, `<div class="gr-pick">${hlGames.map((g) => `<button class="gr" data-action="hl-mode" data-id="${esc(g.id)}">${[g.away, g.home].map((x) => `<span class="${x.winner ? 'w' : ''}">${x.logo ? `<img src="${esc(imgUrl(x.logo))}" alt="" referrerpolicy="no-referrer">` : ''}${esc(x.abbr)} <b>${esc(x.score)}</b></span>`).join('')}<em>⚡ ${(g.clips?.length || 0) + (g.mainHighlight ? 1 : 0)} clips</em></button>`).join('')}</div>`);
     if (recaps.length) html += section('SMASH recaps — every game', '🎬', null, `<div class="recaps">${recaps.slice(0, 20).map(recapCard).join('')}</div>`);
     if (live.length) html += section('Live now', '🔴', null, `<div class="games">${live.map(gameCard).join('')}</div>`);
     if (finals.length) html += section('Final scores', '🏁', null, `<div class="games">${finals.map(gameCard).join('')}</div>`);
@@ -865,7 +867,7 @@ function openGame(id) {
     ${box}
     ${g.leaders.length ? `<div class="box why"><h5>Player stats — game leaders</h5>${g.leaders.map((l) => `<div class="leader">${l.headshot ? `<img src="${esc(imgUrl(l.headshot))}" alt="" referrerpolicy="no-referrer">` : '<span class="hs">🏈</span>'}<div><b>${esc(l.player)}</b> <span class="muted">${esc(l.position)} ${esc(l.team)}</span><br><span class="muted">${esc(l.category)}</span> · ${esc(l.value)}</div></div>`).join('')}</div>` : ''}
     <div class="src-line">${g.venue ? `<span>📍 ${esc(g.venue)}</span>` : ''}${g.broadcast ? `<span>📺 ${esc(g.broadcast)}</span>` : ''}</div>
-    ${g.state === 'post' ? `<div class="actions">${g.highlight ? '' : `<a class="btn primary" href="${esc(ytSearch(g))}" target="_blank" rel="noopener">▶ Official highlights</a>`}<a class="btn" href="https://www.nfl.com/plus/" target="_blank" rel="noopener">Full replay / condensed game (NFL+) ↗</a></div>` : ''}
+    ${g.state === 'post' ? `<div class="actions">${g.clips?.length || g.mainHighlight ? `<button class="btn primary" data-action="hl-mode" data-id="${esc(g.id)}">⚡ Highlight Mode · ${(g.clips?.length || 0) + (g.mainHighlight ? 1 : 0)} clips</button>` : g.highlight ? '' : `<a class="btn primary" href="${esc(ytSearch(g))}" target="_blank" rel="noopener">▶ Official highlights</a>`}<a class="btn" href="https://www.nfl.com/plus/" target="_blank" rel="noopener">Full replay / condensed game (NFL+) ↗</a></div>` : ''}
     <div class="actions">${g.state === 'post' ? `<button class="btn primary" data-action="game-reel" data-id="${esc(g.id)}">🎬 Make game reel</button>` : ''}<a class="btn ${g.state === 'post' ? '' : 'primary'}" href="${esc(safeUrl(g.link))}" target="_blank" rel="noopener">ESPN box score ↗</a></div></div>`);
 }
 
@@ -916,6 +918,49 @@ function recapCard(r) {
   const t = (k) => `<span class="rc-t ${r.winner === k ? 'w' : ''}">${r[k].logo ? `<img src="${esc(imgUrl(r[k].logo))}" alt="" referrerpolicy="no-referrer">` : ''}<b>${esc(r[k].abbr)}</b><i>${esc(r[k].score)}</i></span>`;
   return `<div class="recap"><div class="rc-score">${t('away')}<em>FINAL</em>${t('home')}</div><div class="rc-meta">${r.week ? `Week ${r.week} · ` : ''}${r.playCount ?? (Array.isArray(r.plays) ? r.plays.length : r.plays) ?? 0} scoring plays</div>
     <div class="rc-actions"><button class="btn" data-action="game-reel" data-id="${esc(r.id)}">🎬 Reel</button>${r.page || r.video ? `<button class="btn primary" data-action="recap-play" data-id="${esc(r.id)}">▶ Watch</button>` : ''}${r.page || r.video ? `<button class="btn" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save</button>` : ''}</div></div>`;
+}
+// ---------- Highlight Mode: official clips played back-to-back with SMASH cards in between (YouTube's own player)
+function loadYT() {
+  if (window.YT?.Player) return Promise.resolve();
+  if (app.ytLoading) return app.ytLoading;
+  app.ytLoading = new Promise((res) => { window.onYouTubeIframeAPIReady = () => res(); const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; document.head.append(sc); });
+  return app.ytLoading;
+}
+async function openHighlightMode(id) {
+  let nfl = app.nfl; if (!nfl) { try { nfl = app.nfl = await api('/api/nfl'); } catch {} }
+  const g = nfl?.games?.find((x) => String(x.id) === String(id)); if (!g) return toast('Game not found');
+  const list = [...(g.clips || [])]; if (g.mainHighlight) list.push({ ...g.mainHighlight, full: true });
+  if (!list.length) { window.open(ytSearch(g), '_blank'); return; }
+  app.hl = { g, list, i: -1 };
+  const sc = (x) => `<span class="${x.winner ? 'w' : ''}">${x.logo ? `<img src="${esc(imgUrl(x.logo))}" alt="" referrerpolicy="no-referrer">` : ''}${esc(x.abbr)}<b>${esc(x.score)}</b></span>`;
+  openSheetHtml(`<div class="hl">
+    <div class="hl-stage"><div id="ytp"></div>
+      <div class="hl-card show" id="hlCard"><div class="hl-bug"><i></i><b>SMASH</b> NEWS · HIGHLIGHT MODE</div><div class="hl-sc">${sc(g.away)}<em>FINAL</em>${sc(g.home)}</div><div class="hl-t">${list.length} official clips</div>
+        <button class="hl-go" data-action="hl-start">▶ Start</button></div></div>
+    <div class="hl-ctl"><button class="btn" data-action="hl-prev">⏮</button><span id="hlNow">Ready</span><button class="btn" data-action="hl-next">⏭</button></div>
+    <div class="hl-list">${list.map((v, i) => `<button class="hl-item" data-action="hl-pick" data-i="${i}"><img src="${esc(imgUrl(v.thumb))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span><b>${esc(v.title)}</b><small>${esc(v.channel)} · ${esc(v.length || '')}${v.full ? ' · full game highlights' : ''}</small></span></button>`).join('')}</div>
+    <p class="muted hl-note">Official clips from the NFL, team and network channels, played with YouTube's player.</p></div>`);
+  loadYT();
+}
+function hlCard(v, i, n) {
+  const c = $('#hlCard'); if (!c) return;
+  const g = app.hl.g;
+  c.innerHTML = `<div class="hl-bug"><i></i><b>SMASH</b> NEWS</div><div class="hl-n">${v.full ? 'FULL GAME' : `CLIP ${i + 1}<small>/${n}</small>`}</div><div class="hl-t">${esc(v.title)}</div><div class="hl-sc mini"><span>${esc(g.away.abbr)}<b>${esc(g.away.score)}</b></span><em>FINAL</em><span>${esc(g.home.abbr)}<b>${esc(g.home.score)}</b></span></div>`;
+  c.classList.remove('show'); void c.offsetWidth; c.classList.add('show');
+}
+async function hlPlay(i) {
+  const h = app.hl; if (!h) return;
+  if (i >= h.list.length) { const c = $('#hlCard'); if (c) { c.innerHTML = '<div class="hl-n">THAT\'S A WRAP</div><div class="hl-t">SMASH NEWS · Highlight Mode</div>'; c.classList.add('show'); } return; }
+  h.i = i; const v = h.list[i];
+  document.querySelectorAll('.hl-item').forEach((b, k) => b.classList.toggle('on', k === i));
+  const now = $('#hlNow'); if (now) now.textContent = `${i + 1} / ${h.list.length}`;
+  hlCard(v, i, h.list.length);
+  await loadYT();
+  const start = () => { if (app.hl !== h || h.i !== i) return; $('#hlCard')?.classList.remove('show'); };
+  if (!h.player) {
+    h.player = new YT.Player('ytp', { videoId: v.videoId, host: 'https://www.youtube-nocookie.com', playerVars: { playsinline: 1, rel: 0, modestbranding: 1, autoplay: 1 },
+      events: { onReady: (e) => { e.target.playVideo(); setTimeout(start, 1800); }, onStateChange: (e) => { if (e.data === 0) hlPlay(h.i + 1); }, onError: () => hlPlay(h.i + 1) } });
+  } else { h.player.loadVideoById(v.videoId); setTimeout(start, 1800); }
 }
 async function runGameReel(id) {
   if (!reelSupported()) return toast('This browser can\'t record video');
@@ -1100,6 +1145,7 @@ function initTv(sh) {
 }
 
 function closeSheet() {
+  try { app.hl?.player?.destroy(); } catch {} app.hl = null;
   $('#sheet').hidden = true;
   $('#sheetBackdrop').hidden = true;
   document.body.style.overflow = '';
@@ -1337,6 +1383,11 @@ document.addEventListener('click', async (e) => {
   if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
   if (a === 'reel-make') return runReel();
   if (a === 'game-reel') return runGameReel(t.dataset.id);
+  if (a === 'hl-mode') return openHighlightMode(t.dataset.id);
+  if (a === 'hl-start') return hlPlay(0);
+  if (a === 'hl-next') return hlPlay((app.hl?.i ?? -1) + 1);
+  if (a === 'hl-prev') return hlPlay(Math.max(0, (app.hl?.i ?? 1) - 1));
+  if (a === 'hl-pick') return hlPlay(Number(t.dataset.i));
   if (a === 'select-on') { app.selectMode = true; reelFab(); markPicked(); toast('Tap stories to pick them for your reel'); return; }
   if (a === 'select-off') { app.selectMode = false; reelFab(); markPicked(); return; }
   if (a === 'reel-clear') { prefs.reel = []; saveReel(); return; }
