@@ -59,7 +59,7 @@ def main(nfl_json, done_json):
         print(f'recap done: {spec["title"]}')
 
 
-V3D = 6  # bump to re-make every 3D replay after a big look change
+V3D = 7  # bump to re-make every 3D replay after a big look change
 
 
 def make_3d(nfl_json, done_json, budget=float(os.environ.get('G3D_BUDGET_MIN', '45')) * 60):

@@ -30,7 +30,7 @@ def load(nfl_path, gid, recs_path=None):
     try:
         subprocess.run(['node', 'scripts/game3d-data.mjs', str(gid), tmp], cwd=ROOT, check=True, timeout=90)
         d = json.load(open(tmp))
-        if d.get('plays'): return d['game'], d['plays'], d.get('jerseys') or {}
+        if d.get('plays'): d['game']['lineups'] = d.get('lineups') or {}; return d['game'], d['plays'], d.get('jerseys') or {}
     except Exception as e: print(f'3d data: summary unavailable ({e}), falling back', file=sys.stderr)
     try:
         g = next(x for x in json.load(open(nfl_path))['games'] if str(x['id']) == str(gid))

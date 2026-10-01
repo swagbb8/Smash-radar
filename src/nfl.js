@@ -127,3 +127,23 @@ export async function fetchGameSummary(id) {
   for (const t of d.boxscore?.players || []) for (const st of t.statistics || []) for (const a of st.athletes || []) if (a.athlete?.displayName && a.athlete.jersey) jerseys[a.athlete.displayName] = { n: a.athlete.jersey, team: t.team?.abbreviation, pos: a.athlete.position?.abbreviation || '' };
   return { id, teams, scoring, teamStats, leaders, fantasy, jerseys, venue: d.gameInfo?.venue?.fullName || '', week: d.header?.week ?? null, season: d.header?.season?.year ?? null, date: comp.date || null };
 }
+
+/** Real starting lineup numbers for the replay: who lines up where, by position (players who played come first). */
+export function buildLineup(roster, played = new Set()) {
+  const by = {};
+  for (const a of roster) { const pos = (a.pos || '').toUpperCase(); (by[pos] ||= []).push(a); }
+  for (const k of Object.keys(by)) by[k].sort((a, b) => (played.has(b.name) ? 1 : 0) - (played.has(a.name) ? 1 : 0));
+  const used = new Set();
+  const take = (...poss) => { for (const pos of poss) for (const a of by[pos] || []) if (!used.has(a.name) && a.n) { used.add(a.name); return String(a.n); } return null; };
+  return {
+    off: [take('QB'), take('WR'), take('OT', 'T', 'OL'), take('G', 'OG', 'OL'), take('C', 'OL'), take('G', 'OG', 'OL'), take('OT', 'T', 'OL'), take('TE'), take('WR'), take('WR'), take('RB', 'FB')],
+    def: [take('DE', 'EDGE', 'DL', 'OLB'), take('DT', 'NT', 'DL'), take('DT', 'NT', 'DL'), take('DE', 'EDGE', 'DL', 'OLB'), take('LB', 'OLB', 'ILB', 'MLB'), take('LB', 'ILB', 'MLB', 'OLB'), take('LB', 'OLB', 'ILB'), take('CB', 'DB'), take('CB', 'DB'), take('S', 'FS', 'SS', 'DB'), take('S', 'SS', 'FS', 'DB')],
+  };
+}
+
+export async function fetchLineup(teamId, played) {
+  const d = await getJson(`${ESPN}/teams/${encodeURIComponent(teamId)}/roster`);
+  const roster = [];
+  for (const grp of d.athletes || []) for (const a of grp.items || [grp]) if (a?.displayName) roster.push({ name: a.displayName, n: a.jersey, pos: a.position?.abbreviation });
+  return buildLineup(roster, played);
+}
