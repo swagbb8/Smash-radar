@@ -251,7 +251,7 @@ test('lion briefing: clean, funny on fun stuff, serious on emergencies, NFL stat
   assert.match(game.text, /Bears beat the Packers, 27 to 20/);
   assert.match(game.text, /24 of 31, 288 yards, 2 touchdowns/);
   assert.match(game.text, /Top stat line: QB One/);
-  assert.doesNotMatch(b.script, /\b(damn|hell|crap|shit|fuck)\b/i);
+  assert.doesNotMatch(b.script, /\b(shit|fuck\w*|bitch\w*|ass(hole)?)\b/i); // mild words only (damn, hell, crap)
   assert.equal(b.segments[0].kind, 'intro');
   assert.equal(b.segments.at(-1).kind, 'outro');
 });
@@ -271,7 +271,8 @@ test('30-minute live show: sections, bumpers, timing, half-hour slots', async ()
   assert.ok(sh.segments.some((g) => g.section === 'ROADS & POLICE'));
   assert.ok(sh.totalSeconds > 8 * 60 && sh.totalSeconds < 34 * 60, `length ${sh.totalSeconds}`);
   for (let i = 1; i < sh.segments.length; i++) assert.ok(Math.abs(sh.segments[i].start - (sh.segments[i - 1].start + sh.segments[i - 1].dur)) < 1e-6);
-  assert.doesNotMatch(sh.segments.map((g) => g.text).join(' '), /\b(damn|hell|crap|shit|fuck)\b/i);
+  assert.doesNotMatch(sh.segments.map((g) => g.text).join(' '), /\b(shit|fuck\w*|bitch\w*|ass(hole)?)\b/i);
+  for (const g of sh.segments.filter((x) => x.serious)) assert.doesNotMatch(g.text, /\b(damn|hell|crap)\b/i, 'never swears on serious stories');
   assert.equal(showSlot(Date.parse('2026-10-01T01:50:00Z'), 30), '2026-09-30T20:30');
   assert.equal(showSlot(Date.parse('2026-10-01T02:05:00Z'), 30), '2026-09-30T21:00');
   assert.equal(showSlot(Date.parse('2026-10-01T02:07:00Z')), '2026-09-30T21:00');
