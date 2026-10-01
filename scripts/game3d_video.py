@@ -68,7 +68,6 @@ def build(nfl_path, gid, out, recs_path=None):
     rv.write_wav(os.path.join(tmp, 'm.wav'), rv.synth_music(total, hits))
     vid = os.path.join(tmp, 'v.mp4')
     page = open(os.path.join(ROOT, 'scripts', 'game3d.html')).read().replace('/*FONTS*/', rv.font_css())
-    three = open(os.path.join(ROOT, 'assets', 'vendor', 'three.module.min.js'), 'rb').read()
 
     async def render():
         from playwright.async_api import async_playwright
@@ -78,15 +77,18 @@ def build(nfl_path, gid, out, recs_path=None):
             cp = rv.chrome_path()
             if cp: kw['executable_path'] = cp
             b = await p.chromium.launch(**kw); pg = await b.new_page(viewport={'width': W, 'height': H})
+            vendor = os.path.join(ROOT, 'assets', 'vendor')
             async def serve(route):
-                u = route.request.url
-                if u.endswith('three.module.min.js'): await route.fulfill(body=three, content_type='text/javascript')
-                else: await route.fulfill(body=page, content_type='text/html')
+                rel = route.request.url.split('smash.local/', 1)[1].split('#')[0]
+                if rel == 'game3d.html': return await route.fulfill(body=page, content_type='text/html')
+                f = os.path.realpath(os.path.join(vendor, rel))
+                if not f.startswith(vendor) or not os.path.isfile(f): return await route.fulfill(status=404, body='')
+                await route.fulfill(body=open(f, 'rb').read(), content_type='text/javascript' if f.endswith('.js') else 'model/gltf-binary')
             await pg.route('http://smash.local/**', serve)
             errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
             await pg.goto('http://smash.local/game3d.html')
-            await pg.wait_for_function('window.ready === true', timeout=30000)
-            await pg.evaluate('(d) => window.setup(d)', {'game': game, 'plays': plays, 'timeline': tl})
+            await pg.wait_for_function('window.ready === true', timeout=60000)
+            await pg.evaluate('async (d) => { await window.setup(d); }', {'game': game, 'plays': plays, 'timeline': tl})
             for i in range(int(total * FPS)):
                 await pg.evaluate('(t) => window.frame(t)', i / FPS)
                 ff.stdin.write(await pg.screenshot(type='jpeg', quality=88))

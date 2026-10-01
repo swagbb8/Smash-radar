@@ -9,14 +9,17 @@ canvas{position:absolute;inset:0}
 .cap{position:absolute;left:22px;right:22px;bottom:122px;border-radius:16px;background:rgba(6,8,11,.86);padding:16px 20px;border-left:10px solid var(--c,#c6ff3d)}
 .cap .k{font-size:18px;font-weight:700;letter-spacing:.16em;color:#c6ff3d}.cap .h{font-family:Anton;font-size:40px;line-height:1.05;margin-top:2px}
 .cap .fp{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.cap .fp i{font-style:normal;background:#c6ff3d;color:#0b1100;font-weight:800;font-size:19px;padding:4px 12px;border-radius:99px}
-.slam{position:absolute;left:0;right:0;top:420px;text-align:center;font-family:Anton;font-size:128px;line-height:1;color:#fff;-webkit-text-stroke:6px #0b1100;paint-order:stroke;text-shadow:0 10px 40px rgba(0,0,0,.6);opacity:0}
+.slam{position:absolute;left:0;right:0;top:420px;text-align:center;font-family:Anton;font-size:104px;line-height:1;color:#fff;-webkit-text-stroke:6px #0b1100;paint-order:stroke;text-shadow:0 10px 40px rgba(0,0,0,.6);opacity:0}
 .card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(80% 60% at 50% 40%,rgba(198,255,61,.22),rgba(6,8,11,.92) 70%);opacity:0}
 .card h1{font-family:Anton;font-weight:400;font-size:96px;line-height:1}.card h1 em{font-style:normal;color:#c6ff3d}.card p{font-size:28px;letter-spacing:.18em;margin-top:14px;color:#c9ced6}
 .card .sc{font-family:Anton;font-size:120px;margin-top:20px}.card .fz{margin-top:24px;font-size:26px;letter-spacing:.1em}.card .fz b{color:#c6ff3d}
 </style></head><body>
 <div id="ov"><div class="bug" id="bug"></div><div class="brand"><em>SMASH</em> NEWS · GAME REPLAY</div><div class="cap" id="cap"></div><div class="slam" id="slam"></div><div class="card" id="card"></div></div>
+<script type="importmap">{"imports":{"three":"./three.module.min.js"}}</script>
 <script type="module">
-import * as THREE from './three.module.min.js';
+import * as THREE from 'three';
+import {GLTFLoader} from './jsm/loaders/GLTFLoader.js';
+import * as SkeletonUtils from './jsm/utils/SkeletonUtils.js';
 const $=(s)=>document.querySelector(s);const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));const seg=(t,a,b)=>clamp((t-a)/(b-a));
 const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;const oc=p=>1-Math.pow(1-p,3);const ob=p=>1+2.70158*Math.pow(p-1,3)+1.70158*Math.pow(p-1,2);const lerp=(a,b,p)=>a+(b-a)*p;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -62,66 +65,88 @@ function fieldTexture(away,home){
   const tx=new THREE.CanvasTexture(c);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=4;return tx;}
 function crowdTexture(cols){const c=document.createElement('canvas');c.width=1024;c.height=512;const x=c.getContext('2d');x.fillStyle='#14171d';x.fillRect(0,0,1024,512);
   let seed=3;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;const pal=[...cols,...cols,'#d8d8d8','#2a2f3a','#6b4a3a','#b5885f','#ffffff','#3b3f4a'];
-  for(let row=0;row<64;row++)for(let i=0;i<170;i++){if(rnd()<0.08)continue;const X=i*6+(row%2)*3,Y=row*8;x.fillStyle=pal[Math.floor(rnd()*pal.length)];x.fillRect(X,Y+1,4,5);x.fillStyle='rgba(230,200,170,.8)';x.fillRect(X+1,Y-1,2,2);}
+  for(let row=0;row<40;row++){x.fillStyle='#0b0d11';x.fillRect(0,row*12.8+10,1024,3);for(let i=0;i<128;i++){if(rnd()<0.12)continue;const X=i*8+(row%2)*4+rnd()*2,Y=row*12.8;x.fillStyle=pal[Math.floor(rnd()*pal.length)];x.fillRect(X,Y+4,6,7);x.fillStyle=['#e0ac69','#8d5524','#c68642','#f1c27d'][Math.floor(rnd()*4)];x.fillRect(X+1.5,Y+0.5,3,3.5);}}
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(10,1);t.colorSpace=THREE.SRGBColorSpace;return t;}
 
-// ---- NFL player, realistic proportions (about 6'3"): glossy helmet with visor + facemask, shoulder pads,
-// numbered jersey, pants, socks, cleats, gloves. Built Y-up inside `inner` (turned to world Z-up), facing +x.
+// ---- NFL player: a rigged, motion-captured human (Mixamo idle / run / crouch clips) in full uniform —
+// jersey, pants, socks, cleats, gloves painted onto the body by region, plus shoulder pads, numbers and a
+// glossy helmet with visor + facemask attached to the skeleton. Model is Y-up facing +Z; turned to Z-up facing +x.
 const SKINS=['#8d5524','#c68642','#e0ac69','#f1c27d','#5c3a1e','#a0673c'];
-function numTex(){const c=document.createElement('canvas');c.width=512;c.height=256;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return {c,t};}
-function drawNum(nt,num,bg,fg,trim){const x=nt.c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,512,256);
-  x.fillStyle=trim;x.fillRect(0,0,512,16);x.font='bold 150px Oswald, Impact';x.textAlign='center';x.textBaseline='middle';x.lineWidth=12;x.strokeStyle=trim;x.lineJoin='round';
-  for(const u of [128,384]){x.strokeText(String(num),u,150);x.fillStyle=fg;x.fillText(String(num),u,150);}nt.t.needsUpdate=true;}
+let BASE,CLIPS={};
+async function loadBase(){BASE=await new GLTFLoader().loadAsync('./models/player.glb');
+  for(const c of BASE.animations)CLIPS[c.name]=c;THREE.AnimationUtils.makeClipAdditive(CLIPS.sneak_pose);}
+function numTex(){const c=document.createElement('canvas');c.width=256;c.height=192;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return {c,t};}
+function drawNum(nt,num,fg,trim){const x=nt.c.getContext('2d');x.clearRect(0,0,256,192);x.font='bold 170px Oswald, Impact';x.textAlign='center';x.textBaseline='middle';
+  x.lineWidth=14;x.lineJoin='round';x.strokeStyle=trim;x.strokeText(String(num),128,104);x.fillStyle=fg;x.fillText(String(num),128,104);nt.t.needsUpdate=true;}
+const UNI=['uJersey','uPants','uSock','uSkin','uGlove','uTrim','uCleat'];
+function uniformMat(){const m=new THREE.MeshStandardMaterial({roughness:0.72,metalness:0});const u={};for(const k of UNI)u[k]={value:new THREE.Color('#888')};
+  m.onBeforeCompile=(sh)=>{Object.assign(sh.uniforms,u);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vRest;').replace('#include <begin_vertex>','#include <begin_vertex>\nvRest=position;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vRest;\nuniform vec3 '+UNI.join(',')+';').replace('#include <color_fragment>',`#include <color_fragment>
+      float h=vRest.y/1.806, ax=abs(vRest.x)/1.806; vec3 c=uJersey;
+      if(ax>0.1 && h>0.68){ c = ax<0.165?uJersey : ax<0.175?uTrim : ax<0.37?uSkin : uGlove; }
+      else if(h>0.865) c=uSkin;
+      else if(h>0.56) c=uJersey;
+      else if(h>0.27) c = (ax>0.07 && ax<0.078 && h<0.5)? uTrim : uPants;
+      else if(h>0.055) c=uSock;
+      else c=uCleat;
+      diffuseColor.rgb=c;`);};
+  m.customProgramCacheKey=()=>'nfl-uniform';m.userData.u=u;return m;}
+function helmetGroup(M){ // built facing +x around the origin, then turned to face +Z (the head bone's forward)
+  const h=new THREE.Group(),add=(geo,m,x,y,z)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;h.add(o);return o;};
+  add(new THREE.SphereGeometry(0.62,28,20),M.helm,0,0,0).scale.set(1.16,1,0.94);
+  add(new THREE.SphereGeometry(0.6,20,12,0,Math.PI*2,Math.PI*0.5,Math.PI*0.32),M.helm,0,-0.02,0).scale.set(1.18,1,0.96);
+  add(new THREE.TorusGeometry(0.635,0.075,8,32,Math.PI),M.trim,0,0,0).scale.set(1.16,1,1.2);
+  add(new THREE.CylinderGeometry(0.63,0.63,0.24,20,1,true,Math.PI*0.25,Math.PI*0.5),M.visor,0,0,0).scale.set(1.12,1,0.95);
+  const bar=(len,x,y,z,rx,rz)=>{const o=add(new THREE.CylinderGeometry(0.04,0.04,len,8),M.mask,x,y,z);o.rotation.set(rx,0,rz);};
+  bar(0.95,0.72,-0.2,0,Math.PI/2,0);bar(0.8,0.74,-0.38,0,Math.PI/2,0);bar(0.6,0.7,-0.54,0,Math.PI/2,0);bar(0.42,0.74,-0.35,0,0,0.15);
+  for(const s of [-1,1]){bar(0.5,0.62,-0.34,s*0.42,0,0.25);add(new THREE.CircleGeometry(0.1,12),M.black,0.05,-0.07,s*0.585).rotation.y=s>0?0:Math.PI;}
+  const w=new THREE.Group();h.rotation.y=-Math.PI/2;w.add(h);return w;}
 function makePlayer(){
   const g=new THREE.Group(),inner=new THREE.Group();inner.rotation.x=Math.PI/2;g.add(inner);
-  const M={jersey:mat('#888',0.8),pants:mat('#eee',0.6),helm:mat('#888',0.18,0.25),sock:mat('#888',0.85),trim:mat('#fff',0.6),skin:mat('#c68642',0.6),glove:mat('#fff',0.5),mask:mat('#e8e8e8',0.35,0.4),black:mat('#141414',0.5),visor:mat('#0a0f16',0.05,0.8)};
-  const nt=numTex();const torsoMat=new THREE.MeshStandardMaterial({map:nt.t,roughness:0.8});
-  const add=(geo,m,x,y,z,parent=inner)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o;};
-  const torso=add(new THREE.CylinderGeometry(0.78,0.56,1.65,24,1),torsoMat,0,3.9,0);torso.scale.set(0.72,1,1);
-  add(new THREE.CylinderGeometry(0.57,0.57,0.18,20),M.trim,0,3.08,0).scale.set(0.72,1,1);          // belt
-  add(new THREE.SphereGeometry(0.6,16,10),M.pants,0,2.92,0).scale.set(0.72,0.5,1);                // hips
-  const pads=add(new THREE.SphereGeometry(1,20,12),M.jersey,0,4.72,0);pads.scale.set(0.72,0.42,1.28);
-  for(const s of [-1,1])add(new THREE.SphereGeometry(0.42,16,10),M.jersey,0,4.62,s*1.05).scale.set(1,0.85,1);
-  add(new THREE.CylinderGeometry(0.27,0.3,0.4,12),M.skin,0.02,5.08,0);                           // neck
-  const helmet=add(new THREE.SphereGeometry(0.62,28,20),M.helm,0.0,5.62,0);helmet.scale.set(1.16,1.0,0.94);
-  const shell=add(new THREE.SphereGeometry(0.6,20,12,0,Math.PI*2,Math.PI*0.5,Math.PI*0.32),M.helm,0.0,5.6,0);shell.scale.set(1.18,1,0.96); // jaw flare
-  const stripe=add(new THREE.TorusGeometry(0.635,0.075,8,32,Math.PI),M.trim,0.0,5.62,0);stripe.scale.set(1.16,1,1.2);
-  add(new THREE.SphereGeometry(0.42,16,12),M.skin,0.36,5.48,0).scale.set(0.55,0.95,0.8);        // face
-  const vis=add(new THREE.CylinderGeometry(0.63,0.63,0.24,20,1,true,Math.PI*0.25,Math.PI*0.5),M.visor,0.0,5.62,0);vis.scale.set(1.12,1,0.95); // tinted visor
-  const bar=(len,x,y,z,rx,rz)=>{const o=add(new THREE.CylinderGeometry(0.04,0.04,len,8),M.mask,x,y,z);o.rotation.set(rx,0,rz);return o;};
-  bar(0.95,0.72,5.42,0,Math.PI/2,0);bar(0.8,0.74,5.24,0,Math.PI/2,0);bar(0.6,0.7,5.08,0,Math.PI/2,0);
-  bar(0.42,0.74,5.27,0,0,0.15);for(const s of [-1,1]){bar(0.5,0.62,5.28,s*0.42,0,0.25);add(new THREE.CircleGeometry(0.1,12),M.black,0.05,5.55,s*0.585).rotation.y=s>0?0:Math.PI;}
-  const arms=[],legs=[];
-  for(const s of [-1,1]){
-    const arm=new THREE.Group();arm.position.set(0,4.55,s*1.12);inner.add(arm);
-    add(new THREE.CapsuleGeometry(0.27,0.5,6,12),M.jersey,0,-0.42,0,arm);                        // sleeve over the bicep
-    add(new THREE.CapsuleGeometry(0.21,0.72,6,12),M.skin,0.08,-1.18,0,arm).rotation.z=0.12;       // forearm
-    add(new THREE.CylinderGeometry(0.22,0.22,0.16,12),M.trim,0.04,-0.98,0,arm);                    // wrist band
-    add(new THREE.SphereGeometry(0.23,12,10),M.glove,0.16,-1.7,0,arm).scale.set(1,1.2,0.8);arms.push(arm);
-    const leg=new THREE.Group();leg.position.set(0,3.0,s*0.34);inner.add(leg);
-    add(new THREE.CapsuleGeometry(0.36,0.9,6,12),M.pants,0,-0.68,0,leg);                         // thigh
-    add(new THREE.BoxGeometry(0.06,1.0,0.06),M.trim,0,-0.68,s*0.36,leg);                          // pants stripe
-    add(new THREE.CapsuleGeometry(0.25,1.0,6,12),M.sock,0,-1.95,0,leg);                           // calf / sock
-    const cl=add(new THREE.BoxGeometry(0.78,0.26,0.36),M.black,0.16,-2.84,0,leg);legs.push(leg);}
-  g.rotation.order='ZYX';g.userData={legs,arms,inner,M,nt};g.scale.setScalar(0.34);return g;}
+  const model=SkeletonUtils.clone(BASE.scene);model.rotation.y=Math.PI/2;model.scale.set(1.0,1.12,1.0);inner.add(model);
+  const M={helm:mat('#888',0.16,0.3),trim:mat('#fff',0.5),mask:mat('#e8e8e8',0.35,0.4),black:mat('#141414',0.5),visor:mat('#0a0f16',0.05,0.8),jersey:mat('#888',0.75)};
+  const body=uniformMat();
+  model.traverse(o=>{if(o.isSkinnedMesh){o.material=body;o.castShadow=true;o.frustumCulled=false;}});
+  const bone=(n)=>model.getObjectByName('mixamorig'+n);
+  const head=bone('Head'),chest=bone('Spine2');
+  const helm=helmetGroup(M);helm.scale.setScalar(19.5);helm.position.set(0,9.5,2.2);head.add(helm);
+  const pads=new THREE.Mesh(new THREE.SphereGeometry(1,20,12),M.jersey);pads.scale.set(23,7.5,14);pads.position.set(0,12.5,-0.5);pads.castShadow=true;chest.add(pads);
+  const nt=numTex(),numMat=new THREE.MeshStandardMaterial({map:nt.t,transparent:true,roughness:0.7,polygonOffset:true,polygonOffsetFactor:-4});
+  for(const [z,ry] of [[14.5,0],[-13.5,Math.PI]]){const pl=new THREE.Mesh(new THREE.PlaneGeometry(22,16.5),numMat);pl.position.set(0,2,z);pl.rotation.y=ry;chest.add(pl);}
+  for(const s of [-1,1]){const sp=new THREE.Mesh(new THREE.PlaneGeometry(9,6.75),numMat);sp.position.set(s*23.5,11,0);sp.rotation.set(-Math.PI/2*0.75,s*Math.PI/2,0,'YXZ');chest.add(sp);} // shoulder numbers
+  const mixer=new THREE.AnimationMixer(model);
+  const A={idle:mixer.clipAction(CLIPS.idle),run:mixer.clipAction(CLIPS.run),crouch:mixer.clipAction(CLIPS.sneak_pose)};
+  for(const a of Object.values(A)){a.play();a.setEffectiveWeight(0);}
+  g.rotation.order='ZYX';
+  g.userData={M,body,nt,mixer,A,bones:{rArm:bone('RightArm'),lArm:bone('LeftArm'),rFore:bone('RightForeArm'),lFore:bone('LeftForeArm'),hips:bone('Hips'),spine:bone('Spine1'),chest,rUp:bone('RightUpLeg'),lUp:bone('LeftUpLeg'),rLeg:bone('RightLeg'),lLeg:bone('LeftLeg'),rFoot:bone('RightFoot'),lFoot:bone('LeftFoot')}};
+  chest.scale.set(1.12,1.06,1.15);
+  g.scale.setScalar(1.0);return g;}
 // NFL uniforms: home team in dark jerseys, road team in white with team-colored numbers
-function dress(p,team,home,num,k){const M=p.userData.M;const c=team.color,alt=team.alt&&team.alt.toLowerCase()!==c.toLowerCase()?team.alt:'#ffffff';
+function dress(p,team,home,num,k){const {M,body,nt}=p.userData,u=body.userData.u;const c=team.color,alt=team.alt&&team.alt.toLowerCase()!==c.toLowerCase()?team.alt:'#ffffff';
   const jersey=home?c:'#f4f4f4',numFg=home?(lum(alt)>0.55?alt:'#ffffff'):c,trim=home?alt:c;
-  M.jersey.color.set(jersey);M.helm.color.set(c);M.sock.color.set(c);M.trim.color.set(trim);M.pants.color.set(home?'#f2f2f2':(lum(alt)<0.85?alt:'#d9d9d9'));
-  M.glove.color.set(home?'#f4f4f4':c);M.skin.color.set(SKINS[k%SKINS.length]);drawNum(p.userData.nt,num,jersey,numFg,trim);}
+  u.uJersey.value.set(jersey);M.jersey.color.set(jersey);M.helm.color.set(c);M.trim.color.set(trim);u.uTrim.value.set(trim);u.uSock.value.set(c);
+  u.uPants.value.set(home?'#eeeeee':(lum(alt)<0.85?alt:'#d9d9d9'));u.uGlove.value.set(home?'#f4f4f4':c);u.uCleat.value.set(k%3?'#141414':'#f2f2f2');
+  u.uSkin.value.set(SKINS[k%SKINS.length]);drawNum(nt,num,numFg,trim);}
 function lum(hex){const c=new THREE.Color(hex);return 0.2126*c.r+0.7152*c.g+0.0722*c.b;}
 function pose(p,{x,y,z=0,face=0,run=0,phase=0,dive=0,jump=0,armsUp=0,crouch=0}){
-  p.position.set(x,y,z+Math.max(0,jump)*0.55-crouch*0.25);p.rotation.z=face;p.rotation.y=dive+crouch*0.4+run*0.18;
-  const s=Math.sin(phase)*run;const L=p.userData.legs,A=p.userData.arms;
-  L[0].rotation.z=s*0.9+crouch*0.6;L[1].rotation.z=-s*0.9+crouch*0.6;
-  A[0].rotation.z=-s*0.9+armsUp*2.7+crouch*0.7;A[1].rotation.z=s*0.9+armsUp*2.7+crouch*0.7;}
+  p.position.set(x,y,z+Math.max(0,jump)*0.55);p.rotation.z=face;p.rotation.y=dive+run*0.12;
+  const {A,mixer,bones}=p.userData;const r=clamp(run),c=clamp(crouch)*(1-r);
+  A.run.setEffectiveWeight(r);A.idle.setEffectiveWeight(1-r);A.crouch.setEffectiveWeight(0);
+  A.run.time=((phase/(Math.PI*2))*0.7*0.75)%0.7;A.idle.time=(phase*0.05+x*0.13)%2.5;A.crouch.time=0;
+  mixer.update(0);
+  if(c>0){ // football stance: hips down, chest forward, knees bent
+    bones.hips.position.y-=24*c;bones.hips.rotation.x+=0.6*c;bones.spine.rotation.x+=0.2*c;bones.chest.rotation.x+=0.1*c;
+    for(const [u,l,f] of [[bones.rUp,bones.rLeg,bones.rFoot],[bones.lUp,bones.lLeg,bones.lFoot]]){u.rotation.x-=1.45*c;l.rotation.x+=1.35*c;f.rotation.x-=0.55*c;}
+    bones.rArm.rotation.z+=0.0;}
+  if(armsUp>0){const k=clamp(armsUp);bones.rArm.rotation.set(0,0,lerp(bones.rArm.rotation.z,-1.25,k));bones.lArm.rotation.set(0,0,lerp(bones.lArm.rotation.z,1.25,k));bones.rFore.rotation.set(0,0,0);bones.lFore.rotation.set(0,0,0);}}
 
 const ball=new THREE.Mesh(new THREE.SphereGeometry(0.17,20,12),mat('#6b3414',0.55));ball.scale.set(1.65,1,1);ball.castShadow=true;scene.add(ball);
 {const lace=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.02,0.02),mat('#fff'));lace.position.set(0,0,0.17);ball.add(lace);}
 let off=[],def=[],posts,confetti;
 
 let _glow;function glowTex(){if(_glow)return _glow;const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.25,'rgba(255,240,200,.5)');g.addColorStop(1,'rgba(255,240,200,0)');x.fillStyle=g;x.fillRect(0,0,128,128);_glow=new THREE.CanvasTexture(c);return _glow;}
-window.setup=async(d)=>{G=d.game;PLAYS=d.plays;TL=d.timeline;
+window.setup=async(d)=>{await loadBase();G=d.game;PLAYS=d.plays;TL=d.timeline;
   teams={away:G.away,home:G.home};
   const field=new THREE.Mesh(new THREE.PlaneGeometry(120,53.3),new THREE.MeshStandardMaterial({map:fieldTexture(G.away,G.home),roughness:0.95}));field.receiveShadow=true;scene.add(field);
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(170,110),mat('#2b5e26',0.95));ground.position.z=-0.04;ground.receiveShadow=true;scene.add(ground);
@@ -130,7 +155,7 @@ window.setup=async(d)=>{G=d.game;PLAYS=d.plays;TL=d.timeline;
   const wt=new THREE.CanvasTexture(wallT);wt.colorSpace=THREE.SRGBColorSpace;wt.wrapS=THREE.RepeatWrapping;wt.repeat.set(-8,1);
   const wall=new THREE.Mesh(new THREE.CylinderGeometry(1,1,2,64,1,true),new THREE.MeshBasicMaterial({map:wt,side:THREE.BackSide}));wall.rotation.x=Math.PI/2;wall.scale.set(80,1,48);wall.position.z=1;scene.add(wall);
   const ct=crowdTexture([G.home.color,G.home.color,G.away.color,G.home.alt||'#fff']);
-  for(const [r0,r1,z0,z1,rep] of [[80,118,2,26,12],[121,150,32,55,14]]){const pts=[];for(let k=0;k<=8;k++){const q=k/8;pts.push(new THREE.Vector2(lerp(r0,r1,q),lerp(z0,z1,q)));}
+  for(const [r0,r1,z0,z1,rep] of [[80,118,2,26,6],[121,150,32,55,7]]){const pts=[];for(let k=0;k<=8;k++){const q=k/8;pts.push(new THREE.Vector2(lerp(r0,r1,q),lerp(z0,z1,q)));}
     const geo=new THREE.LatheGeometry(pts,96);const t=ct.clone();t.repeat.set(rep,1);t.needsUpdate=true;
     const bowl=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide,color:'#b8b8b8'}));bowl.rotation.x=Math.PI/2;bowl.scale.set(1,1,0.6);scene.add(bowl);}
   {const deck=new THREE.Mesh(new THREE.CylinderGeometry(120,120,3,96,1,true),new THREE.MeshBasicMaterial({color:'#1a1d24',side:THREE.DoubleSide}));deck.rotation.x=Math.PI/2;deck.scale.set(1,1,0.6);deck.position.z=29;scene.add(deck);}
@@ -197,10 +222,10 @@ function playScene(pl,lt){ // offense always attacks +x toward the x=50 goal lin
   ball.position.set(bx,by,bz);ball.rotation.set(0,lt*6,0);
   return {cx,bx,by,scoreAt,los};}
 
-function camFollow(cx,lt,pl,scoreAt){ // behind-the-play broadcast cam that swings to the sideline for the score
+function camFollow(cx,lt,pl,scoreAt,by=0){ // behind-the-play broadcast cam that swings to the sideline for the score
   const s=ease(seg(lt,scoreAt-1.0,scoreAt+0.4));
-  const behind=new THREE.Vector3(cx-16,-3,10),side=new THREE.Vector3(cx-3,-22,7);const p=behind.lerp(side,s);
-  cam.position.copy(p);cam.lookAt(new THREE.Vector3(cx+lerp(10,0,s),lerp(0,1,s),lerp(0,1,s)));sun.position.set(cx-30,-45,80);sun.target.position.set(cx,0,0);}
+  const behind=new THREE.Vector3(cx-12,-2+by*0.3,6.5),side=new THREE.Vector3(cx-2.5,by-13,4.2);const p=behind.lerp(side,s);
+  cam.position.copy(p);cam.lookAt(new THREE.Vector3(cx+lerp(7,0.3,s),lerp(by*0.5,by,s),lerp(0.6,1.1,s)));sun.position.set(cx-30,-45,80);sun.target.position.set(cx,0,0);}
 
 window.frame=(t)=>{
   const sc=TL.find(s=>t>=s.start&&t<s.start+s.dur)||TL[TL.length-1];const lt=t-sc.start;
@@ -218,7 +243,7 @@ window.frame=(t)=>{
     cap.style.opacity=0;slam.style.opacity=0;}
   else{
     card.style.opacity=0;for(const p of [...off,...def])p.visible=true;ball.visible=true;
-    const pl=PLAYS[sc.i];const r=playScene(pl,lt);camFollow(r.cx,lt,pl,r.scoreAt);
+    const pl=PLAYS[sc.i];const r=playScene(pl,lt);camFollow(r.cx,lt,pl,r.scoreAt,r.by);
     const prev=sc.i?PLAYS[sc.i-1]:{away:0,home:0};const scored=lt>r.scoreAt;const A=scored?pl.away:prev.away,Hm=scored?pl.home:prev.home;
     bug.style.opacity=1;bug.innerHTML=`<div class="t" style="background:${G.away.color}"><span>${esc(G.away.abbr)}</span><b>${A}</b></div><div class="mid">${esc(pl.q)}<small>${esc(pl.clock)}</small></div><div class="t" style="background:${G.home.color}"><b>${Hm}</b><span>${esc(G.home.abbr)}</span></div>`;
     cap.style.opacity=seg(lt,0.2,0.6);cap.style.setProperty('--c',teams[pl.side].color);
@@ -227,6 +252,7 @@ window.frame=(t)=>{
     // confetti burst in team colors
     const dummy=new THREE.Object3D();const col=new THREE.Color(teams[pl.side].color);confetti.material.color=col;confetti.visible=lt>r.scoreAt;
     for(let k=0;k<300;k++){const a=k*2.4,rr=(k%17)*0.9,u=lt-r.scoreAt;dummy.position.set(r.bx+Math.cos(a)*rr*u*1.5,r.by+Math.sin(a)*rr*u*1.5,4+u*(10-u*6)+(k%7));dummy.rotation.set(u*5+k,u*3,k);dummy.updateMatrix();confetti.setMatrixAt(k,dummy.matrix);}confetti.instanceMatrix.needsUpdate=true;}
+  if(window.CAM){cam.position.set(...window.CAM.p);cam.lookAt(...window.CAM.t);}
   renderer.render(scene,cam);};
 window.ready=true;
 </script></body></html>
