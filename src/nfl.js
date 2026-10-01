@@ -2,6 +2,7 @@
 // Sources: ESPN's public site API (scores/leaders/news) + the official NFL YouTube channel (game & player highlights).
 import { fetchText } from './collector.js';
 import { parseXmlFeed } from './feeds.js';
+import { fantasyFromSummary, playFantasy } from './fantasy.js';
 
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const NFL_YT = 'https://www.youtube.com/feeds/videos.xml?channel_id=UCDVYQ4Zhbm3S2dlz7P1GBDg';
@@ -89,7 +90,10 @@ export async function fetchGameSummary(id) {
   const scoring = (d.scoringPlays || []).map((p) => ({
     type: p.type?.text || p.scoringType?.displayName || '', abbr: p.type?.abbreviation || '', text: p.text || '',
     period: p.period?.number ?? null, clock: p.clock?.displayValue || '', team: p.team?.abbreviation || '', away: p.awayScore, home: p.homeScore,
+    fantasy: playFantasy(p.text || ''),
   }));
+  let fantasy = null;
+  try { fantasy = fantasyFromSummary(d, scoring); } catch { /* box score not ready */ }
   const teamStats = (d.boxscore?.teams || []).map((t) => ({ abbr: t.team?.abbreviation, stats: Object.fromEntries((t.statistics || []).map((s) => [s.name, s.displayValue])) }));
   const leaders = [];
   for (const tl of d.leaders || []) {
@@ -98,5 +102,5 @@ export async function fetchGameSummary(id) {
       if (l?.athlete) leaders.push({ team: tl.team?.abbreviation, category: cat.displayName || cat.name, key: cat.name, player: l.athlete.displayName, position: l.athlete.position?.abbreviation || '', value: l.displayValue || '' });
     }
   }
-  return { id, teams, scoring, teamStats, leaders, venue: d.gameInfo?.venue?.fullName || '', week: d.header?.week ?? null, season: d.header?.season?.year ?? null, date: comp.date || null };
+  return { id, teams, scoring, teamStats, leaders, fantasy, venue: d.gameInfo?.venue?.fullName || '', week: d.header?.week ?? null, season: d.header?.season?.year ?? null, date: comp.date || null };
 }

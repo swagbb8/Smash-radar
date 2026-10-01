@@ -844,7 +844,7 @@ function gameCard(g) {
   const team = (t, other) => `<div class="gt ${g.state === 'post' && t.winner ? 'win' : ''}">${t.logo ? `<img src="${esc(imgUrl(t.logo))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="lg">${esc(t.abbr)}</span>`}<span class="nm">${esc(t.name || t.abbr)}<small>${esc(t.record)}</small></span><span class="sc">${g.state === 'pre' ? '' : esc(t.score)}</span></div>`;
   const when = g.state === 'pre' ? new Date(g.date).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZone: TZ }) : g.detail;
   const lead = g.leaders?.[0];
-  return `<button class="game" data-game="${esc(g.id)}"><div class="gs ${g.state}">${g.state === 'in' ? '● ' : ''}${esc(when)}${g.broadcast && g.state === 'pre' ? ` · ${esc(g.broadcast)}` : ''}</div>${team(g.away)}${team(g.home)}${lead ? `<div class="gl">⭐ ${esc(lead.player)} · ${esc(lead.value)}</div>` : ''}${g.state === 'post' ? '<div class="gh">▶ Highlights</div>' : ''}</button>`;
+  return `<button class="game" data-game="${esc(g.id)}"><div class="gs ${g.state}">${g.state === 'in' ? '● ' : ''}${esc(when)}${g.broadcast && g.state === 'pre' ? ` · ${esc(g.broadcast)}` : ''}</div>${team(g.away)}${team(g.home)}${lead ? `<div class="gl">⭐ ${esc(lead.player)} · ${esc(lead.value)}</div>` : ''}${g.state !== 'pre' ? `<div class="gh">${(g.clips?.length || 0) + (g.mainHighlight ? 1 : 0) ? `⚡ ${(g.clips?.length || 0) + (g.mainHighlight ? 1 : 0)} highlight clips` : '▶ Highlights'}${g.fantasy ? ` · 🏆 ${g.fantasy.away.total.toFixed(0)}–${g.fantasy.home.total.toFixed(0)} fantasy` : ''}</div>` : ''}</button>`;
 }
 function videoCard(v) {
   return `<button class="card vcard" data-video="${esc(v.videoId)}" data-vtitle="${esc(v.title)}"><div class="media"><img src="${esc(imgUrl(v.thumb))}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add('loaded')"><span class="play">▶</span></div><div class="body"><h3>${esc(v.title)}</h3><div class="foot"><span class="src">NFL</span><span>·</span><span>${ago(v.published)}</span></div></div></button>`;
@@ -856,19 +856,35 @@ function openSheetHtml(html) {
 function openVideo(id, title) {
   openSheetHtml(`<div class="video-wrap"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?playsinline=1&autoplay=1&rel=0" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div><div class="content"><h2>${esc(title)}</h2><a class="btn" href="https://www.youtube.com/watch?v=${encodeURIComponent(id)}" target="_blank" rel="noopener">Open in YouTube ↗</a></div>`);
 }
+function fantasyBoard(g) {
+  const f = g.fantasy; if (!f?.away || !f?.home) return '';
+  const col = (k) => { const t = f[k]; const team = g[k]; const lead = f[k].total >= f[k === 'away' ? 'home' : 'away'].total;
+    return `<div class="fz-col" style="--tc:${esc(team.color || '#444')}"><div class="fz-head">${team.logo ? `<img src="${esc(imgUrl(team.logo))}" alt="" referrerpolicy="no-referrer">` : ''}<span>${esc(team.name || team.abbr)}</span><b class="${lead ? 'lead' : ''}">${t.total.toFixed(1)}</b></div>
+      ${t.players.map((p) => `<div class="fz-p"><i class="pos ${esc(p.pos.replace('/', ''))}">${esc(p.pos)}</i><span><b>${esc(p.short || p.player)}</b><small>${esc(p.line)}</small></span><em class="${p.pts >= 15 ? 'hot' : p.pts < 0 ? 'neg' : ''}">${p.pts.toFixed(1)}</em></div>`).join('')}</div>`; };
+  return `<div class="fz"><div class="fz-title">🏆 Fantasy showdown <small>${g.state === 'in' ? '● LIVE · ' : ''}${esc(f.scoring || 'ESPN PPR')} · every player's real fantasy points</small></div><div class="fz-cols">${col('away')}${col('home')}</div></div>`;
+}
+function playsList(g) {
+  if (!g.plays?.length) return '';
+  const Q = ['', 'Q1', 'Q2', 'Q3', 'Q4', 'OT', '2OT'];
+  return `<div class="box"><h5>Scoring plays + fantasy points</h5>${g.plays.map((p) => `<div class="sp"><span class="sp-q">${Q[p.period] || ''} ${esc(p.clock || '')}</span><span class="sp-t"><b>${esc(p.team)}</b> ${esc(String(p.text).replace(/\s*\((?:[^()]|\([^()]*\))*\)\s*$/, ''))}${(p.fantasy || []).map((x) => `<i class="fp">+${x.pts} ${esc(x.player === 'D/ST' ? `${p.team} D/ST` : x.player)}</i>`).join('')}</span><span class="sp-s">${esc(p.away)}-${esc(p.home)}</span></div>`).join('')}</div>`;
+}
 function openGame(id) {
-  const g = app.nfl?.games.find((x) => x.id === id);
+  const g = app.nfl?.games.find((x) => String(x.id) === String(id));
   if (!g) return;
   const qs2 = Math.max(g.home.linescores.length, g.away.linescores.length);
   const box = qs2 ? `<table class="box"><tr><th></th>${Array.from({ length: qs2 }, (_, k) => `<th>${k < 4 ? `Q${k + 1}` : 'OT'}</th>`).join('')}<th>T</th></tr>${[g.away, g.home].map((t) => `<tr><td>${esc(t.abbr)}</td>${Array.from({ length: qs2 }, (_, k) => `<td>${t.linescores[k] ?? ''}</td>`).join('')}<td><b>${esc(t.score)}</b></td></tr>`).join('')}</table>` : '';
+  const nClips = (g.clips?.length || 0) + (g.mainHighlight ? 1 : 0);
   openSheetHtml(`${g.highlight ? `<div class="video-wrap"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(g.highlight.videoId)}?playsinline=1&rel=0" title="Highlights" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>` : ''}
-    <div class="content"><div class="kicker">🏈 NFL${g.week ? ` · Week ${g.week}` : ''} · ${esc(g.state === 'pre' ? 'Upcoming' : g.detail)}</div>
+    <div class="content">
+    ${g.state !== 'pre' ? `<div class="actions">${nClips ? `<button class="btn primary" data-action="hl-mode" data-id="${esc(g.id)}">⚡ Watch highlights · ${nClips} clips</button>` : `<a class="btn primary" href="${esc(ytSearch(g))}" target="_blank" rel="noopener">▶ Find highlights on YouTube</a>`}${g.state === 'post' ? `<button class="btn" data-action="game-reel" data-id="${esc(g.id)}">🎬 Reel</button>` : ''}</div>` : ''}
+    <div class="kicker">🏈 NFL${g.week ? ` · Week ${g.week}` : ''} · ${esc(g.state === 'pre' ? 'Upcoming' : g.detail)}</div>
     <div class="bigscore"><div>${g.away.logo ? `<img src="${esc(imgUrl(g.away.logo))}" alt="">` : ''}<b>${esc(g.away.score)}</b><span>${esc(g.away.full)}</span></div><i>at</i><div>${g.home.logo ? `<img src="${esc(imgUrl(g.home.logo))}" alt="">` : ''}<b>${esc(g.home.score)}</b><span>${esc(g.home.full)}</span></div></div>
     ${box}
-    ${g.leaders.length ? `<div class="box why"><h5>Player stats — game leaders</h5>${g.leaders.map((l) => `<div class="leader">${l.headshot ? `<img src="${esc(imgUrl(l.headshot))}" alt="" referrerpolicy="no-referrer">` : '<span class="hs">🏈</span>'}<div><b>${esc(l.player)}</b> <span class="muted">${esc(l.position)} ${esc(l.team)}</span><br><span class="muted">${esc(l.category)}</span> · ${esc(l.value)}</div></div>`).join('')}</div>` : ''}
+    ${fantasyBoard(g)}
+    ${playsList(g)}
+    ${!g.fantasy && g.leaders.length ? `<div class="box why"><h5>Player stats — game leaders</h5>${g.leaders.map((l) => `<div class="leader">${l.headshot ? `<img src="${esc(imgUrl(l.headshot))}" alt="" referrerpolicy="no-referrer">` : '<span class="hs">🏈</span>'}<div><b>${esc(l.player)}</b> <span class="muted">${esc(l.position)} ${esc(l.team)}</span><br><span class="muted">${esc(l.category)}</span> · ${esc(l.value)}</div></div>`).join('')}</div>` : ''}
     <div class="src-line">${g.venue ? `<span>📍 ${esc(g.venue)}</span>` : ''}${g.broadcast ? `<span>📺 ${esc(g.broadcast)}</span>` : ''}</div>
-    ${g.state === 'post' ? `<div class="actions">${g.clips?.length || g.mainHighlight ? `<button class="btn primary" data-action="hl-mode" data-id="${esc(g.id)}">⚡ Highlight Mode · ${(g.clips?.length || 0) + (g.mainHighlight ? 1 : 0)} clips</button>` : g.highlight ? '' : `<a class="btn primary" href="${esc(ytSearch(g))}" target="_blank" rel="noopener">▶ Official highlights</a>`}<a class="btn" href="https://www.nfl.com/plus/" target="_blank" rel="noopener">Full replay / condensed game (NFL+) ↗</a></div>` : ''}
-    <div class="actions">${g.state === 'post' ? `<button class="btn primary" data-action="game-reel" data-id="${esc(g.id)}">🎬 Make game reel</button>` : ''}<a class="btn ${g.state === 'post' ? '' : 'primary'}" href="${esc(safeUrl(g.link))}" target="_blank" rel="noopener">ESPN box score ↗</a></div></div>`);
+    <div class="actions">${g.state === 'post' ? '<a class="btn" href="https://www.nfl.com/plus/" target="_blank" rel="noopener">Full replay (NFL+) ↗</a>' : ''}<a class="btn" href="${esc(safeUrl(g.link))}" target="_blank" rel="noopener">ESPN box score ↗</a></div></div>`);
 }
 
 // ===================== SMASH LIVE: 24/7 TV channel =====================
@@ -945,7 +961,8 @@ async function openHighlightMode(id) {
 function hlCard(v, i, n) {
   const c = $('#hlCard'); if (!c) return;
   const g = app.hl.g;
-  c.innerHTML = `<div class="hl-bug"><i></i><b>SMASH</b> NEWS</div><div class="hl-n">${v.full ? 'FULL GAME' : `CLIP ${i + 1}<small>/${n}</small>`}</div><div class="hl-t">${esc(v.title)}</div><div class="hl-sc mini"><span>${esc(g.away.abbr)}<b>${esc(g.away.score)}</b></span><em>FINAL</em><span>${esc(g.home.abbr)}<b>${esc(g.home.score)}</b></span></div>`;
+  const fz = [...(g.fantasy?.away?.players || []), ...(g.fantasy?.home?.players || [])].filter((p) => p.pos !== 'D/ST' && String(v.title).toLowerCase().includes(String(p.player).split(' ').slice(-1)[0].toLowerCase())).slice(0, 2);
+  c.innerHTML = `<div class="hl-bug"><i></i><b>SMASH</b> NEWS</div><div class="hl-n">${v.full ? 'FULL GAME' : `CLIP ${i + 1}<small>/${n}</small>`}</div><div class="hl-t">${esc(v.title)}</div>${fz.map((p) => `<div class="hl-fz">🏆 ${esc(p.player)} <b>${p.pts.toFixed(1)}</b> FPTS</div>`).join('')}<div class="hl-sc mini"><span>${esc(g.away.abbr)}<b>${esc(g.away.score)}</b></span><em>FINAL</em><span>${esc(g.home.abbr)}<b>${esc(g.home.score)}</b></span></div>`;
   c.classList.remove('show'); void c.offsetWidth; c.classList.add('show');
 }
 async function hlPlay(i) {

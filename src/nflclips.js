@@ -13,8 +13,8 @@ function* walk(o) {
 const text = (x) => x?.simpleText || (x?.runs || []).map((r) => r.text).join('') || '';
 const secs = (s = '') => s.split(':').reduce((a, b) => a * 60 + Number(b), 0);
 
-async function search(q) {
-  const html = (await fetchText(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}&sp=EgIIBA%3D%3D`, { timeout: 12000, maxBytes: 4_000_000, headers: BROWSER })).text; // sp = uploaded this week
+async function search(q, recent = true) {
+  const html = (await fetchText(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}${recent ? '&sp=EgIIBA%3D%3D' : ''}`, { timeout: 12000, maxBytes: 4_000_000, headers: BROWSER })).text; // sp = uploaded this week
   const m = html.match(/var ytInitialData = (\{.*?\});<\/script>/s) || html.match(/ytInitialData"\]\s*=\s*(\{.*?\});/s);
   if (!m) return [];
   let data; try { data = JSON.parse(m[1]); } catch { return []; }
@@ -42,6 +42,12 @@ export async function findGameClips(g) {
       seen.set(v.videoId, v);
     }
   }
+  if (seen.size < 2) { // nothing this week? search without the date filter
+    for (const q of [`${A.full} vs ${H.full} highlights ${new Date(g.date || Date.now()).getFullYear()}`, `${H.full} vs ${A.full} game highlights`]) {
+      let res = []; try { res = await search(q, false); } catch { continue; }
+      for (const v of res) if (v.videoId && !seen.has(v.videoId) && okChannel(v.channel) && mentions(v.title) && !(v.seconds > 25 * 60) && !/\b(19|20)\d\d\b/.test(v.title.replace(String(new Date(g.date || Date.now()).getFullYear()), ''))) seen.set(v.videoId, v);
+    }
+  }
   const all = [...seen.values()];
   const main = all.filter((v) => /game highlights|full highlights|highlights \|/i.test(v.title) && v.seconds >= 300).sort((a, b) => b.seconds - a.seconds)[0] || null;
   const clips = all.filter((v) => v !== main).sort((a, b) => (a.seconds || 999) - (b.seconds || 999)).slice(0, 14);
@@ -54,7 +60,7 @@ export async function addClips(nfl, cache, { perRun = 6 } = {}) {
   const finals = (nfl.games || []).filter((g) => g.state === 'post' && Date.now() - Date.parse(g.date) < 4 * 864e5).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
   for (const g of finals) {
     const c = cache[g.id];
-    if (n < perRun && (!c || Date.now() - c.at > 3 * 3600e3)) {
+    if (n < perRun && (!c || Date.now() - c.at > ((c.clips?.length || c.main) ? 3 : 0.75) * 3600e3)) {
       try { const r = await findGameClips(g); cache[g.id] = { at: Date.now(), ...r }; n++; } catch { /* keep old */ }
     }
   }

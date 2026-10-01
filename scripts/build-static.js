@@ -59,6 +59,26 @@ if (nfl && process.env.NFL_CLIPS !== 'off') { // official highlight clips for Hi
     console.log(`nfl clips: searched ${n} games, ${nfl.games.filter((g) => g.clips?.length).length} games have clips`);
   } catch (e) { console.log('nfl clips failed:', e.message); }
 }
+if (nfl && process.env.NFL_FANTASY !== 'off') { // ESPN-scoring fantasy points for every player, live games refresh every update
+  try {
+    const { fetchGameSummary } = await import('../src/nfl.js');
+    const cf = path.join(path.dirname(store.file), 'nfl-fantasy.json');
+    let cache = {}; try { cache = JSON.parse(fs.readFileSync(cf, 'utf8')); } catch {}
+    let n = 0;
+    for (const g of nfl.games) {
+      const recent = Date.now() - Date.parse(g.date) < 5 * 864e5;
+      if (g.state === 'pre' || !recent) continue;
+      const c = cache[g.id];
+      if (g.state === 'in' || !c || !c.final) {
+        try { const sm = await fetchGameSummary(g.id); cache[g.id] = { final: g.state === 'post', at: Date.now(), fantasy: sm.fantasy, plays: sm.scoring }; n++; } catch {}
+      }
+      if (cache[g.id]) { g.fantasy = cache[g.id].fantasy; g.plays = cache[g.id].plays; }
+    }
+    for (const id of Object.keys(cache)) if (Date.now() - cache[id].at > 10 * 864e5) delete cache[id];
+    fs.writeFileSync(cf, JSON.stringify(cache)); write('nfl', nfl);
+    console.log(`nfl fantasy: refreshed ${n} games`);
+  } catch (e) { console.log('nfl fantasy failed:', e.message); }
+}
 if (!nfl) { try { nfl = JSON.parse(fs.readFileSync(path.join(OUT, 'api', 'nfl.json'), 'utf8')); } catch { nfl = { games: [], news: [], videos: [], errors: ['not loaded'] }; write('nfl', nfl); } }
 if (process.env.LION === 'on') { // the talking-lion show is retired (off unless LION=on)
 write('briefing', buildBriefing(stories, Date.now(), { nfl }));
