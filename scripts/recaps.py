@@ -59,10 +59,38 @@ def main(nfl_json, done_json):
         print(f'recap done: {spec["title"]}')
 
 
+def backfill_fantasy(nfl_json, done_json, limit=6):
+    """Fantasy showdown videos for games that were recapped before that video existed."""
+    try: recs = json.load(open(done_json))
+    except Exception: return
+    games = {str(g['id']): g for g in json.load(open(nfl_json)).get('games', [])}
+    n = 0
+    for rec in recs:
+        if n >= limit: break
+        g = games.get(str(rec['id']))
+        if rec.get('fantasyFile') or not g or not g.get('fantasy'): continue
+        gid = str(rec['id'])
+        out = os.path.join(WORK, 'out', f'{gid}-fantasy.mp4')
+        try:
+            subprocess.run(['python3', 'scripts/fantasy_video.py', nfl_json, gid, out], cwd=ROOT, check=True, timeout=900)
+        except Exception as e:
+            print(f'fantasy backfill {gid} failed: {e}', file=sys.stderr); continue
+        url = None
+        if archive.TOKEN and archive.REPO:
+            try: url = archive.upload(release(), out, f"nfl-fantasy-week{rec.get('week') or ''}-{rec['away']['abbr']}-at-{rec['home']['abbr']}-{gid}.mp4".lower(), 'video/mp4')
+            except Exception as e: print(f'fantasy upload {gid}: {e}', file=sys.stderr)
+        rec = dict(rec, fantasyVideo=url, fantasyFile=f'{gid}-fantasy.mp4')
+        with open(os.path.join(WORK, 'new.jsonl'), 'a') as f:
+            f.write(json.dumps(rec) + '\n')
+        n += 1
+        print(f'fantasy backfill done: {rec.get("title")}')
+
+
 if __name__ == '__main__':
     lock = os.path.join(WORK, 'running.lock')
     try:
         main(sys.argv[1], sys.argv[2])
+        backfill_fantasy(sys.argv[1], sys.argv[2])
     finally:
         try: os.remove(lock)
         except OSError: pass
