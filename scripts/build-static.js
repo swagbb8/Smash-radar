@@ -9,6 +9,7 @@ const { FileStore } = await import('../src/store.js');
 const { refresh } = await import('../src/collector.js');
 const { handleApi } = await import('../src/api.js');
 const { present } = await import('../src/engine.js');
+const { buildBriefing } = await import('../src/briefing.js');
 
 const OUT = path.resolve(ROOT, process.env.STATIC_OUT || 'dist');
 const store = new FileStore(path.resolve(ROOT, process.env.DATABASE_PATH || 'data/smash-radar.json'));
@@ -43,6 +44,13 @@ const apLog = (() => { try { return JSON.parse(fs.readFileSync(path.join(path.di
 const autopost = apLog ? { last: apLog.posts.at(-1) || null, today: apLog.posts.filter((p) => p.day === new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date())).length, lastError: apLog.errors?.[0] || null } : null;
 write('meta', { ...(await call('/api/meta')), mode: 'static', refreshing: false, nextRefreshAt: null, autopost });
 write('stories', { total: stories.length, stories });
+let nfl = null;
+if (process.env.NFL !== 'off') {
+  try { const { fetchNfl } = await import('../src/nfl.js'); nfl = await fetchNfl(); write('nfl', nfl); console.log(`nfl: ${nfl.games.length} games, ${nfl.videos.length} videos, ${nfl.news.length} news${nfl.errors.length ? ` (errors: ${nfl.errors.join('; ')})` : ''}`); }
+  catch (e) { console.log('nfl failed:', e.message); }
+}
+if (!nfl) { try { nfl = JSON.parse(fs.readFileSync(path.join(OUT, 'api', 'nfl.json'), 'utf8')); } catch { nfl = { games: [], news: [], videos: [], errors: ['not loaded'] }; write('nfl', nfl); } }
+write('briefing', buildBriefing(stories, Date.now(), { nfl }));
 write('dupage', await call('/api/dupage'));
 write('brands', await call('/api/brands'));
 write('sources', await call('/api/sources'));

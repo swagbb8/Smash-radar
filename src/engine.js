@@ -1,6 +1,22 @@
 // Story engine: ingestion, duplicate detection, change tracking, status lifecycle, ranking, queries.
 import { canonicalUrl, shortId, sha1, titleTokens, jaccard, truncate, domainOf, localDateKey } from './util.js';
 import { verifyDupage } from './dupage.js';
+import { isForeignOnly } from './usfilter.js';
+import { COUNTIES } from './config.js';
+import { detectIncident } from './dupage.js';
+const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const COUNTY_RX = Object.fromEntries(Object.entries(COUNTIES).map(([c, towns]) => [c, new RegExp(`\\b(${[`${c} County`, ...towns].map(esc).join('|')})\\b`)]));
+// Region tag: county sources must actually mention the county or one of its towns.
+function regionFor(source, text) {
+  if (!source.region) return null;
+  if (source.region.state) return { state: source.region.state };
+  const c = source.region.county;
+  if (!COUNTY_RX[c]?.test(text)) return undefined; // not really about that county → drop
+  const inc = detectIncident(text);
+  const roadsy = inc && ['crash', 'closure', 'construction', 'traffic', 'trees', 'police', 'fire', 'emergency', 'flooding', 'weather', 'outage', 'metra', 'missing'].includes(inc.id);
+  return { state: 'Illinois', county: c, roads: !!(source.region.roads && roadsy), incident: inc || null };
+}
+const US_ONLY = () => process.env.US_ONLY !== 'off';
 import { classify, whyItMatters, detectFlags, productDetails, recallDetails } from './classify.js';
 
 const H = 3600e3;
@@ -84,7 +100,7 @@ function meaningfulChange(a = '', b = '') {
  */
 export function ingest(state, items, source, nowMs = Date.now()) {
   const nowIso = new Date(nowMs).toISOString();
-  const stats = { fetched: items.length, added: 0, changed: 0, seen: 0, duplicates: 0, rejected: 0, stale: 0 };
+  const stats = { fetched: items.length, added: 0, changed: 0, seen: 0, duplicates: 0, rejected: 0, stale: 0, foreign: 0 };
   const idx = buildDupIndex(state, nowMs);
   const maxAge = (MAX_AGE_DAYS[source.category] || MAX_AGE_DAYS.default) * 24 * H;
 
@@ -94,6 +110,9 @@ export function ingest(state, items, source, nowMs = Date.now()) {
     if (!item.nws && pub && nowMs - pub > maxAge) { stats.stale++; continue; }
     if (item.expiresAt && Date.parse(item.expiresAt) < nowMs) { stats.stale++; continue; }
 
+    if (!item.nws && US_ONLY() && isForeignOnly(item.title, item.summary, source.category)) { stats.foreign++; continue; }
+    const region = regionFor(source, `${item.title}. ${item.summary || ''}`);
+    if (region === undefined) { stats.rejected++; continue; }
     const url = canonicalUrl(item.link);
     const dupage = verifyDupage({ title: item.title, summary: item.summary, url: item.link, publisher: item.publisher || source.name, sourceId: source.id, nws: item.nws });
     if (source.category === 'dupage' && (dupage.status === 'none' || dupage.status === 'rejected')) {
@@ -164,6 +183,8 @@ export function ingest(state, items, source, nowMs = Date.now()) {
       if (!already && !samePublisher) {
         dup.alsoReportedBy = [...(dup.alsoReportedBy || []), { name: item.publisher || source.name, url: item.link, sourceId: source.id }].slice(0, 12);
       }
+      if (region && !dup.region) dup.region = region;
+      if (region?.roads && dup.region && !dup.region.roads) dup.region.roads = true;
       if (!dup.imageUrl && item.imageUrl) dup.imageUrl = item.imageUrl;
       if (!dup.summary && item.summary) { dup.summary = truncate(item.summary, 420); dup.feedSummary = item.summary; }
       if (source.official && !dup.official) { dup.official = true; dup.officialUrl = item.link; }
@@ -191,6 +212,7 @@ export function ingest(state, items, source, nowMs = Date.now()) {
       brandIds: cls.brandIds,
       flags: cls.flags,
       location,
+      region: region || undefined,
       sourceId: source.id,
       sourceName: item.publisher || source.name,
       sourceDomain: domainOf(item.publisherUrl || item.link),
@@ -270,7 +292,7 @@ export function present(s, nowMs = Date.now()) {
   if (s.official) tags.push('OFFICIAL');
   const out = {
     id: s.id, title: s.title, summary: s.summary, whyItMatters: s.whyItMatters, imageUrl: s.imageUrl,
-    url: s.link || s.url, canonicalUrl: s.url, category: s.category, categories: s.categories, brands: s.brands, brandIds: s.brandIds,
+    url: s.link || s.url, canonicalUrl: s.url, region: s.region || null, category: s.category, categories: s.categories, brands: s.brands, brandIds: s.brandIds,
     location: s.location, status, tags, sourceName: s.sourceName, sourceDomain: s.sourceDomain, feedName: s.feedName, official: s.official,
     publishedAt: s.publishedAt, discoveredAt: s.firstDiscoveredAt, lastSeenAt: s.lastSeenAt, updatedAt: s.updatedAt, expiresAt: s.expiresAt,
     lastChangedAt: s.lastChangedAt || null, changes: s.changes || [], alsoReportedBy: s.alsoReportedBy || [], instruction: s.instruction,
@@ -283,6 +305,7 @@ export function present(s, nowMs = Date.now()) {
 }
 
 const H24 = 24 * H;
+const ROAD_SAFETY = new Set(['crash', 'closure', 'construction', 'traffic', 'trees', 'police', 'fire', 'emergency', 'flooding', 'weather', 'outage', 'metra', 'missing']);
 export function queryStories(state, opts = {}, nowMs = Date.now()) {
   const { view = 'home', q = '', category = '', brands = '', place = '', incident = '', includeNearby = false, limit = 60, offset = 0 } = opts;
   const brandSet = new Set(String(brands).split(',').filter(Boolean));
@@ -299,6 +322,17 @@ export function queryStories(state, opts = {}, nowMs = Date.now()) {
     case 'deals': list = list.filter((s) => s.tags.includes('DEAL')); break;
     case 'recalls': list = list.filter((s) => s.tags.includes('RECALL')); break;
     case 'openings': list = list.filter((s) => s.tags.includes('OPENING') || s.tags.includes('CLOSING')); break;
+    case 'roads': list = list.filter((s) => (s.region?.roads) || (s.location && ['confirmed', 'verified'].includes(s.location.status) && ROAD_SAFETY.has(s.location.incident?.id))); break;
+    case 'local': {
+      const st = opts.state || 'Illinois';
+      const co = opts.county || '';
+      list = list.filter((s) => {
+        if (co) return co === 'DuPage' ? (s.location && ['confirmed', 'verified'].includes(s.location.status)) : s.region?.county === co;
+        if (st === 'Illinois') return s.region?.state === 'Illinois' || !!s.region?.county || !!(s.location && ['confirmed', 'verified'].includes(s.location.status));
+        return s.region?.state === st;
+      });
+      break;
+    }
     case 'foryou': list = list.filter((s) => s.brandIds.some((b) => brandSet.has(b)) || (brandSet.has('dupage') && s.location)); break;
     case 'brands': list = list.filter((s) => s.brandIds.length); break;
     default: break;
@@ -314,7 +348,7 @@ export function queryStories(state, opts = {}, nowMs = Date.now()) {
       return terms.every((t) => hay.includes(t));
     });
   }
-  const chrono = ['dupage', 'today', 'week', 'breaking'].includes(view) || q;
+  const chrono = ['dupage', 'today', 'week', 'breaking', 'roads', 'local'].includes(view) || q;
   list.sort(chrono ? (a, b) => pubMs(b) - pubMs(a) : (a, b) => b.score - a.score);
   return { total: list.length, stories: list.slice(Number(offset), Number(offset) + Math.min(200, Number(limit))) };
 }
@@ -338,7 +372,7 @@ export function prune(state, nowMs = Date.now()) {
   let removed = 0;
   for (const [id, s] of Object.entries(state.stories)) {
     const last = Math.max(Date.parse(s.lastSeenAt), Date.parse(s.publishedAt || 0) || 0);
-    if (last < cutoff || (s.expiresAt && Date.parse(s.expiresAt) < nowMs - 24 * H)) { delete state.stories[id]; removed++; }
+    if (last < cutoff || (s.expiresAt && Date.parse(s.expiresAt) < nowMs - 24 * H) || (US_ONLY() && !s.nws && isForeignOnly(s.title, s.feedSummary || s.summary, s.category))) { delete state.stories[id]; removed++; }
   }
   const all = Object.values(state.stories);
   if (all.length > 5000) {

@@ -1,25 +1,25 @@
-# SMASH RADAR — free hosting: GitHub Actions sweeps the sources on a schedule and publishes to GitHub Pages.
-# Publishes to the gh-pages branch (GitHub Pages serves it automatically).
-name: SMASH RADAR sweep
+# SMASH NEWS live loop — updates the app every 10 minutes, all day.
+# One run loops for ~5.5 hours (an update every 10 minutes), then starts the next run itself.
+# The hourly schedule is only a backup that restarts the loop if it ever stops.
+name: SMASH NEWS live loop
 
 on:
-  schedule:
-    - cron: '*/10 * * * *'   # GitHub may delay scheduled runs a few minutes at busy times
   workflow_dispatch:
-  push:
-    branches: [main]
+  schedule:
+    - cron: '17 * * * *'
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: smash-radar
   cancel-in-progress: false
 
 jobs:
-  sweep:
+  loop:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
 
@@ -27,68 +27,42 @@ jobs:
         with:
           node-version: 22
 
-      # The radar's memory (seen stories, change history, source health) carries over between runs.
-      - name: Restore radar memory
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the lion's voice
+        run: pip install -q edge-tts
+
+      - name: Restore radar memory (older cache)
         uses: actions/cache/restore@v4
         with:
           path: data
           key: radar-state-v5-${{ github.run_id }}
           restore-keys: radar-state-v5-
 
-      - name: Sweep sources + build site
-        run: node scripts/build-static.js
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ENRICH_LIMIT: '90'
-          STATIC_MAX_STORIES: '3000'
+      - name: Restore radar memory (latest)
+        run: |
+          if git fetch -q --depth 1 origin radar-data 2>/dev/null; then
+            git show FETCH_HEAD:state.tgz > /tmp/state.tgz && tar xzf /tmp/state.tgz && echo "memory restored"
+          else
+            echo "no saved memory yet"
+          fi
 
-      # ---- Instagram auto-post (off until IG secrets are added) ----
-      - name: Auto-post — plan
-        id: plan
-        run: node scripts/autopost.js plan
+      - name: Update every 10 minutes
+        run: cp scripts/loop.sh /tmp/loop.sh && bash /tmp/loop.sh
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          ENRICH_LIMIT: '150'
+          STATIC_MAX_STORIES: '3000'
+          SWEEP_BUDGET_MS: '420000'
+          FAST_INTERVAL_MINUTES: '5'
+          NORMAL_INTERVAL_MINUTES: '10'
+          SLOW_INTERVAL_MINUTES: '30'
           AUTOPOST_MAX_PER_DAY: ${{ vars.AUTOPOST_MAX_PER_DAY }}
-          AUTOPOST_MIN_GAP_MINUTES: ${{ vars.AUTOPOST_MIN_GAP_MINUTES }}
-          AUTOPOST_QUIET_HOURS: ${{ vars.AUTOPOST_QUIET_HOURS }}
-          AUTOPOST_RECAP_HOUR: ${{ vars.AUTOPOST_RECAP_HOUR }}
           AUTOPOST_RECAP: ${{ vars.AUTOPOST_RECAP }}
           AUTOPOST_WEEKLY: ${{ vars.AUTOPOST_WEEKLY }}
-          AUTOPOST_SINGLES: ${{ vars.AUTOPOST_SINGLES }}
-
-      - name: Auto-post — render images
-        if: steps.plan.outputs.has_posts == 'true'
-        run: |
-          sudo apt-get install -y -qq fonts-noto-color-emoji > /dev/null
-          npm i --no-save --silent playwright@1.56
-          npx playwright install --with-deps chromium > /dev/null
-          node scripts/autopost.js render
-        env:
           AUTOPOST_PHOTOS: ${{ vars.AUTOPOST_PHOTOS }}
-          AUTOPOST_FORMAT: ${{ vars.AUTOPOST_FORMAT }}
-
-      - name: Publish to gh-pages
-        run: |
-          cd dist
-          git init -q -b gh-pages
-          git config user.name "smash-radar-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -qm "Radar sweep $(date -u +%FT%TZ)"
-          git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
-
-      - name: Auto-post — publish to Instagram
-        if: steps.plan.outputs.has_posts == 'true'
-        run: node scripts/autopost.js publish
-        env:
-          IG_USER_ID: ${{ secrets.IG_USER_ID }}
-          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
-
-      - name: Save radar memory
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: data
-          key: radar-state-v5-${{ github.run_id }}

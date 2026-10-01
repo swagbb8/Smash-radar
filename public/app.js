@@ -1,5 +1,6 @@
 // SMASH NEWS — client app (no build step). Hash-routed SPA, installable PWA.
 const $ = (s, el = document) => el.querySelector(s);
+import { lionSVG, LionShow } from './lion.js';
 const view = $('#view');
 
 // ---------------- local persistence (favorites live on the device) ----------------
@@ -12,6 +13,7 @@ const prefs = {
   saved: LS.get('sr.saved', {}),
   dupageInForYou: LS.get('sr.dupageForYou', true),
   nearby: LS.get('sr.nearby', false),
+  lionAuto: LS.get('sr.lionAuto', true),
   customBrands: LS.get('sr.customBrands', []),
   cats: new Set(LS.get('sr.cats', [])),
 };
@@ -67,6 +69,14 @@ function localQuery(all, o) {
   if (v === 'deals') list = list.filter((s) => s.tags.includes('DEAL'));
   if (v === 'recalls') list = list.filter((s) => s.tags.includes('RECALL'));
   if (v === 'openings') list = list.filter((s) => s.tags.includes('OPENING') || s.tags.includes('CLOSING'));
+  const verifiedLocal = (s) => s.location && ['confirmed', 'verified'].includes(s.location.status);
+  const RS = ['crash', 'closure', 'construction', 'traffic', 'trees', 'police', 'fire', 'emergency', 'flooding', 'weather', 'outage', 'metra', 'missing'];
+  if (v === 'roads') list = list.filter((s) => s.region?.roads || (verifiedLocal(s) && RS.includes(s.location.incident?.id)));
+  if (v === 'local') {
+    const st = o.state || 'Illinois';
+    const co = o.county || '';
+    list = list.filter((s) => (co ? (co === 'DuPage' ? verifiedLocal(s) : s.region?.county === co) : (st === 'Illinois' ? s.region?.state === 'Illinois' || !!s.region?.county || verifiedLocal(s) : s.region?.state === st)));
+  }
   if (v === 'foryou') list = list.filter((s) => s.brandIds.some((b) => brandSet.has(b)) || (brandSet.has('dupage') && s.location));
   if (o.category) list = list.filter((s) => s.categories.includes(o.category));
   if (brandSet.size && v !== 'foryou') list = list.filter((s) => s.brandIds.some((b) => brandSet.has(b)));
@@ -76,7 +86,7 @@ function localQuery(all, o) {
     const terms = String(o.q).toLowerCase().split(/\s+/).filter(Boolean);
     list = list.filter((s) => { const hay = `${s.title} ${s.summary} ${s.brands.join(' ')} ${s.sourceName} ${s.location?.places?.join(' ') || ''} ${s.category}`.toLowerCase(); return terms.every((t) => hay.includes(t)); });
   }
-  const chrono = ['dupage', 'today', 'week', 'breaking'].includes(v) || o.q;
+  const chrono = ['dupage', 'today', 'week', 'breaking', 'roads', 'local'].includes(v) || o.q;
   list.sort(chrono ? (a, b) => pubMs(b) - pubMs(a) : (a, b) => b.score - a.score);
   const off = Number(o.offset || 0); const lim = Math.min(200, Number(o.limit || 60));
   return { total: list.length, stories: list.slice(off, off + lim) };
@@ -90,6 +100,7 @@ async function staticApi(path, opts) {
   if (method !== 'GET') throw new Error('Not available in the free hosted version — edit src/config.js in the repo instead');
   const d = await loadStatic();
   if (p === 'api/meta') return { ...d.meta, refreshing: false, mode: 'static' };
+  if (p === 'api/briefing' || p === 'api/nfl') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
   if (p === 'api/dupage') return d.dupage;
   if (p === 'api/brands') return d.brands;
   if (p === 'api/sources') return d.sources;
@@ -136,11 +147,15 @@ const INC_ICON = { metra: '🚆', emergency: '🚨', fire: '🔥', crash: '💥'
 const NAV = [
   { group: 'Radar' },
   { r: 'home', label: 'Home', ic: '🏠' },
+  { r: 'lion', label: 'Smash Live', ic: '🦁' },
   { r: 'daily', label: "Today's News", ic: '📡' },
   { r: 'breaking', label: 'Breaking', ic: '🔥', count: 'BREAKING', hot: true },
   { r: 'today', label: 'Today', ic: '🆕', count: 'NEW' },
   { r: 'week', label: 'This Week', ic: '📅' },
   { r: 'dupage', label: 'DuPage', ic: '📍', count: 'dupage' },
+  { r: 'roads', label: 'Roads & Safety', ic: '🚧' },
+  { r: 'local', label: 'Local & States', ic: '🗺️' },
+  { r: 'nfl', label: 'NFL', ic: '🏈' },
   { group: 'Discover' },
   { r: 'products', label: 'Products', ic: '📦', count: 'products' },
   { r: 'deals', label: 'Deals', ic: '💰', count: 'deals' },
@@ -156,6 +171,9 @@ const NAV = [
 ];
 const TITLES = Object.fromEntries(NAV.filter((n) => n.r).map((n) => [n.r, n.label]));
 const ICONS = {
+  lion: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" stroke-dasharray="2.4 1.6"/><circle cx="12" cy="12.5" r="5"/><path d="M10.2 14.2q1.8 1.3 3.6 0"/><circle cx="10.3" cy="11.6" r=".6" fill="currentColor"/><circle cx="13.7" cy="11.6" r=".6" fill="currentColor"/></svg>',
+  roads: '<svg viewBox="0 0 24 24"><path d="M8 3 5 21M16 3l3 18M12 4v3M12 10v4M12 17v3"/></svg>',
+  nfl: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9.5" ry="6" transform="rotate(-35 12 12)"/><path d="m9.5 14.5 5-5M10.5 11.2l2.3 2.3M12 9.7l2.3 2.3"/></svg>',
   home: '<svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg>',
   breaking: '<svg viewBox="0 0 24 24"><path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-5.5 1-8.5Z"/></svg>',
   dupage: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12 18 6"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>',
@@ -298,8 +316,9 @@ const views = {
       <a class="stat launch" href="#/products"><b>${c.products ?? '–'}</b><span>Products</span></a>
       <a class="stat deal" href="#/deals"><b>${c.deals ?? '–'}</b><span>Deals</span></a>
       <a class="stat recall" href="#/recalls"><b>${c.recalls ?? '–'}</b><span>Recalls</span></a></div>`;
+    const banner = `<a class="live-banner" href="#/lion"><span class="lb-lion">${lionSVG()}</span><span><b>▶ Smash Live</b><br><span class="muted">Smash the lion reads you everything new · fresh episode every 10 min</span></span><span class="lb-live">● LIVE</span></a>`;
     const all = await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`);
-    if (!all.stories.length) return top + (noDataYet() || empty('📡', 'Radar is clear', 'Nothing collected yet. Tap Refresh to sweep all sources.'));
+    if (!all.stories.length) return banner + top + (noDataYet() || empty('📡', 'Radar is clear', 'Nothing collected yet. Tap Refresh to sweep all sources.'));
     const list = all.stories;
     const H = 36e5;
     const pub = (s) => Date.parse(s.publishedAt || s.discoveredAt);
@@ -335,7 +354,7 @@ const views = {
       built.push([id, ic, label, `<section class="section" id="sec-${id}"><div class="section-head"><h2><span class="ic">${ic}</span>${esc(label)}</h2><a href="${href}">See all →</a></div>${inner}</section>`]);
     }
     const nav = `<div class="catnav" id="catnav">${built.map(([id, ic, label]) => `<button class="chip" data-jump="sec-${id}">${ic} ${esc(label)}</button>`).join('')}</div>`;
-    return top + hero(heroStory) + nav + built.map((b) => b[3]).join('');
+    return banner + top + hero(heroStory) + nav + built.map((b) => b[3]).join('');
   },
 
   async daily() {
@@ -434,6 +453,78 @@ const views = {
       if (!byCat[cat]) continue;
       html += section(CAT[cat][1], CAT[cat][0], null, `<div class="brand-grid">${byCat[cat].map((b) => `<button class="brand-tile ${prefs.brands.has(b.id) ? 'on' : ''}" data-brand="${esc(b.id)}"><span>${esc(b.name)}<br><span class="n">${b.count} ${b.count === 1 ? 'story' : 'stories'}</span></span><span class="star">★</span></button>`).join('')}</div>`);
     }
+    return html;
+  },
+
+
+  async lion() {
+    let b;
+    try { b = await api('/api/briefing'); } catch (e) { return viewHead('Smash Live') + empty('🦁', 'Smash is getting ready', 'The first episode appears after the next update. Check back in a few minutes.'); }
+    app.briefing = b;
+    const voiceLabel = b.voice ? 'Neural AI voice' : 'Phone voice (neural voice arrives with the next update)';
+    const html = `<div class="live-stage" id="liveStage">
+      <div class="ls-top"><span class="ls-live">● LIVE</span><span class="ls-brand"><b>SMASH</b> NEWS</span><span class="ls-time">${esc(clock(b.createdAt))}</span></div>
+      <div class="ls-lion">${lionSVG()}</div>
+      <div class="ls-desk"><span class="radar-logo"><i></i></span><b>SMASH</b>&nbsp;NEWS</div>
+      <div class="ls-graphic" id="lsGraphic"></div>
+      <div class="ls-caption" id="lsCaption">Tap ▶ and Smash will tell you everything that's new.</div>
+    </div>
+    <div class="ls-controls">
+      <button class="ls-btn" data-action="lion-prev" aria-label="Previous">⏮</button>
+      <button class="ls-btn big" data-action="lion-play" id="lionPlay" aria-label="Play">▶</button>
+      <button class="ls-btn" data-action="lion-next" aria-label="Next">⏭</button>
+    </div>
+    <div class="ls-meta">Episode from <b>${esc(clock(b.createdAt))}</b> · ${b.segments.length - 2} stories · ${esc(voiceLabel)} · new episode about every 10 min</div>
+    <div class="toggle" style="margin:10px 0"><span>Auto-play new episodes while this screen is open</span><button class="switch ${prefs.lionAuto ? 'on' : ''}" data-action="lion-auto" aria-label="Auto-play"></button></div>
+    <div class="rows ls-list">${b.segments.map((g, k) => `<button class="ls-seg" data-seg="${k}"><span class="n">${k + 1}</span><span><b>${esc(SEG_LABEL[g.kind] || g.kind)}</b> ${esc(g.title || g.text.slice(0, 90))}</span></button>`).join('')}</div>`;
+    setTimeout(() => initLion(b), 0);
+    return html;
+  },
+
+  async nfl() {
+    let d;
+    try { d = await api('/api/nfl'); } catch (e) { return viewHead('NFL') + empty('🏈', 'NFL data loading', 'Scores, stats and highlights appear after the next update.'); }
+    app.nfl = d;
+    const live = d.games.filter((g) => g.state === 'in');
+    const finals = d.games.filter((g) => g.state === 'post').reverse();
+    const upcoming = d.games.filter((g) => g.state === 'pre');
+    let html = viewHead('NFL', `${d.week ? `Week ${d.week} · ` : ''}Scores, player stats and highlights for every game. Updated ${ago(d.updatedAt)}.`);
+    if (live.length) html += section('Live now', '🔴', null, `<div class="games">${live.map(gameCard).join('')}</div>`);
+    if (finals.length) html += section('Final scores', '🏁', null, `<div class="games">${finals.map(gameCard).join('')}</div>`);
+    if (d.videos.length) html += section('Highlights', '🎬', null, `<div class="rail">${d.videos.slice(0, 24).map(videoCard).join('')}</div>`);
+    if (upcoming.length) html += section('Upcoming', '📅', null, `<div class="games">${upcoming.map(gameCard).join('')}</div>`);
+    if (d.news.length) html += section('NFL news', '📰', null, `<div class="grid">${d.news.slice(0, 18).map((n) => `<a class="card" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener"><div class="media">${n.image ? `<img src="${esc(imgUrl(n.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add('loaded')">` : '<div class="ph" style="--g:linear-gradient(135deg,#0b2a1a,#06120c)"><span class="glyph">🏈</span></div>'}</div><div class="body"><div class="kicker">🏈 NFL · ${esc(n.type || 'News')}</div><h3>${esc(n.title)}</h3>${n.summary ? `<p>${esc(n.summary)}</p>` : ''}<div class="foot"><span class="src">ESPN</span><span>·</span><span>${ago(n.published)}</span></div></div></a>`).join('')}</div>`);
+    if (!d.games.length && !d.videos.length && !d.news.length) html += empty('🏈', 'No NFL data yet', 'It loads on the next update.');
+    return html;
+  },
+
+  async roads() {
+    const p = app.params;
+    const data = await api(`/api/stories?${qs({ view: 'roads', limit: 200 })}`);
+    const counties = ['DuPage', 'Cook', 'Kane', 'Will', 'Lake', 'McHenry', 'Kendall', 'DeKalb'];
+    const types = [['', 'All'], ['crash', '💥 Crashes'], ['closure', '🚧 Closures'], ['construction', '🏗️ Construction'], ['traffic', '🚦 Traffic'], ['police', '🚓 Police'], ['fire', '🔥 Fire'], ['weather', '⛈️ Weather'], ['outage', '🔌 Outages'], ['metra', '🚆 Metra']];
+    const countyOf = (s) => (s.location && ['confirmed', 'verified'].includes(s.location.status) ? 'DuPage' : s.region?.county);
+    const incOf = (s) => s.location?.incident?.id || s.region?.incident?.id || '';
+    let list = data.stories;
+    if (p.county) list = list.filter((s) => countyOf(s) === p.county);
+    if (p.type) list = list.filter((s) => incOf(s) === p.type);
+    const link = (o) => `#/roads?${qs({ ...p, ...o })}`;
+    let html = viewHead('Roads & Safety', 'Crashes, closures, construction, traffic, police and fire across Chicagoland. Every item is tied to a real county or town, never a highway name alone.');
+    html += `<div class="chips"><a class="chip ${!p.county ? 'on' : ''}" href="${link({ county: '' })}">All counties</a>${counties.map((c) => `<a class="chip ${p.county === c ? 'on' : ''}" href="${link({ county: c })}">${esc(c)} <span class="n">${data.stories.filter((s) => countyOf(s) === c).length}</span></a>`).join('')}</div>`;
+    html += `<div class="chips">${types.map(([id, l]) => `<a class="chip ${(p.type || '') === id ? 'on' : ''}" href="${link({ type: id })}">${l}</a>`).join('')}</div>`;
+    html += list.length ? `<div class="rows">${list.map(roadRow).join('')}</div>` : (noDataYet() || empty('🚦', 'All clear', 'No road or safety reports match right now. This page updates every 10 minutes.'));
+    return html;
+  },
+
+  async local() {
+    const p = app.params;
+    const state = p.state || 'Illinois';
+    const county = state === 'Illinois' ? (p.county || '') : '';
+    const data = await api(`/api/stories?${qs({ view: 'local', state, county, limit: 120 })}`);
+    let html = viewHead('Local & States', 'News for every Chicagoland county and all 50 states.');
+    html += `<div class="local-pick"><label>State <select id="statePick">${STATES.map((st) => `<option ${st === state ? 'selected' : ''}>${esc(st)}</option>`).join('')}</select></label></div>`;
+    if (state === 'Illinois') html += `<div class="chips"><a class="chip ${!county ? 'on' : ''}" href="#/local?state=Illinois">All Illinois</a>${['DuPage', 'Cook', 'Kane', 'Will', 'Lake', 'McHenry', 'Kendall', 'DeKalb'].map((c) => `<a class="chip ${county === c ? 'on' : ''}" href="#/local?${qs({ state: 'Illinois', county: c })}">${esc(c)} County</a>`).join('')}</div>`;
+    html += data.stories.length ? `<div class="grid">${data.stories.map(card).join('')}</div>` : (noDataYet() || empty('🗺️', `No ${county ? `${county} County` : state} stories yet`, 'State and county news fills in over the next few updates.'));
     return html;
   },
 
@@ -666,6 +757,90 @@ async function sharePost() {
   toast('Images downloaded · caption copied');
 }
 
+
+const STATES = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'];
+const SEG_LABEL = { intro: 'Intro', breaking: 'Breaking', dupage: 'DuPage', roads: 'Roads', local: 'Chicagoland', recall: 'Recall', product: 'New drop', deal: 'Deal', opening: 'Opening', national: 'U.S.', nfl: 'NFL', outro: 'Sign-off' };
+
+function roadRow(s, i = 0) {
+  app.stories.set(s.id, s);
+  const inc = s.location?.incident || s.region?.incident;
+  const where = s.location && ['confirmed', 'verified'].includes(s.location.status) ? (s.location.places.filter((x) => x !== 'DuPage County')[0] || 'DuPage County') : `${s.region?.county || ''} County`;
+  return `<article class="row" style="animation-delay:${Math.min(i, 10) * 25}ms" data-story="${esc(s.id)}">
+    <div class="ico ${['crash', 'fire', 'emergency', 'police'].includes(inc?.id) ? 'hot' : ''}">${INC_ICON[inc?.id] || '🚧'}</div>
+    <div><div class="meta"><span class="badge ${s.status}">${s.status}</span>${inc ? `<b>${esc(inc.label)}</b>` : ''}${s.location?.roads?.length ? `<span>${esc(s.location.roads.join(' · '))}</span>` : ''}</div>
+      <h4>${esc(s.title)}</h4>
+      <div class="meta"><span class="verify">📍 ${esc(where)}</span><span>${esc(s.sourceName)}</span><span>${ago(s.publishedAt || s.discoveredAt)}</span></div></div>
+    ${s.imageUrl ? `<div class="thumb">${media(s)}</div>` : '<span></span>'}
+  </article>`;
+}
+
+function gameCard(g) {
+  const team = (t, other) => `<div class="gt ${g.state === 'post' && t.winner ? 'win' : ''}">${t.logo ? `<img src="${esc(imgUrl(t.logo))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="lg">${esc(t.abbr)}</span>`}<span class="nm">${esc(t.name || t.abbr)}<small>${esc(t.record)}</small></span><span class="sc">${g.state === 'pre' ? '' : esc(t.score)}</span></div>`;
+  const when = g.state === 'pre' ? new Date(g.date).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZone: TZ }) : g.detail;
+  const lead = g.leaders?.[0];
+  return `<button class="game" data-game="${esc(g.id)}"><div class="gs ${g.state}">${g.state === 'in' ? '● ' : ''}${esc(when)}${g.broadcast && g.state === 'pre' ? ` · ${esc(g.broadcast)}` : ''}</div>${team(g.away)}${team(g.home)}${lead ? `<div class="gl">⭐ ${esc(lead.player)} · ${esc(lead.value)}</div>` : ''}${g.highlight ? '<div class="gh">▶ Highlights</div>' : ''}</button>`;
+}
+function videoCard(v) {
+  return `<button class="card vcard" data-video="${esc(v.videoId)}" data-vtitle="${esc(v.title)}"><div class="media"><img src="${esc(imgUrl(v.thumb))}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add('loaded')"><span class="play">▶</span></div><div class="body"><h3>${esc(v.title)}</h3><div class="foot"><span class="src">NFL</span><span>·</span><span>${ago(v.published)}</span></div></div></button>`;
+}
+function openSheetHtml(html) {
+  $('#sheet').innerHTML = `<div class="grab"></div><button class="close" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>${html}`;
+  $('#sheet').hidden = false; $('#sheetBackdrop').hidden = false; $('#sheet').scrollTop = 0; document.body.style.overflow = 'hidden';
+}
+function openVideo(id, title) {
+  openSheetHtml(`<div class="video-wrap"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?playsinline=1&autoplay=1&rel=0" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div><div class="content"><h2>${esc(title)}</h2><a class="btn" href="https://www.youtube.com/watch?v=${encodeURIComponent(id)}" target="_blank" rel="noopener">Open in YouTube ↗</a></div>`);
+}
+function openGame(id) {
+  const g = app.nfl?.games.find((x) => x.id === id);
+  if (!g) return;
+  const qs2 = Math.max(g.home.linescores.length, g.away.linescores.length);
+  const box = qs2 ? `<table class="box"><tr><th></th>${Array.from({ length: qs2 }, (_, k) => `<th>${k < 4 ? `Q${k + 1}` : 'OT'}</th>`).join('')}<th>T</th></tr>${[g.away, g.home].map((t) => `<tr><td>${esc(t.abbr)}</td>${Array.from({ length: qs2 }, (_, k) => `<td>${t.linescores[k] ?? ''}</td>`).join('')}<td><b>${esc(t.score)}</b></td></tr>`).join('')}</table>` : '';
+  openSheetHtml(`${g.highlight ? `<div class="video-wrap"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(g.highlight.videoId)}?playsinline=1&rel=0" title="Highlights" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>` : ''}
+    <div class="content"><div class="kicker">🏈 NFL${g.week ? ` · Week ${g.week}` : ''} · ${esc(g.state === 'pre' ? 'Upcoming' : g.detail)}</div>
+    <div class="bigscore"><div>${g.away.logo ? `<img src="${esc(imgUrl(g.away.logo))}" alt="">` : ''}<b>${esc(g.away.score)}</b><span>${esc(g.away.full)}</span></div><i>at</i><div>${g.home.logo ? `<img src="${esc(imgUrl(g.home.logo))}" alt="">` : ''}<b>${esc(g.home.score)}</b><span>${esc(g.home.full)}</span></div></div>
+    ${box}
+    ${g.leaders.length ? `<div class="box why"><h5>Player stats — game leaders</h5>${g.leaders.map((l) => `<div class="leader">${l.headshot ? `<img src="${esc(imgUrl(l.headshot))}" alt="" referrerpolicy="no-referrer">` : '<span class="hs">🏈</span>'}<div><b>${esc(l.player)}</b> <span class="muted">${esc(l.position)} ${esc(l.team)}</span><br><span class="muted">${esc(l.category)}</span> · ${esc(l.value)}</div></div>`).join('')}</div>` : ''}
+    <div class="src-line">${g.venue ? `<span>📍 ${esc(g.venue)}</span>` : ''}${g.broadcast ? `<span>📺 ${esc(g.broadcast)}</span>` : ''}</div>
+    <div class="actions"><a class="btn primary" href="${esc(safeUrl(g.link))}" target="_blank" rel="noopener">Full box score on ESPN ↗</a></div></div>`);
+}
+
+function showSegment(seg, k) {
+  const gfx = $('#lsGraphic');
+  const cap = $('#lsCaption');
+  if (!gfx || !cap) return;
+  cap.textContent = seg.text;
+  document.querySelectorAll('.ls-seg').forEach((b) => b.classList.toggle('on', Number(b.dataset.seg) === k));
+  document.querySelector(`.ls-seg[data-seg="${k}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  if (!seg.title) { gfx.classList.remove('show'); return; }
+  const s = { category: seg.category === 'nfl' ? 'news' : seg.category, brands: [], location: null };
+  const img = imgUrl(seg.imageUrl);
+  gfx.innerHTML = `<div class="g-media">${img ? `<img src="${esc(img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : placeholder(s)}</div><div class="g-text"><span class="g-kind">${esc(SEG_LABEL[seg.kind] || '')}${seg.place ? ` · ${esc(seg.place)}` : ''}</span><b>${esc(seg.title)}</b>${seg.source ? `<small>${esc(seg.source)}</small>` : ''}</div>`;
+  gfx.classList.remove('show'); void gfx.offsetWidth; gfx.classList.add('show');
+}
+function setPlayBtn(state) { const b = $('#lionPlay'); if (b) b.textContent = state === 'playing' ? '⏸' : '▶'; }
+function initLion(b) {
+  if (app.show) app.show.destroy();
+  const stage = $('#liveStage');
+  if (!stage) return;
+  app.show = new LionShow(stage, { onSegment: showSegment, onState: setPlayBtn, onEnd: () => { setPlayBtn('ended'); if (app.pendingBriefing && prefs.lionAuto) { const nb = app.pendingBriefing; app.pendingBriefing = null; render({ quiet: true }).then(() => app.show?.play(0)); } } });
+  const vs = LionShow.voices();
+  app.show.voice = vs[0] || null;
+  if (window.speechSynthesis && !vs.length) window.speechSynthesis.onvoiceschanged = () => { if (app.show) app.show.voice = LionShow.voices()[0] || null; };
+  app.show.load(b);
+  showSegment(b.segments[0], 0);
+  clearInterval(app.lionPoll);
+  app.lionPoll = setInterval(async () => {
+    try {
+      const nb = await api('/api/briefing');
+      if (nb.id !== app.briefing?.id) {
+        app.briefing = nb;
+        if (app.show?.playing) { app.pendingBriefing = nb; toast('New Smash Live episode is ready'); }
+        else { await render({ quiet: true }); if (prefs.lionAuto) app.show?.play(0); else toast('New Smash Live episode — tap ▶'); }
+      }
+    } catch {}
+  }, 60e3);
+}
+
 function closeSheet() {
   $('#sheet').hidden = true;
   $('#sheetBackdrop').hidden = true;
@@ -696,7 +871,7 @@ function renderChrome() {
   document.documentElement.style.setProperty('--topbar-h', `${$('.topbar').offsetHeight}px`);
   const c = app.meta?.counts || {};
   $('#sideNav').innerHTML = NAV.map((n) => (n.group ? `<div class="group">${n.group}</div>` : `<a href="#/${n.r}" class="${app.route === n.r ? 'active' : ''}"><span class="ic">${n.ic}</span>${n.label}${n.count && c[n.count] ? `<span class="count ${n.hot ? 'hot' : ''}">${c[n.count]}</span>` : ''}</a>`)).join('');
-  const tabs = [['home', 'Home'], ['breaking', 'Breaking'], ['dupage', 'DuPage'], ['foryou', 'For You']];
+  const tabs = [['home', 'Home'], ['lion', 'Live'], ['roads', 'Roads'], ['nfl', 'NFL']];
   const inMore = !tabs.some(([r]) => r === app.route);
   $('#tabbar').innerHTML = tabs.map(([r, l]) => `<a href="#/${r}" class="${app.route === r ? 'active' : ''}">${ICONS[r]}<span>${l}</span>${r === 'breaking' && c.BREAKING ? `<span class="badge">${c.BREAKING}</span>` : ''}</a>`).join('') +
     `<button type="button" data-action="more" class="${inMore ? 'active' : ''}">${ICONS.more}<span>More</span></button>`;
@@ -721,7 +896,7 @@ function updateLive() {
 
 function openMore() {
   const c = app.meta?.counts || {};
-  const items = [['posts', '📸', 'Post Studio'], ['daily', '📡', "Today's News"], ['today', '🆕', 'Today', c.NEW], ['week', '📅', 'This Week'], ['products', '📦', 'Products', c.products], ['deals', '💰', 'Deals', c.deals], ['recalls', '⚠️', 'Recalls', c.recalls], ['openings', '🏪', 'Openings'], ['brands', '⭐', 'My Brands', prefs.brands.size || ''], ['favorites', '🔖', 'Favorites', Object.keys(prefs.saved).length || ''], ['search', '🔎', 'Search'], ['sources', '🩺', 'Sources']];
+  const items = [['breaking', '🔥', 'Breaking', c.BREAKING], ['dupage', '📍', 'DuPage', c.dupage], ['local', '🗺️', 'Local & States'], ['foryou', '✨', 'For You'], ['posts', '📸', 'Post Studio'], ['daily', '📡', "Today's News"], ['today', '🆕', 'Today', c.NEW], ['week', '📅', 'This Week'], ['products', '📦', 'Products', c.products], ['deals', '💰', 'Deals', c.deals], ['recalls', '⚠️', 'Recalls', c.recalls], ['openings', '🏪', 'Openings'], ['brands', '⭐', 'My Brands', prefs.brands.size || ''], ['favorites', '🔖', 'Favorites', Object.keys(prefs.saved).length || ''], ['search', '🔎', 'Search'], ['sources', '🩺', 'Sources']];
   $('#sheet').innerHTML = `<div class="grab"></div><div class="sheet-title">More</div><div class="more-grid">${items.map(([r, ic, l, n]) => `<a href="#/${r}" data-action="close-nav"><span class="ic">${ic}</span>${l}${n ? `<span class="n">${n}</span>` : ''}</a>`).join('')}</div>`;
   $('#sheet').hidden = false;
   $('#sheetBackdrop').hidden = false;
@@ -740,6 +915,7 @@ function parseHash() {
 let renderSeq = 0;
 async function render({ quiet = false } = {}) {
   const { route, params } = parseHash();
+  if (route !== 'lion' && app.show) { app.show.destroy(); app.show = null; clearInterval(app.lionPoll); }
   const changedRoute = route !== app.route;
   app.route = route;
   app.params = params;
@@ -853,9 +1029,12 @@ function connectEvents() {
 
 // ---------------- events ----------------
 document.addEventListener('click', async (e) => {
-  const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],[data-post],[data-fmt],.src-link');
+  const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],[data-post],[data-fmt],[data-seg],[data-game],[data-video],.src-link');
   if (!t) return;
   if (t.classList.contains('src-link')) return; // let links inside cards open normally
+  if (t.dataset.seg) return app.show?.play(Number(t.dataset.seg));
+  if (t.dataset.game) return openGame(t.dataset.game);
+  if (t.dataset.video) return openVideo(t.dataset.video, t.dataset.vtitle || 'Highlights');
   if (t.dataset.post) { e.preventDefault(); e.stopPropagation(); return openPostStudio({ ids: [t.dataset.post] }); }
   if (t.dataset.fmt) return openPostStudio({ ...postState, format: t.dataset.fmt });
   if (t.dataset.jump) {
@@ -891,6 +1070,10 @@ document.addEventListener('click', async (e) => {
   }
   const a = t.dataset.action;
   if (a === 'close') return closeSheet();
+  if (a === 'lion-play') { if (!app.show) return; if (app.show.playing) app.show.pause(); else app.show.play(app.show.i >= app.show.segments.length - 1 ? 0 : app.show.i); return; }
+  if (a === 'lion-next') return app.show?.next();
+  if (a === 'lion-prev') return app.show?.prev();
+  if (a === 'lion-auto') { prefs.lionAuto = !prefs.lionAuto; LS.set('sr.lionAuto', prefs.lionAuto); t.classList.toggle('on', prefs.lionAuto); return; }
   if (a === 'recap') return openPostStudio({ recap: true });
   if (a === 'recap-week') return openPostStudio({ recap: true, weekly: true });
   if (a === 'share-post') return sharePost();
@@ -944,6 +1127,7 @@ document.addEventListener('submit', async (e) => {
     } catch (err) { toast(err.message); }
   }
 });
+document.addEventListener('change', (e) => { if (e.target.id === 'statePick') location.hash = `#/local?state=${encodeURIComponent(e.target.value)}`; });
 let searchTimer;
 document.addEventListener('input', (e) => {
   if (e.target.id !== 'q') return;

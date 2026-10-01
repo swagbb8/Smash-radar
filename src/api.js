@@ -3,8 +3,17 @@ import { APP, BRANDS, CATEGORIES, DUPAGE_PLACES, slug } from './config.js';
 import { queryStories, present, counts } from './engine.js';
 import { getSources, isRefreshing, refresh, liveSearch, tierMinutes } from './collector.js';
 import { INCIDENT_TYPES } from './dupage.js';
+import { buildBriefing } from './briefing.js';
 
 const json = (status, body) => ({ status, body });
+let nflCache = null;
+async function nflCached() {
+  if (nflCache && Date.now() - nflCache.at < 5 * 60e3) return nflCache.data;
+  const { fetchNfl } = await import('./nfl.js');
+  const data = await fetchNfl().catch((e) => ({ games: [], news: [], videos: [], errors: [e.message] }));
+  nflCache = { at: Date.now(), data };
+  return data;
+}
 
 export async function handleApi({ method, path, query = {}, body = {} }, ctx) {
   const { store } = ctx;
@@ -127,6 +136,14 @@ export async function handleApi({ method, path, query = {}, body = {} }, ctx) {
     const r = await liveSearch(store, q);
     const found = queryStories(await store.load(), { view: 'all', q, limit: 60 });
     return json(200, { ...r, ...found });
+  }
+
+  if (method === 'GET' && r0 === 'nfl') return json(200, await nflCached());
+  if (method === 'GET' && r0 === 'briefing') {
+    const all = queryStories(state, { view: 'all', limit: 200 }, now).stories;
+    const b = buildBriefing(all, now, { nfl: nflCache?.data || null });
+    b.id = `b-${state.meta.lastRefreshAt || now}`;
+    return json(200, b);
   }
 
   if (method === 'GET' && r0 === 'runs') return json(200, { runs: state.runs || [] });

@@ -127,7 +127,7 @@ async function doRefresh(store, { force = false, trigger = 'schedule', deadlineM
       h.latencyMs = res.ms;
       h.etag = res.headers?.get?.('etag') || null;
       h.lastModified = res.headers?.get?.('last-modified') || null;
-      run.ok++; run.added += st.added; run.changed += st.changed; run.duplicates += st.duplicates; run.rejected += st.rejected;
+      run.ok++; run.foreign = (run.foreign || 0) + st.foreign; run.added += st.added; run.changed += st.changed; run.duplicates += st.duplicates; run.rejected += st.rejected;
       onEvent({ type: 'source', id: source.id, ok: true, added: st.added });
     } catch (e) {
       h.lastError = truncate(e.cause?.message ? `${e.message}: ${e.cause.message}` : e.message || String(e), 200);
@@ -154,7 +154,7 @@ async function doRefresh(store, { force = false, trigger = 'schedule', deadlineM
     const queue = [...direct.slice(0, limit - gShare), ...google.slice(0, gShare)];
     run.enrichAttempts = queue.length;
     onEvent({ type: 'enrich:start', total: queue.length });
-    await mapLimit(queue, 6, async (s) => {
+    await mapLimit(queue, Number(process.env.ENRICH_CONCURRENCY || 12), async (s) => {
       if (Date.now() > deadline - 3000) return;
       const ok = await enrichStory(s);
       if (ok) run.enriched++;
@@ -193,7 +193,7 @@ export async function enrichStory(s) {
     const res = await fetchText(target, { timeout: 8000, maxBytes: 600_000, headers: { accept: 'text/html,application/xhtml+xml' } });
     const meta = parseArticleMeta(res.text, res.url || target);
     let changed = false;
-    if (meta.image && (!s.imageUrl || /bing\.com\/th/.test(s.imageUrl)) && !/logo|placeholder|default[-_]?(image|og)/i.test(meta.image)) { s.imageUrl = meta.image; changed = true; }
+    if (meta.image && (!s.imageUrl || /bing\.com\/th/.test(s.imageUrl)) && !/\.svg(\?|$)|1x1|pixel|spacer|blank\.(gif|png)/i.test(meta.image) && !/logo|placeholder|default[-_]?(image|og)/i.test(meta.image)) { s.imageUrl = meta.image; changed = true; }
     if (meta.description && (!s.summary || s.summary.length < 70) && meta.description.length > (s.summary?.length || 0)) {
       s.summary = truncate(meta.description, 420);
       s.enrichedSummary = true;

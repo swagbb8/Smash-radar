@@ -305,7 +305,6 @@ const officialFeeds = [
 
 const publisherFeeds = [
   ['npr-news', 'NPR News', 'https://feeds.npr.org/1001/rss.xml', 'news', 'fast'],
-  ['bbc-world', 'BBC World', 'https://feeds.bbci.co.uk/news/world/rss.xml', 'news', 'fast'],
   ['bbc-us', 'BBC US & Canada', 'https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml', 'news', 'fast'],
   ['verge', 'The Verge', 'https://www.theverge.com/rss/index.xml', 'tech', 'normal'],
   ['engadget', 'Engadget', 'https://www.engadget.com/rss.xml', 'tech', 'normal'],
@@ -314,7 +313,29 @@ const publisherFeeds = [
   ['motor1', 'Motor1', 'https://www.motor1.com/rss/news/all/', 'auto', 'normal'],
   ['ign', 'IGN', 'https://feeds.feedburner.com/ign/all', 'gaming', 'normal'],
   ['bevnet', 'BevNET', 'https://www.bevnet.com/feed', 'energy', 'slow'],
-  ['slickdeals', 'Slickdeals Frontpage', 'https://feeds.feedburner.com/SlickdealsnetFP', 'deals', 'normal'],
+  ['slickdeals', 'Slickdeals Frontpage', 'https://feeds.feedburner.com/SlickdealsnetFP', 'deals', 'fast'],
+  ['9to5toys', '9to5Toys Deals', 'https://9to5toys.com/feed/', 'deals', 'fast'],
+  ['dealnews', 'DealNews', 'https://www.dealnews.com/?rss=1&sort=time', 'deals', 'normal'],
+  ['bradsdeals', "Brad's Deals", 'https://www.bradsdeals.com/blog/feed', 'deals', 'normal'],
+  ['techcrunch', 'TechCrunch', 'https://techcrunch.com/feed/', 'tech', 'normal'],
+  ['macrumors', 'MacRumors', 'https://feeds.macrumors.com/MacRumors-All', 'tech', 'normal'],
+  ['androidpolice', 'Android Police', 'https://www.androidpolice.com/feed/', 'tech', 'normal'],
+  ['tomsguide', "Tom's Guide", 'https://www.tomsguide.com/feeds/all', 'tech', 'normal'],
+  ['caranddriver', 'Car and Driver', 'https://www.caranddriver.com/rss/all.xml/', 'auto', 'normal'],
+  ['autoblog', 'Autoblog', 'https://www.autoblog.com/rss.xml', 'auto', 'normal'],
+  ['carscoops', 'Carscoops', 'https://www.carscoops.com/feed/', 'auto', 'normal'],
+  ['gamespot', 'GameSpot', 'https://www.gamespot.com/feeds/news/', 'gaming', 'normal'],
+  ['kotaku', 'Kotaku', 'https://kotaku.com/rss', 'gaming', 'normal'],
+  ['nintendolife', 'Nintendo Life', 'https://www.nintendolife.com/feeds/latest', 'gaming', 'normal'],
+  ['sneakernews', 'Sneaker News', 'https://sneakernews.com/feed/', 'clothing', 'normal'],
+  ['nicekicks', 'Nice Kicks', 'https://www.nicekicks.com/feed/', 'clothing', 'normal'],
+  ['brandeating', 'Brand Eating', 'https://www.brandeating.com/feeds/posts/default?alt=rss', 'food', 'normal'],
+  ['foodandwine-news', 'Food & Wine', 'https://www.foodandwine.com/feeds/all', 'food', 'slow'],
+  ['bevnet-news', 'BevNET Beverages', 'https://www.bevnet.com/news/feed', 'energy', 'slow'],
+  ['barbend', 'BarBend', 'https://barbend.com/feed/', 'fitness', 'slow'],
+  ['nbc-chicago', 'NBC Chicago', 'https://www.nbcchicago.com/?rss=y', 'news', 'fast'],
+  ['cbs-chicago', 'CBS Chicago', 'https://www.cbsnews.com/latest/rss/chicago', 'news', 'fast'],
+  ['wgn', 'WGN-TV', 'https://wgntv.com/feed/', 'news', 'fast'],
 ];
 
 // Discovery searches — run on BOTH Bing News and Google News. Results are verified/classified locally.
@@ -332,7 +353,7 @@ const discovery = [
   ['dupage-construction', 'dupage', 'normal', 'DuPage County construction OR "lane closure" OR "road work" OR IDOT'],
   // US / world
   ['breaking-us', 'news', 'fast', 'breaking news United States'],
-  ['breaking-world', 'news', 'fast', 'world news breaking'],
+  ['breaking-us-2', 'news', 'fast', 'breaking news today U.S. OR Illinois OR Chicago'],
   // Categories
   ['energy-launch', 'energy', 'normal', 'energy drink new flavor OR launch OR limited edition'],
   ['energy-brands', 'energy', 'normal', 'Monster OR "Red Bull" OR Celsius OR "GHOST Energy" OR "C4 Energy" OR "Alani Nu" new flavor'],
@@ -350,6 +371,20 @@ const discovery = [
   ['retail-news', 'retail', 'normal', 'Walmart OR Target OR Costco OR "Best Buy" announces OR new OR launches'],
   ['deals', 'deals', 'normal', 'deal OR sale OR "price drop" Apple OR Samsung OR Nike OR PlayStation OR Xbox'],
   ['recalls-food', 'recalls', 'normal', 'recall food OR drink OR supplement OR product FDA OR CPSC'],
+  ['deals-walmart-target', 'deals', 'fast', 'Walmart OR Target deal OR sale OR "price cut" this week'],
+  ['deals-bestbuy-amazon', 'deals', 'fast', '"Best Buy" OR Amazon deal OR sale OR "lowest price" today'],
+  ['deals-costco-sams', 'deals', 'normal', 'Costco OR "Sam\'s Club" deals OR "new items" OR sale this week'],
+  ['deals-food', 'deals', 'normal', 'free food OR BOGO OR "deal" McDonald\'s OR "Taco Bell" OR Wendy\'s OR "Burger King" OR Starbucks OR "Chick-fil-A" app deal'],
+  ['deals-shoes', 'deals', 'normal', 'Nike OR adidas OR HOKA OR "New Balance" sale OR discount OR "% off"'],
+  ['deals-gaming', 'deals', 'normal', 'PlayStation OR Xbox OR Nintendo OR Steam sale OR "price drop" OR deal'],
+  ['deals-tech', 'deals', 'normal', 'iPhone OR AirPods OR MacBook OR Galaxy OR Pixel deal OR "price drop" OR sale'],
+  ['new-drinks', 'energy', 'normal', '"new flavor" OR "limited edition" OR "now available" energy drink OR soda OR coffee'],
+  ['new-snacks', 'food', 'normal', '"new flavor" OR "limited time" OR "new menu" snack OR candy OR chips OR cereal OR restaurant'],
+  ['new-tech', 'tech', 'normal', '"now available" OR "launches" OR "unveils" phone OR laptop OR headphones OR smartwatch OR TV'],
+  ['new-cars', 'auto', 'normal', '"2027" OR "2026" new model reveal OR debut OR "first look" Ford OR Chevrolet OR Toyota OR Honda OR Jeep OR Ram'],
+  ['new-games', 'gaming', 'normal', 'new game release OR "out now" OR trailer OR "release date" PlayStation OR Xbox OR Switch OR PC'],
+  ['new-sneakers', 'clothing', 'normal', 'sneaker release OR drop OR "release date" Jordan OR Nike OR adidas OR "New Balance" OR Yeezy'],
+  ['new-stores-chicago', 'openings', 'normal', '"grand opening" OR "now open" OR "coming soon" Chicago suburbs OR Naperville OR Schaumburg OR Oak Brook OR Aurora'],
   ['openings', 'openings', 'slow', '"grand opening" OR "new store" Costco OR Target OR Walmart OR "7 Brew" OR "Chick-fil-A" Illinois'],
   ['drinks-brands-2', 'energy', 'slow', '"Liquid I.V." OR "5-hour Energy" OR "Venom Energy" OR "Full Throttle" OR "Jocko Fuel" OR AriZona new flavor OR launch'],
   ['drinks-brands-3', 'energy', 'slow', 'PRIME OR "Bucked Up" OR "3D Energy" OR Reign OR Bang OR Rockstar energy drink new'],
@@ -383,6 +418,24 @@ export function buildSources() {
   out.push({ id: 'nws-dupage', name: 'National Weather Service — DuPage', url: 'https://api.weather.gov/alerts/active?zone=ILC043,ILZ013', category: 'dupage', tier: 'fast', type: 'nws', official: true, reliability: 5 });
   // Google News top stories
   out.push({ id: 'gnews-top', name: 'Google News — Top Stories', url: 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en', category: 'news', tier: 'fast', type: 'google', official: false, reliability: 3 });
+  out.push({ id: 'gnews-us', name: 'Google News — U.S.', url: 'https://news.google.com/rss/headlines/section/topic/NATION?hl=en-US&gl=US&ceid=US:en', category: 'news', tier: 'fast', type: 'google', official: false, reliability: 3 });
+  out.push({ id: 'gnews-tech', name: 'Google News — Technology', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en', category: 'tech', tier: 'normal', type: 'google', official: false, reliability: 3 });
+  out.push({ id: 'gnews-business', name: 'Google News — Business', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en', category: 'retail', tier: 'normal', type: 'google', official: false, reliability: 3 });
+  // Chicagoland counties: roads/safety + local news
+  for (const county of Object.keys(COUNTIES)) {
+    if (county === 'DuPage') continue;
+    const slugc = county.toLowerCase();
+    const roadsQ = `"${county} County" Illinois crash OR closure OR construction OR traffic OR police OR fire`;
+    const newsQ = `"${county} County" Illinois news`;
+    for (const [kind, q, tier] of [['roads', roadsQ, 'fast'], ['news', newsQ, 'normal']]) {
+      out.push({ id: `bing-${slugc}-${kind}`, name: `Bing News: ${county} County ${kind}`, query: q, url: bingUrl(q), category: 'news', tier, type: 'bing', official: false, reliability: 3, region: { county, roads: kind === 'roads' } });
+      out.push({ id: `gnews-${slugc}-${kind}`, name: `Google News: ${county} County ${kind}`, query: q, url: googleUrl(q), category: 'news', tier, type: 'google', official: false, reliability: 3, region: { county, roads: kind === 'roads' } });
+    }
+  }
+  // All 50 states (Google News local sections)
+  for (const st of STATES) {
+    out.push({ id: `gnews-state-${slug(st)}`, name: `Google News: ${st}`, url: `https://news.google.com/rss/headlines/section/geo/${encodeURIComponent(st)}?hl=en-US&gl=US&ceid=US:en`, category: 'news', tier: 'normal', type: 'google', official: false, reliability: 3, region: { state: st } });
+  }
   for (const [id, category, tier, q] of discovery) {
     out.push({ id: `bing-${id}`, name: `Bing News: ${id}`, query: q, url: bingUrl(q), category, tier, type: 'bing', official: false, reliability: 3 });
     out.push({ id: `gnews-${id}`, name: `Google News: ${id}`, query: q, url: googleUrl(q), category, tier, type: 'google', official: false, reliability: 3 });
@@ -396,5 +449,18 @@ export function bingUrl(q) {
 export function googleUrl(q, window = '2d') {
   return `https://news.google.com/rss/search?q=${encodeURIComponent(`${q} when:${window}`)}&hl=en-US&gl=US&ceid=US:en`;
 }
+
+// ---------------- Regions: Chicagoland counties + all 50 states ----------------
+export const COUNTIES = {
+  Cook: ['Chicago', 'Evanston', 'Schaumburg', 'Arlington Heights', 'Cicero', 'Oak Park', 'Skokie', 'Des Plaines', 'Palatine', 'Orland Park', 'Tinley Park', 'Oak Lawn', 'Berwyn', 'Mount Prospect', 'Hoffman Estates', 'Elk Grove Village', 'Park Ridge', 'Niles', 'Glenview', 'Northbrook', 'Wilmette', 'Calumet City', 'Harvey', 'Chicago Heights', 'Rosemont', 'Oak Forest', 'Bridgeview', 'Streamwood', 'Wheeling', 'Melrose Park', 'Maywood'],
+  DuPage: [],
+  Kane: ['Aurora', 'Elgin', 'St. Charles', 'Geneva', 'Batavia', 'Carpentersville', 'South Elgin', 'North Aurora', 'Sugar Grove', 'Montgomery', 'Gilberts', 'Hampshire', 'Elburn'],
+  Will: ['Joliet', 'Plainfield', 'Romeoville', 'Lockport', 'New Lenox', 'Frankfort', 'Mokena', 'Homer Glen', 'Shorewood', 'Crest Hill', 'Minooka', 'Channahon', 'Crete', 'Monee', 'University Park'],
+  Lake: ['Waukegan', 'North Chicago', 'Libertyville', 'Mundelein', 'Vernon Hills', 'Gurnee', 'Highland Park', 'Lake Forest', 'Lake Zurich', 'Grayslake', 'Round Lake', 'Buffalo Grove', 'Zion', 'Antioch', 'Deerfield', 'Wauconda'],
+  McHenry: ['Crystal Lake', 'McHenry', 'Algonquin', 'Lake in the Hills', 'Huntley', 'Woodstock', 'Cary', 'Harvard', 'Marengo', 'Fox Lake'],
+  Kendall: ['Oswego', 'Yorkville', 'Plano', 'Minooka', 'Montgomery'],
+  DeKalb: ['DeKalb', 'Sycamore', 'Sandwich', 'Genoa', 'Cortland', 'Malta'],
+};
+export const STATES = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'];
 
 export const TIER_MINUTES = { fast: 5, normal: 20, slow: 60 };

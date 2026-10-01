@@ -14,6 +14,17 @@ npm run refresh -- --force   # one-shot sweep from the command line
 
 The first sweep starts about 2 seconds after boot and takes 20–60 seconds. After that, sweeps run automatically.
 
+
+## What's in the app (latest)
+- **Smash Live** — Smash the lion reads a fresh news episode every ~10 minutes with a neural AI voice (Microsoft Edge neural TTS generated in GitHub Actions; falls back to the phone's voice). Funny on fun stories, serious on emergencies, always clean.
+- **NFL** — live + final scores, quarter-by-quarter, game leaders (player stats), official highlight videos, NFL news (ESPN public API + NFL YouTube).
+- **Roads & Safety** — crashes, closures, construction, traffic, police, fire for DuPage, Cook, Kane, Will, Lake, McHenry, Kendall, DeKalb (every item tied to a real county/town).
+- **Local & States** — Chicagoland county news + all 50 states.
+- **US-only** filter, 240+ sources, Post Studio (Instagram posts, daily/weekly carousels).
+
+## How it stays updated (free)
+`.github/workflows/radar.yml` runs `scripts/loop.sh`: one job updates every 10 minutes for ~5.5 hours, then dispatches the next run. An hourly schedule restarts it if it ever stops. The radar's memory lives on the `radar-data` branch; the site is published to `gh-pages`.
+
 ## How it gets current information
 | Layer | Sources |
 |---|---|

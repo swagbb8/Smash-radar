@@ -36,7 +36,11 @@ function firstImage(block) {
   const enc = attr(block, 'enclosure', 'url').find((h) => /image\//i.test(h.raw) || /\.(jpe?g|png|webp|gif)(\?|$)/i.test(h.value));
   if (enc) return enc.value;
   const bing = tag(block, 'News:Image');
-  if (bing) return decodeEntities(bing);
+  if (bing) {
+    const u = decodeEntities(bing).replace(/^http:/, 'https:');
+    // Bing serves any size from the same id: ask for a large 16:9 crop instead of the tiny default.
+    return /[?&]id=/.test(u) ? `${u.replace(/&(w|h|c|rs|p|qlt)=[^&]*/g, '')}&w=960&h=540&c=7&rs=1&qlt=90` : u;
+  }
   const html = decodeEntities(tag(block, 'content:encoded') || tag(block, 'description') || tag(block, 'content') || tag(block, 'summary'));
   const img = html.match(/<img[^>]+src=["']([^"']+)["']/i);
   if (img && !/feedburner|pixel|tracking|1x1|spacer/i.test(img[1])) return img[1];

@@ -221,3 +221,36 @@ test('product + recall details, extra badges', async () => {
   assert.ok(detectFlags('iPhone 18 design leaked in new renders', 'tech').leak);
   assert.ok(detectFlags('Apple reportedly planning foldable iPhone', 'tech').rumor);
 });
+
+test('US-only filter', async () => {
+  const { isForeignOnly } = await import('../src/usfilter.js');
+  assert.ok(isForeignOnly('Russia launches largest attack on Ukraine energy grid', '', 'news'));
+  assert.ok(!isForeignOnly('U.S. withdraws forces in Iraq', '', 'news'));
+  assert.ok(!isForeignOnly('Naperville police investigate crash', '', 'dupage'));
+  assert.ok(!isForeignOnly('New Apple TV comedy gets perfect score', 'Starring a British actor.', 'tech'), 'brand story: only headline counts');
+  assert.ok(isForeignOnly('Starbucks Japan unveils new Pumpkin drink', '', 'food'));
+});
+
+test('lion briefing: clean, funny on fun stuff, serious on emergencies, NFL stats spoken', async () => {
+  const { buildBriefing } = await import('../src/briefing.js');
+  const now = Date.now();
+  const mk = (o) => ({ id: Math.random().toString(36).slice(2), status: 'NEW', tags: [], brands: [], categories: [o.category], score: 50, publishedAt: new Date(now - 3600e3).toISOString(), summary: '', sourceName: 'Test', ...o });
+  const stories = [
+    mk({ title: 'Wheaton police investigate crash on Roosevelt Road', category: 'dupage', location: { status: 'verified', places: ['Wheaton'], incident: { id: 'crash', label: 'Crash' } } }),
+    mk({ title: 'Celsius launches new Blue Razz flavor', category: 'energy', tags: ['LAUNCH'], brands: ['Celsius'] }),
+    mk({ title: 'Target cuts prices on 3,000 items', category: 'deals', tags: ['DEAL'], brands: ['Target'] }),
+  ];
+  const nfl = { games: [{ id: 'g1', state: 'post', date: new Date(now - 864e5).toISOString(), detail: 'Final', home: { name: 'Bears', abbr: 'CHI', score: '27' }, away: { name: 'Packers', abbr: 'GB', score: '20' }, leaders: [{ player: 'QB One', value: '24/31, 288 YDS, 2 TD' }] }] };
+  const b = buildBriefing(stories, now, { nfl });
+  const crash = b.segments.find((s) => /crash/i.test(s.text));
+  const drink = b.segments.find((s) => /Celsius/.test(s.text));
+  const game = b.segments.find((s) => s.kind === 'nfl');
+  assert.ok(crash.serious);
+  assert.ok(!drink.serious);
+  assert.notEqual(drink.text, `${drink.text.split('.')[0]}.`);
+  assert.match(game.text, /Bears beat the Packers, 27 to 20/);
+  assert.match(game.text, /24 of 31, 288 yards, 2 touchdowns/);
+  assert.doesNotMatch(b.script, /\b(damn|hell|crap|shit|fuck)\b/i);
+  assert.equal(b.segments[0].kind, 'intro');
+  assert.equal(b.segments.at(-1).kind, 'outro');
+});
