@@ -389,7 +389,10 @@ const views = {
       built.push([id, ic, label, `<section class="section" id="sec-${id}"><div class="section-head"><h2><span class="ic">${ic}</span>${esc(label)}</h2><a href="${href}">See all →</a></div>${inner}</section>`]);
     }
     const nav = `<div class="catnav" id="catnav">${built.map(([id, ic, label]) => `<button class="chip" data-jump="sec-${id}">${ic} ${esc(label)}</button>`).join('')}</div>`;
-    return banner + top + hero(heroStory) + nav + built.map((b) => b[3]).join('');
+    const ready = pickReadyPosts(list);
+    app.readyIds = ready.map((x) => x.id);
+    const readyCard = ready.length ? `<button class="ready-card" data-action="ready-posts"><span class="rc-ic">📬</span><span><b>Today's ${ready.length} posts are ready</b><br><span class="muted">One tap: save them all + captions, then post in Instagram</span></span><span class="rc-go">GO</span></button>` : '';
+    return readyCard + banner + top + hero(heroStory) + nav + built.map((b) => b[3]).join('');
   },
 
   async daily() {
@@ -771,6 +774,15 @@ function pickRecap(all) {
   for (const x of src) { if (out.length >= 5) break; if (!out.includes(x)) out.push(x); }
   return out;
 }
+/** Best posts of the day: newest big stories with pictures, one per category, no repeats from what you already posted. */
+function pickReadyPosts(list) {
+  const done = new Set(LS.get('sr.posted', []));
+  const fresh = list.filter((x) => !done.has(x.id) && Date.now() - Date.parse(x.publishedAt || x.discoveredAt) < 24 * 3600e3 && !x.tags?.includes('RUMOR'));
+  const out = []; const cats = new Set();
+  for (const x of fresh.filter((y) => y.imageUrl)) { if (out.length >= 6) break; if (!cats.has(x.category)) { out.push(x); cats.add(x.category); } }
+  for (const x of fresh) { if (out.length >= 6) break; if (!out.includes(x)) out.push(x); }
+  return out;
+}
 async function openPostStudio({ ids = [], recap = false, weekly = false, format = 'feed' }) {
   postState = { ids, recap, weekly, format, files: [], caption: '' };
   const sheet = $('#sheet');
@@ -807,7 +819,7 @@ async function openPostStudio({ ids = [], recap = false, weekly = false, format 
     $('#postCaption').value = postState.caption;
     const btn = $('#shareBtn');
     btn.disabled = false;
-    btn.textContent = recap ? `Share ${postState.files.length} slides` : postState.files.length > 1 ? `Save / share all ${postState.files.length} posts` : 'Share to Instagram';
+    btn.textContent = app.readyMode ? `① Save all ${postState.files.length} + copy captions` : recap ? `Share ${postState.files.length} slides` : postState.files.length > 1 ? `Save / share all ${postState.files.length} posts` : 'Share to Instagram';
   } catch (err) {
     $('#postPreviews').innerHTML = `<div class="empty"><p>Couldn't render this post: ${esc(err.message)}</p></div>`;
   }
@@ -818,7 +830,12 @@ async function sharePost() {
   const caption = $('#postCaption').value;
   copyText(caption);
   if (navigator.canShare && navigator.canShare({ files })) {
-    try { await navigator.share({ files }); toast('Caption copied — paste it in Instagram'); } catch (err) { if (err.name !== 'AbortError') toast('Share failed — press and hold the image to save it'); }
+    try {
+      await navigator.share({ files });
+      LS.set('sr.posted', [...new Set([...LS.get('sr.posted', []), ...(postState.ids || [])])].slice(-500));
+      toast('Saved ✓ caption copied — opening Instagram…');
+      if (app.readyMode) setTimeout(() => { location.href = 'instagram://library'; }, 900);
+    } catch (err) { if (err.name !== 'AbortError') toast('Share failed — press and hold the image to save it'); }
     return;
   }
   // Desktop fallback: download the images
@@ -1265,6 +1282,7 @@ function initTv(sh) {
 }
 
 function closeSheet() {
+  app.readyMode = false;
   try { app.hl?.player?.destroy(); } catch {} app.hl = null;
   try { app.rm?.player?.destroy(); } catch {} app.rm = null; $('#sheet')?.classList.remove('sheet-full');
   try { app.lmap?.remove(); } catch {} app.lmap = null;
@@ -1504,6 +1522,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'close') return closeSheet();
   if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
   if (a === 'reel-make') return runReel();
+  if (a === 'ready-posts') { app.readyMode = true; return openPostStudio({ ids: app.readyIds || [] }); }
   if (a === 'bulk-post') { if (!prefs.reel.length) return toast('Pick some stories first'); return openPostStudio({ ids: prefs.reel.map((x) => x.id) }); }
   if (a === 'game-reel') return runGameReel(t.dataset.id);
   if (a === 'hl-mode') return openHighlightMode(t.dataset.id);
