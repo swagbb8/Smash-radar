@@ -24,7 +24,37 @@ const saveCustom = () => LS.set('sr.customBrands', prefs.customBrands);
 const saveCats = () => LS.set('sr.cats', [...prefs.cats]);
 const saveBrands = () => LS.set('sr.brands', [...prefs.brands]);
 const saveSaved = () => LS.set('sr.saved', prefs.saved);
-const saveReel = () => { LS.set('sr.reel', prefs.reel); const b = document.querySelector('#reelBar b'); if (b) b.textContent = prefs.reel.length; document.querySelectorAll('[data-reel]').forEach((e) => e.classList.toggle('on', prefs.reel.some((x) => x.id === e.dataset.reel))); };
+async function togglePick(id) {
+  const i = prefs.reel.findIndex((x) => x.id === id);
+  if (i >= 0) prefs.reel.splice(i, 1);
+  else {
+    if (prefs.reel.length >= 8) return toast('Max 8 stories per reel');
+    let s2 = app.stories.get(id) || prefs.saved[id];
+    if (!s2) { try { s2 = await api(`/api/stories/${encodeURIComponent(id)}`); app.stories.set(id, s2); } catch { return toast('Couldn\'t add that one'); } }
+    prefs.reel.push({ id, title: s2.title, imageUrl: s2.imageUrl, category: s2.category, sourceName: s2.sourceName, tags: s2.tags, status: s2.status, location: s2.location, region: s2.region });
+  }
+  saveReel();
+}
+function markPicked() {
+  const ids = new Set(prefs.reel.map((x) => x.id));
+  document.body.classList.toggle('selecting', !!app.selectMode);
+  document.querySelectorAll('#view [data-story]').forEach((el) => {
+    el.classList.toggle('picked', ids.has(el.dataset.story));
+    const n = prefs.reel.findIndex((x) => x.id === el.dataset.story);
+    if (n >= 0) el.dataset.pick = n + 1; else delete el.dataset.pick;
+  });
+  reelFab();
+}
+function reelFab() {
+  let f = document.getElementById('reelFab');
+  if (app.route === 'reels' || app.route === 'story') { f?.remove(); return; }
+  if (!f) { f = document.createElement('div'); f.id = 'reelFab'; document.body.append(f); }
+  f.className = app.selectMode ? 'reel-fab on' : 'reel-fab';
+  f.innerHTML = app.selectMode
+    ? `<span><b>${prefs.reel.length}</b> picked</span><button class="btn" data-action="select-off">Done</button><button class="btn primary" data-action="reel-make">🎬 Make reel</button>`
+    : `<button class="btn primary" data-action="select-on">🎬 Select for reel${prefs.reel.length ? ` (${prefs.reel.length})` : ''}</button>`;
+}
+const saveReel = () => { markPicked(); LS.set('sr.reel', prefs.reel); const b = document.querySelector('#reelBar b'); if (b) b.textContent = prefs.reel.length; document.querySelectorAll('[data-reel]').forEach((e) => e.classList.toggle('on', prefs.reel.some((x) => x.id === e.dataset.reel))); };
 
 // ---------------- API ----------------
 // Two modes: "server" (Node/Netlify backend at api/*) and "static" (GitHub Pages: pre-built api/*.json
@@ -1118,6 +1148,7 @@ async function render({ quiet = false } = {}) {
     if (seq !== renderSeq) return;
     view.innerHTML = html;
     if (changedRoute && !quiet) window.scrollTo({ top: 0 });
+    markPicked();
   } catch (e) {
     if (seq !== renderSeq) return;
     view.innerHTML = empty('📡', navigator.onLine ? 'Couldn\'t load this view' : 'You\'re offline', esc(navigator.onLine ? e.message : 'Reconnect to load the latest radar. Saved stories are in Favorites.'), '<button class="btn small" data-action="reload">Try again</button>');
@@ -1220,15 +1251,14 @@ function connectEvents() {
 
 // ---------------- events ----------------
 document.addEventListener('click', async (e) => {
+  if (app.selectMode) { // picking stories for a reel: any tap on a story card picks it
+    const card = e.target.closest('#view [data-story]');
+    if (card && !e.target.closest('[data-action]')) { e.preventDefault(); e.stopPropagation(); return togglePick(card.dataset.story); }
+  }
   const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],[data-post],[data-fmt],[data-seg],[data-game],[data-video],[data-reel],.src-link');
   if (!t) return;
   if (t.classList.contains('src-link')) return; // let links inside cards open normally
-  if (t.dataset.reel) {
-    const id = t.dataset.reel; const i = prefs.reel.findIndex((x) => x.id === id);
-    if (i >= 0) prefs.reel.splice(i, 1);
-    else { if (prefs.reel.length >= 8) return toast('Max 8 stories per reel'); const s2 = app.stories.get(id); if (s2) prefs.reel.push({ id, title: s2.title, imageUrl: s2.imageUrl, category: s2.category, sourceName: s2.sourceName, tags: s2.tags, status: s2.status, location: s2.location, region: s2.region }); }
-    saveReel(); return;
-  }
+  if (t.dataset.reel) return togglePick(t.dataset.reel);
   if (t.dataset.seg) { if (!app.show) return; app.tvStarted = true; setLive(false); app.show.stop(); app.show.play(Number(t.dataset.seg)); if (t.tagName !== 'P') window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (t.dataset.game) return openGame(t.dataset.game);
   if (t.dataset.video) return openVideo(t.dataset.video, t.dataset.vtitle || 'Highlights');
@@ -1269,6 +1299,8 @@ document.addEventListener('click', async (e) => {
   if (a === 'close') return closeSheet();
   if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
   if (a === 'reel-make') return runReel();
+  if (a === 'select-on') { app.selectMode = true; reelFab(); markPicked(); toast('Tap stories to pick them for your reel'); return; }
+  if (a === 'select-off') { app.selectMode = false; reelFab(); markPicked(); return; }
   if (a === 'reel-clear') { prefs.reel = []; saveReel(); return; }
   if (a === 'reel-add') { const s2 = app.stories.get(t.dataset.id); if (s2 && !prefs.reel.some((x) => x.id === s2.id)) { prefs.reel.push(s2); saveReel(); } toast(`Added to reel (${prefs.reel.length}) — open Reel Studio to make it`); return; }
   if (a === 'recap-play' || a === 'recap-save') {

@@ -651,3 +651,15 @@ a.chip { text-decoration: none; }
 .rc-t.w i { color: var(--accent); }
 .rc-meta { font-size: 12px; color: var(--text-3); margin: 6px 0 10px; }
 .rc-actions { display: flex; gap: 8px; } .rc-actions .btn { flex: 1; }
+/* pick stories anywhere for a reel */
+.reel-fab { position: fixed; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 60; }
+.reel-fab .btn { box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.reel-fab.on { left: 12px; display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 16px; border-radius: 18px; background: rgba(15,18,23,.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--accent); max-width: 640px; margin: 0 auto; }
+.reel-fab.on span { flex: 1; font-size: 14px; color: var(--text-2); } .reel-fab.on b { color: var(--accent); font-size: 18px; }
+.reel-fab.on .btn { box-shadow: none; }
+@media (min-width: 1024px) { .reel-fab { bottom: 20px; } }
+body.selecting #view [data-story] { position: relative; cursor: copy; }
+body.selecting #view [data-story]::after { content: ''; position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; background: rgba(0,0,0,.35); z-index: 5; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+#view [data-story].picked { outline: 3px solid var(--accent); outline-offset: -3px; }
+#view [data-story].picked::after { content: attr(data-pick) !important; position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent) !important; color: var(--accent-ink); border: 3px solid var(--accent) !important; font-weight: 900; font-size: 15px; z-index: 5; }
+body.selecting .toast { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 96px); }
