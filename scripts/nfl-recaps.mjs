@@ -53,7 +53,8 @@ for (const g of finals.sort((a, b) => Date.parse(b.date) - Date.parse(a.date))) 
   const away = side('away'); const home = side('home');
   const [W, L] = Number(away.score) > Number(home.score) ? [away, home] : [home, away];
   const margin = Number(W.score) - Number(L.score);
-  const plays = selectPlays(sum?.scoring || []);
+  const all = (sum?.scoring || []).map((p, k, arr) => ({ ...p, prevAway: k ? arr[k - 1].away : 0, prevHome: k ? arr[k - 1].home : 0 }));
+  const plays = selectPlays(all);
   const leaders = [];
   const lead = (re) => (sum?.leaders || []).filter((l) => re.test(l.key || l.category)).sort((a, b) => parseInt(String(b.value).match(/(\d+)\s*YDS/i)?.[1] || 0, 10) - parseInt(String(a.value).match(/(\d+)\s*YDS/i)?.[1] || 0, 10))[0];
   for (const [re, label, intro] of [[/passing/i, 'PASSING', 'Player of the game'], [/rushing/i, 'RUSHING', 'On the ground'], [/receiving/i, 'RECEIVING', 'Top target']]) {

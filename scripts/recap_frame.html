@@ -142,7 +142,7 @@ const BUILD = {
       return `<div class="half" id="h-${k}" style="top:${top}px;background:linear-gradient(${flip ? 300 : 120}deg,${hexA(t.color, 1)} 0%,${hexA(t.color, .55)} 60%,#07080b 100%)">
         <div class="logo" id="lg-${k}" style="${logo(t)};${flip ? 'right:24px' : 'left:24px'};top:${flip ? 210 : 150}px"></div>
         <div class="nm anton" style="${flip ? 'left:46px' : 'right:46px;text-align:right'};top:${flip ? 150 : 210}px">${esc(t.name)}</div>
-        <div class="city" style="${flip ? 'left:50px' : 'right:50px;text-align:right'};top:${flip ? 108 : 318}px">${esc((t.full || '').replace(t.name, '').trim().toUpperCase())}</div>
+        <div class="city" style="${flip ? 'left:50px' : 'right:50px;text-align:right'};top:${flip ? 108 : 172}px">${esc((t.full || '').replace(t.name, '').trim().toUpperCase())}</div>
         <div class="sc anton" id="sc-${k}" style="${flip ? 'left:46px' : 'right:46px;text-align:right'};top:${flip ? 270 : 340 - 10}px">0</div>
         ${t.record ? `<div class="rec" style="${flip ? 'left:50px' : 'right:50px'};top:${flip ? 530 : 70 + 470}px">${esc(t.record)}</div>` : ''}
         ${k === W ? `<div class="win" id="win" style="${flip ? 'left:300px' : 'right:300px'};top:${flip ? 380 : 440}px">WIN</div>` : ''}
@@ -165,7 +165,7 @@ const BUILD = {
     const fs = Math.min(168, Math.floor(610 / (word.length * 0.47)));
     const txt = String(p.text).replace(/\s*\((?:[^()]|\([^()]*\))*\)\s*$/, '').replace(/\bYd\b/g, 'YD');
     const words = txt.split(/\s+/).map((w) => `<span>${esc(w)}</span>`).join(' ');
-    const prev = i ? S.plays[i - 1] : { away: 0, home: 0 };
+    const prev = p.prevAway != null ? { away: p.prevAway, home: p.prevHome } : i ? S.plays[i - 1] : { away: 0, home: 0 };
     return `<div class="wm" style="${logo(t)}"></div>
       <div class="chip" id="chip"><em>${QL[p.period] || ''}</em> QTR · ${esc(p.clock)} LEFT</div>
       <div class="big anton trail" id="tr2" style="font-size:${fs}px;color:${hexA(t.alt || '#ffffff', 1)}">${word}</div>
