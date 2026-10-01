@@ -79,6 +79,20 @@ export async function fetchNfl() {
 }
 
 /** Full game detail for recap videos: every scoring play, team stats, per-team stat leaders. */
+/** What actually happened on a play, from ESPN play-by-play text + down/distance/field position. */
+export function playDetail(pl) {
+  const t = String(pl.text || '');
+  const pass = t.match(/pass (short|deep) (left|middle|right)/i);
+  const run = t.match(/\b(left|right) (end|tackle|guard)\b|up the middle/i);
+  return {
+    text: t.slice(0, 300), shotgun: /\(shotgun\)/i.test(t), noHuddle: /no huddle/i.test(t),
+    depth: pass ? pass[1].toLowerCase() : null, dir: pass ? pass[2].toLowerCase() : run ? (run[1] ? run[1].toLowerCase() : 'middle') : null,
+    gap: run ? (run[2] ? run[2].toLowerCase() : 'middle') : null, scramble: /scrambles/i.test(t),
+    down: pl.start?.down ?? null, distance: pl.start?.distance ?? null, toEndzone: pl.start?.yardsToEndzone ?? null,
+    ddText: pl.start?.downDistanceText || pl.start?.shortDownDistanceText || null,
+  };
+}
+
 export async function fetchGameSummary(id) {
   const d = await getJson(`${ESPN}/summary?event=${encodeURIComponent(id)}`);
   const comp = d.header?.competitions?.[0] || {};
@@ -87,7 +101,14 @@ export async function fetchGameSummary(id) {
     const t = c.team || {};
     teams[c.homeAway] = { id: t.id, abbr: t.abbreviation, name: t.name || t.shortDisplayName || t.displayName, full: t.displayName, color: t.color ? `#${t.color}` : null, alt: t.alternateColor ? `#${t.alternateColor}` : null, logo: t.logos?.[0]?.href || t.logo || null, score: c.score ?? '', record: c.record?.[0]?.summary || c.record?.[0]?.displayValue || '', winner: !!c.winner, linescores: (c.linescores || []).map((l) => l.displayValue ?? l.value) };
   }
-  const scoring = (d.scoringPlays || []).map((p) => ({
+  // full play-by-play for the scoring plays (formation, direction, down & distance, field position)
+  const pbp = [];
+  for (const dr of [...(d.drives?.previous || []), ...(d.drives?.current ? [d.drives.current] : [])]) for (const pl of dr.plays || []) if (pl.scoringPlay) pbp.push(pl);
+  const detailFor = (p) => {
+    const m = pbp.find((x) => x.id === p.id) || pbp.find((x) => x.period?.number === p.period?.number && x.clock?.displayValue === p.clock?.displayValue);
+    return m ? playDetail(m) : null;
+  };
+  const scoring = (d.scoringPlays || []).map((p) => ({ detail: detailFor(p),
     type: p.type?.text || p.scoringType?.displayName || '', abbr: p.type?.abbreviation || '', text: p.text || '',
     period: p.period?.number ?? null, clock: p.clock?.displayValue || '', team: p.team?.abbreviation || '', away: p.awayScore, home: p.homeScore,
     fantasy: playFantasy(p.text || ''),

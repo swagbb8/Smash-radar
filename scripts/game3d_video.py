@@ -34,7 +34,7 @@ def load(nfl_path, gid, recs_path=None):
     except Exception as e: print(f'3d data: summary unavailable ({e}), falling back', file=sys.stderr)
     try:
         g = next(x for x in json.load(open(nfl_path))['games'] if str(x['id']) == str(gid))
-        if g.get('plays'): return {'away': dict(g['away']), 'home': dict(g['home']), 'week': g.get('week'), 'fantasy': g.get('fantasy')}, g['plays'], {}
+        if g.get('plays'): return {'away': dict(g['away']), 'home': dict(g['home']), 'week': g.get('week'), 'fantasy': g.get('fantasy')}, g['plays'], g.get('jerseys') or {}
     except Exception: pass
     r = next(x for x in json.load(open(recs_path)) if str(x['id']) == str(gid))
     return {'away': dict(r['away']), 'home': dict(r['home']), 'week': r.get('week'), 'fantasy': None}, r.get('plays') or [], {}
@@ -58,7 +58,9 @@ def build(nfl_path, gid, out, recs_path=None):
             flight = min(2.2, max(1.0, yd / 22)); dur = 1.3 + 1.0 + flight + 2.4
         else:
             dur = 1.3 + 0.6 + 0.5 + max(1.0, (yd + 3) / 8.5) + 2.4
-        plays.append({'_i': len(plays), 'kind': kind, 'yards': yd, 'side': side, 'headline': headline.upper(), 'label': label,
+        det = p.get('detail') or {}
+        qb_run = kind == 'run' and label == 'TOUCHDOWN' and (jerseys.get(who) or {}).get('pos') == 'QB'
+        plays.append({'_i': len(plays), 'kind': kind, 'det': {k: det.get(k) for k in ('shotgun', 'dir', 'depth', 'gap', 'toEndzone', 'ddText', 'scramble')}, 'qbRun': qb_run, 'yards': yd, 'side': side, 'headline': headline.upper(), 'label': label,
                       'q': QN[p.get('period') or 0], 'clock': p.get('clock', ''), 'away': p.get('away'), 'home': p.get('home'),
                       'num': jn(who), 'qbNum': jn(passer), 'fp': [{'player': (f"{p['team']} D/ST" if f['player'] == 'D/ST' else f['player']), 'pts': f['pts']} for f in (p.get('fantasy') or [])], 'dur': round(dur, 2)})
         tl.append({'kind': 'play', 'i': len(plays) - 1, 'start': round(t, 2), 'dur': round(dur, 2)}); t += dur

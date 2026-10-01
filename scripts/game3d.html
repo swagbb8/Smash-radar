@@ -84,20 +84,29 @@ function uniformMat(){const m=new THREE.MeshStandardMaterial({roughness:0.72,met
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vRest;').replace('#include <begin_vertex>','#include <begin_vertex>\nvRest=position;');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vRest;\nuniform vec3 '+UNI.join(',')+';').replace('#include <color_fragment>',`#include <color_fragment>
       float h=vRest.y/1.806, ax=abs(vRest.x)/1.806; vec3 c=uJersey;
-      if(ax>0.1 && h>0.68){ c = ax<0.165?uJersey : ax<0.175?uTrim : ax<0.37?uSkin : uGlove; }
-      else if(h>0.865) c=uSkin;
+      float reg=1.; // 1 jersey, 2 skin, 3 pants, 4 glove, 5 sock, 6 cleat
+      if(ax>0.1 && h>0.68){ if(ax<0.165)c=uJersey; else if(ax<0.177){c=uTrim;} else if(ax<0.37){c=uSkin;reg=2.;} else {c=uGlove;reg=4.;} }
+      else if(h>0.865){c=uSkin;reg=2.;}
       else if(h>0.56) c=uJersey;
-      else if(h>0.27) c = (ax>0.07 && ax<0.078 && h<0.5)? uTrim : uPants;
-      else if(h>0.055) c=uSock;
-      else c=uCleat;
-      diffuseColor.rgb=c;`);};
+      else if(h>0.27){ c = (ax>0.07 && ax<0.078 && h<0.5)? uTrim : uPants; reg=3.; }
+      else if(h>0.055){c=uSock;reg=5.;}
+      else {c=uCleat;reg=6.;}
+      float n=fract(sin(dot(floor(vRest.xy*900.),vec2(12.9898,78.233)))*43758.5453);
+      if(reg==1.) c*=0.93+0.07*step(0.5,fract(vRest.x*260.))*step(0.5,fract(vRest.y*260.)); // jersey mesh
+      if(reg==2.) c*=0.92+0.1*n+0.05*sin(vRest.y*40.);  // skin tone variation
+      if(reg==5.) c*=0.9+0.1*step(0.5,fract(vRest.y*120.)); // ribbed socks
+      diffuseColor.rgb=c;`).replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+      if(reg==2.) roughnessFactor=0.48; else if(reg==3.) roughnessFactor=0.42; else if(reg==6.) roughnessFactor=0.3; else if(reg==4.) roughnessFactor=0.55; else roughnessFactor=0.82;`);};
   m.customProgramCacheKey=()=>'nfl-uniform';m.userData.u=u;return m;}
 function helmetGroup(M){ // built facing +x around the origin, then turned to face +Z (the head bone's forward)
   const h=new THREE.Group(),add=(geo,m,x,y,z)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;h.add(o);return o;};
-  add(new THREE.SphereGeometry(0.62,28,20),M.helm,0,0,0).scale.set(1.16,1,0.94);
-  add(new THREE.SphereGeometry(0.6,20,12,0,Math.PI*2,Math.PI*0.5,Math.PI*0.32),M.helm,0,-0.02,0).scale.set(1.18,1,0.96);
+  // shell open at the face (so you see the player's face behind the mask), forehead cap, jaw flare
+  const O=0.78;add(new THREE.SphereGeometry(0.62,32,22,Math.PI+O,Math.PI*2-2*O),M.helm,0,0,0).scale.set(1.16,1,0.94);
+  add(new THREE.SphereGeometry(0.62,16,10,Math.PI-O,2*O,0,Math.PI*0.4),M.helm,0,0,0).scale.set(1.16,1,0.94);
+  add(new THREE.SphereGeometry(0.6,20,12,Math.PI+O,Math.PI*2-2*O,Math.PI*0.5,Math.PI*0.32),M.helm,0,-0.02,0).scale.set(1.18,1,0.96);
+  for(const s of [-1,1]){const lg=add(new THREE.PlaneGeometry(0.5,0.32),M.logo,0.0,0.08,s*0.6);lg.rotation.y=s>0?0:Math.PI;} // team mark on both sides
   add(new THREE.TorusGeometry(0.635,0.075,8,32,Math.PI),M.trim,0,0,0).scale.set(1.16,1,1.2);
-  add(new THREE.CylinderGeometry(0.63,0.63,0.24,20,1,true,Math.PI*0.25,Math.PI*0.5),M.visor,0,0,0).scale.set(1.12,1,0.95);
+  add(new THREE.CylinderGeometry(0.66,0.66,0.2,20,1,true,Math.PI*0.3,Math.PI*0.4),M.visor,0,-0.04,0).scale.set(1.12,1,0.95);
   const bar=(len,x,y,z,rx,rz)=>{const o=add(new THREE.CylinderGeometry(0.04,0.04,len,8),M.mask,x,y,z);o.rotation.set(rx,0,rz);};
   bar(0.95,0.72,-0.2,0,Math.PI/2,0);bar(0.8,0.74,-0.38,0,Math.PI/2,0);bar(0.6,0.7,-0.54,0,Math.PI/2,0);bar(0.42,0.74,-0.35,0,0,0.15);
   for(const s of [-1,1]){bar(0.5,0.62,-0.34,s*0.42,0,0.25);add(new THREE.CircleGeometry(0.1,12),M.black,0.05,-0.07,s*0.585).rotation.y=s>0?0:Math.PI;}
@@ -105,13 +114,13 @@ function helmetGroup(M){ // built facing +x around the origin, then turned to fa
 function makePlayer(){
   const g=new THREE.Group(),inner=new THREE.Group();inner.rotation.x=Math.PI/2;g.add(inner);
   const model=SkeletonUtils.clone(BASE.scene);model.rotation.y=Math.PI/2;model.scale.set(1.0,1.12,1.0);inner.add(model);
-  const M={helm:mat('#888',0.16,0.3),trim:mat('#fff',0.5),mask:mat('#e8e8e8',0.35,0.4),black:mat('#141414',0.5),visor:mat('#0a0f16',0.05,0.8),jersey:mat('#888',0.75)};
+  const M={logo:new THREE.MeshStandardMaterial({transparent:true,roughness:0.2,polygonOffset:true,polygonOffsetFactor:-4}),helm:mat('#888',0.16,0.3),trim:mat('#fff',0.5),mask:mat('#e8e8e8',0.35,0.4),black:mat('#141414',0.5),visor:mat('#0a0f16',0.05,0.8),jersey:mat('#888',0.75)};
   const body=uniformMat();
   model.traverse(o=>{if(o.isSkinnedMesh){o.material=body;o.castShadow=true;o.frustumCulled=false;}});
   const bone=(n)=>model.getObjectByName('mixamorig'+n);
   const head=bone('Head'),chest=bone('Spine2');
-  const helm=helmetGroup(M);helm.scale.setScalar(19.5);helm.position.set(0,9.5,2.2);head.add(helm);
-  const pads=new THREE.Mesh(new THREE.SphereGeometry(1,20,12),M.jersey);pads.scale.set(23,7.5,14);pads.position.set(0,12.5,-0.5);pads.castShadow=true;chest.add(pads);
+  const helm=helmetGroup(M);helm.scale.setScalar(23.5);helm.position.set(0,9.0,3.0);head.add(helm);
+  const pads=new THREE.Mesh(new THREE.SphereGeometry(1,20,12),M.jersey);pads.scale.set(21,6.5,13);pads.position.set(0,12,-0.5);pads.castShadow=true;chest.add(pads);
   const nt=numTex(),numMat=new THREE.MeshStandardMaterial({map:nt.t,transparent:true,roughness:0.7,polygonOffset:true,polygonOffsetFactor:-4});
   for(const [z,ry] of [[14.5,0],[-13.5,Math.PI]]){const pl=new THREE.Mesh(new THREE.PlaneGeometry(22,16.5),numMat);pl.position.set(0,2,z);pl.rotation.y=ry;chest.add(pl);}
   for(const s of [-1,1]){const sp=new THREE.Mesh(new THREE.PlaneGeometry(9,6.75),numMat);sp.position.set(s*23.5,11,0);sp.rotation.set(-Math.PI/2*0.75,s*Math.PI/2,0,'YXZ');chest.add(sp);} // shoulder numbers
@@ -120,10 +129,14 @@ function makePlayer(){
   for(const a of Object.values(A)){a.play();a.setEffectiveWeight(0);}
   g.rotation.order='ZYX';
   g.userData={M,body,nt,mixer,A,bones:{rArm:bone('RightArm'),lArm:bone('LeftArm'),rFore:bone('RightForeArm'),lFore:bone('LeftForeArm'),hips:bone('Hips'),spine:bone('Spine1'),chest,rUp:bone('RightUpLeg'),lUp:bone('LeftUpLeg'),rLeg:bone('RightLeg'),lLeg:bone('LeftLeg'),rFoot:bone('RightFoot'),lFoot:bone('LeftFoot')}};
-  chest.scale.set(1.12,1.06,1.15);
+  chest.scale.set(1.12,1.05,1.15);
+  for(const n of ['RightArm','LeftArm'])bone(n).scale.set(1,1.22,1.22);for(const n of ['RightUpLeg','LeftUpLeg'])bone(n).scale.set(1.18,1,1.18);bone('Neck')?.scale.set(1.25,1,1.25);
   g.scale.setScalar(1.0);return g;}
 // NFL uniforms: home team in dark jerseys, road team in white with team-colored numbers
-function dress(p,team,home,num,k){const {M,body,nt}=p.userData,u=body.userData.u;const c=team.color,alt=team.alt&&team.alt.toLowerCase()!==c.toLowerCase()?team.alt:'#ffffff';
+const LOGOS={};function logoTex(team){if(LOGOS[team.abbr])return LOGOS[team.abbr];const c=document.createElement('canvas');c.width=256;c.height=160;const x=c.getContext('2d');
+  x.font='bold 120px Anton, Impact';x.textAlign='center';x.textBaseline='middle';x.lineWidth=12;x.strokeStyle=team.alt&&team.alt!==team.color?team.alt:'#ffffff';x.strokeText(team.abbr,128,84);x.fillStyle='#ffffff';x.fillText(team.abbr,128,84);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return LOGOS[team.abbr]=t;}
+function dress(p,team,home,num,k){const {M,body,nt}=p.userData,u=body.userData.u;M.logo.map=logoTex(team);M.logo.needsUpdate=true;const c=team.color,alt=team.alt&&team.alt.toLowerCase()!==c.toLowerCase()?team.alt:'#ffffff';
   const jersey=home?c:'#f4f4f4',numFg=home?(lum(alt)>0.55?alt:'#ffffff'):c,trim=home?alt:c;
   u.uJersey.value.set(jersey);M.jersey.color.set(jersey);M.helm.color.set(c);M.trim.color.set(trim);u.uTrim.value.set(trim);u.uSock.value.set(c);
   u.uPants.value.set(home?'#eeeeee':(lum(alt)<0.85?alt:'#d9d9d9'));u.uGlove.value.set(home?'#f4f4f4':c);u.uCleat.value.set(k%3?'#141414':'#f2f2f2');
@@ -153,9 +166,9 @@ function pose(p,o){
 
 // the ball: game-sized and bright so it reads on a phone, with a glowing trail in flight
 const ball=new THREE.Group();scene.add(ball);
-{const b=new THREE.Mesh(new THREE.SphereGeometry(0.2,24,14),mat('#7b3a12',0.45));b.scale.set(1.75,1,1);b.castShadow=true;ball.add(b);
- for(const sx of [-0.24,0.24]){const st=new THREE.Mesh(new THREE.TorusGeometry(0.155,0.022,6,24),mat('#ffffff',0.5));st.rotation.y=Math.PI/2;st.position.x=sx;ball.add(st);}
- const lace=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.03,0.03),mat('#fff'));lace.position.set(0,0,0.2);ball.add(lace);}
+{const b=new THREE.Mesh(new THREE.SphereGeometry(0.16,24,14),mat('#7b3a12',0.45));b.scale.set(1.7,1,1);b.castShadow=true;ball.add(b);
+ for(const sx of [-0.19,0.19]){const st=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.018,6,24),mat('#ffffff',0.5));st.rotation.y=Math.PI/2;st.position.x=sx;ball.add(st);}
+ const lace=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.03,0.03),mat('#fff'));lace.position.set(0,0,0.16);ball.add(lace);}
 const trail=[];
 let off=[],def=[],posts,confetti,losLine,fdLine,ring;
 
@@ -178,9 +191,15 @@ window.setup=async(d)=>{await loadBase();G=d.game;PLAYS=d.plays;TL=d.timeline;
     const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:'#fff3cc',transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));glow.scale.set(40,40,1);glow.position.copy(lb.position);scene.add(glow);}
   // goal posts at both ends
   posts=new THREE.Group();const yel=mat('#ffd400',0.35,0.3);
-  for(const X of [-60,60]){const g=new THREE.Group();const base=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,10,8),yel);base.rotation.x=Math.PI/2;base.position.z=5;g.add(base);
-    const cb=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,18.5,8),yel);cb.position.z=10;g.add(cb);
-    for(const s of [-1,1]){const up=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,20,8),yel);up.rotation.x=Math.PI/2;up.position.set(0,s*9.25,20);g.add(up);}g.position.x=X;posts.add(g);}scene.add(posts);
+  for(const X of [-60,60]){const g=new THREE.Group(),dir=Math.sign(X);const cyl=(r,len)=>new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,10),yel);
+    const base=cyl(0.12,2.8);base.rotation.x=Math.PI/2;base.position.set(dir*2.0,0,1.4);g.add(base);
+    const neck=cyl(0.1,2.0);neck.rotation.z=Math.PI/2;neck.position.set(dir*1.0,0,2.8);g.add(neck);
+    const rise=cyl(0.09,0.55);rise.rotation.x=Math.PI/2;rise.position.set(0,0,3.06);g.add(rise);
+    const cb=cyl(0.08,6.17);cb.position.z=3.33;g.add(cb);
+    for(const s2 of [-1,1]){const up=cyl(0.06,11.7);up.rotation.x=Math.PI/2;up.position.set(0,s2*3.08,3.33+5.85);g.add(up);
+      const flag=new THREE.Mesh(new THREE.PlaneGeometry(0.25,0.9),new THREE.MeshBasicMaterial({color:'#ff7a00',side:THREE.DoubleSide}));flag.position.set(0,s2*3.08,15.2);flag.rotation.x=Math.PI/2;g.add(flag);}
+    const pad=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,1.8,12),mat(G.home.color,0.6));pad.rotation.x=Math.PI/2;pad.position.set(dir*2.0,0,0.9);g.add(pad);
+    g.position.x=X;posts.add(g);}scene.add(posts);
   for(let i=0;i<11;i++){const p=makePlayer();scene.add(p);off.push(p);}for(let i=0;i<11;i++){const p=makePlayer();scene.add(p);def.push(p);}
   for(let i=0;i<14;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:'#fff6c8',transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0}));scene.add(sp);trail.push(sp);}
   losLine=new THREE.Mesh(new THREE.PlaneGeometry(0.28,53.3),new THREE.MeshBasicMaterial({color:'#2b7bff',transparent:true,opacity:0.9}));losLine.position.z=0.025;scene.add(losLine);
@@ -202,7 +221,7 @@ const bez=(p0,p1,p2,q)=>[(1-q)*(1-q)*p0[0]+2*(1-q)*q*p1[0]+q*q*p2[0],(1-q)*(1-q)
 const toward=(a,b,k)=>[lerp(a[0],b[0],k),lerp(a[1],b[1],k)];
 function playScene(pl,lt){ // offense attacks +x (the goal line is x=50); real formations, snap, routes, pursuit
   if(pl._i!==lastPlay){lastPlay=pl._i;dressPlay(pl);}
-  const yd=clamp(pl.yards||1,1,99),fg=pl.kind==='fg',los=fg?50-(yd-17):50-yd,S=SNAP,scoreAt=pl.dur-2.4,X=(v)=>Math.min(v,59.5);
+  const det=pl.det||{},yd=clamp(pl.yards||1,1,99),fg=pl.kind==='fg',te=Number(det.toEndzone),los=te>0&&te<100?50-te:fg?50-(yd-17):50-yd,S=SNAP,scoreAt=pl.dur-2.4,X=(v)=>Math.min(v,59.5);
   const pre=lt<S,cel=seg(lt,scoreAt,scoreAt+1.6);
   let ballP=[los,0,0.22],carrier=null,inAir=false,cpos=[los,0],throwK=0;
   // ---- offense
@@ -214,37 +233,39 @@ function playScene(pl,lt){ // offense attacks +x (the goal line is x=50); real f
     const kp=lt<S?[los-10.5,-2.2]:toward([los-10.5,-2.2],[los-7.5,-0.5],ease(seg(lt,S+0.1,kickT)));
     pose(off[1],{x:kp[0],y:kp[1],face:0.35,armsUp:lt>scoreAt?seg(lt,scoreAt,scoreAt+0.4):0,jump:lt>scoreAt?Math.abs(Math.sin((lt-scoreAt)*5))*0.4:0});
     if(lt<S)ballP=[los,0,0.22];else if(lt<S+0.4){const q=seg(lt,S,S+0.4);ballP=[lerp(los,los-7,q),0.3*q,0.25+Math.sin(q*Math.PI)*0.6];}
-    else if(lt<kickT)ballP=[los-7,0.3,0.28];else{const q=seg(lt,kickT,kickT+flight);inAir=q<1;ballP=[lerp(los-7,61,q),lerp(0.3,0,q),0.28+Math.sin(q*Math.PI*0.62)*(6+yd*0.09)];}
+    else if(lt<kickT)ballP=[los-7,0.3,0.28];else{const q=seg(lt,kickT,kickT+flight);inAir=q<1;ballP=[lerp(los-7,64,q),lerp(0.3,0,q),0.28+Math.sin(q*Math.PI*0.7)*(5.2+yd*0.05)];}
     cpos=[ballP[0],0];
   }else if(pl.kind==='pass'){
     const throwT=S+1.4,flight=clamp(yd/26,0.6,1.5),catchT=throwT+flight;
-    const cX=yd<=16?Math.min(56,50+2+yd*0.12):Math.min(47,los+yd*0.72),cY=3.5,C=[cX,cY];
+    const side=det.dir==='left'?1:det.dir==='right'?-1:det.dir==='middle'?0:1,sg=side||1,gun=det.shotgun!==false;
+    const cX=yd<=16?Math.min(56,50+2+yd*0.12):Math.min(47,los+yd*(det.depth==='deep'?0.85:0.72)),cY=side*4,C=[cX,cY];
     OL.forEach((yy,i)=>{const k=ease(seg(lt,S,S+0.6));pose(off[i+2],{x:los-0.6-k*1.0,y:yy*(1+k*0.15),crouch:pre?1:0.45,face:0});});
-    const qp=lt<S?[los-5,0]:toward([los-5,0],[los-7.2,0],ease(seg(lt,S+0.25,S+1.0)));
+    const q0=gun?[los-5,0]:[los-1.0,0],qp=lt<S?q0:toward(q0,[gun?los-7.2:los-6.6,0],ease(seg(lt,S+0.1,S+1.0)));
     throwK=lt>throwT-0.45&&lt<throwT+0.25?seg(lt,throwT-0.45,throwT+0.1):0;
-    pose(off[0],{x:qp[0],y:qp[1],face:lt>S+1.0?Math.atan2(cY-qp[1],cX-qp[0])*0.6:0,crouch:pre?0.25:0,throwArm:throwK});
-    const r0=[los-0.5,11.5],ctl=[Math.min(cX-1,los+yd*0.5),11.5];
+    pose(off[0],{x:qp[0],y:qp[1],face:lt>S+1.0?Math.atan2(cY-qp[1],cX-qp[0])*0.6:0,crouch:pre?(gun?0.25:0.5):0,throwArm:throwK});
+    const r0=side?[los-0.5,sg*11.5]:[los-1.2,7.5],ctl=[Math.min(cX-1,los+yd*0.5),r0[1]];
     let rp=lt<S?r0:lt<catchT?bez(r0,ctl,C,ease(seg(lt,S,catchT))):toward(C,[Math.max(cX,53),1.5],ease(seg(lt,catchT,scoreAt)));
     pose(off[1],{x:rp[0],y:rp[1],crouch:pre?0.35:0,rest:0,armsUp:(lt>catchT-0.3&&lt<catchT+0.1?1:0)+(lt>scoreAt?seg(lt,scoreAt,scoreAt+0.3):0),carry:lt>catchT+0.1&&lt<scoreAt,jump:lt>scoreAt?Math.abs(Math.sin((lt-scoreAt)*5.5))*0.5:0});
     const route=(i,a,c,e)=>{const p=lt<S?a:bez(a,c,[X(e[0]),e[1]],ease(seg(lt,S,S+2.6)));pose(off[i],{x:p[0],y:p[1],crouch:pre?(i===7?0.9:0.35):0,rest:0});};
-    route(7,[los-0.7,-3.9],[los+6,-4],[los+12,-8]);route(8,[los-0.5,-15],[los+12,-15],[los+15,-11]);route(9,[los-1.2,7.5],[los+4,6],[los+6,-2]);
+    route(7,[los-0.7,-sg*3.9],[los+6,-sg*4],[los+12,-sg*8]);route(8,[los-0.5,-sg*15],[los+12,-sg*15],[los+15,-sg*11]);if(side)route(9,[los-1.2,sg*7.5],[los+4,sg*6],[los+6,-sg*2]);else route(9,[los-0.5,11.5],[los+10,11.5],[los+14,8]);
     const rb=lt<S?[los-5,-1.6]:toward([los-5,-1.6],[los-4.3,-1.2],ease(seg(lt,S,S+0.6)));pose(off[10],{x:rb[0],y:rb[1],crouch:pre?0.2:0.45,face:0});
-    if(lt<S)ballP=[los,0,0.22];else if(lt<S+0.35){const q=seg(lt,S,S+0.35);ballP=[lerp(los,qp[0]+0.3,q),0,0.22+q*1.1];}
+    if(lt<S)ballP=[los,0,0.22];else if(lt<S+0.35){const q=seg(lt,S,S+0.35);ballP=[lerp(los,qp[0]+0.3,q),0,0.22+(gun?q*1.1:q*0.9)];}
     else if(lt<throwT)ballP=[qp[0]+0.35,0.35,1.45+throwK*0.7];
     else if(lt<catchT){const q=seg(lt,throwT,catchT);inAir=true;ballP=[lerp(qp[0]+0.3,cX,q),lerp(0.3,cY,q),lerp(2.1,1.6,q)+Math.sin(q*Math.PI)*(1.8+yd*0.11)];}
     else{carrier=off[1];ballP=[rp[0]+0.25,rp[1]+0.25,lt>scoreAt?2.3:1.3];}
     cpos=lt<throwT?[qp[0],0]:lt<catchT?[ballP[0],ballP[1]]:rp;if(lt<throwT&&lt>S+0.35)carrier=off[0];
   }else{ // run / return: I-formation, handoff, lead blocks, cut to the end zone
-    const handT=S+0.6;
+    const rs=det.dir==='left'?1:det.dir==='right'?-1:0,gapY=rs*({end:4.6,tackle:2.7,guard:1.3}[det.gap]||0),qbr=!!pl.qbRun,gun=!!det.shotgun;
+    const handT=qbr?S+0.05:S+0.6;
     OL.forEach((yy,i)=>{const k=ease(seg(lt,S,S+1.4));pose(off[i+2],{x:los-0.6+k*2.0,y:yy+(yy<0?-k*0.6:k*0.2),crouch:pre?1:0.4,face:0});});
-    const qp=lt<S?[los-1.0,0]:toward([los-1.0,0],[los-2.6,-0.6],ease(seg(lt,S,handT+0.2)));pose(off[0],{x:qp[0],y:qp[1],crouch:pre?0.45:0,face:lt<S?0:-0.9});
-    const r0=[los-6.5,0],hole=[los+1.2,-1.6],end=[Math.min(54,Math.max(52,los+4)),-3.5];
-    let rp=lt<S?r0:lt<handT?toward(r0,[los-2.4,-0.7],seg(lt,S,handT)):lt<handT+0.5?toward([los-2.4,-0.7],hole,seg(lt,handT,handT+0.5)):toward(hole,end,ease(seg(lt,handT+0.5,scoreAt)));
+    const q0=qbr?[los-6.5,0]:gun?[los-5,0]:[los-1.0,0],qp=lt<S?q0:toward(q0,qbr?[los-3,-rs*2]:[q0[0]-1.4,-0.6],ease(seg(lt,S,handT+0.4)));pose(off[0],{x:qp[0],y:qp[1],crouch:pre?(qbr?0.3:0.45):0,face:lt<S||qbr?0:-0.9});
+    const r0=qbr?[los-1.0,0]:gun?[los-5,-1.5]:[los-6.5,0],hole=[los+1.2,gapY||-0.4],end=[Math.min(54,Math.max(52,los+4)),(gapY||-0.4)*1.6];
+    let rp=lt<S?r0:lt<handT?toward(r0,qbr?r0:[los-2.4,-0.7+gapY*0.3],seg(lt,S,handT)):lt<handT+0.5?toward(qbr?r0:[los-2.4,-0.7+gapY*0.3],hole,seg(lt,handT,handT+0.5)):toward(hole,end,ease(seg(lt,handT+0.5,scoreAt)));
     pose(off[1],{x:rp[0],y:rp[1],crouch:pre?0.3:0,rest:0,carry:lt>handT&&lt<scoreAt,armsUp:lt>scoreAt?seg(lt,scoreAt,scoreAt+0.3):0,jump:lt>scoreAt?Math.abs(Math.sin((lt-scoreAt)*5.5))*0.5:0});
     const fb=lt<S?[los-4.2,0]:toward([los-4.2,0],[X(rp[0]+2.5),rp[1]-1],ease(seg(lt,S,scoreAt)));pose(off[10],{x:fb[0],y:fb[1],crouch:pre?0.3:0,rest:0});
     const wr=(i,a,b)=>{const p=lt<S?a:toward(a,[X(b[0]),b[1]],ease(seg(lt,S,scoreAt)));pose(off[i],{x:p[0],y:p[1],crouch:pre?0.35:0,rest:0});};
     wr(7,[los-0.7,-3.9],[los+3,-5.5]);wr(8,[los-0.5,-15],[los+9,-12]);wr(9,[los-0.5,12],[los+8,8]);
-    if(lt<S)ballP=[los,0,0.22];else if(lt<S+0.15){const q=seg(lt,S,S+0.15);ballP=[lerp(los,qp[0],q),0,0.22+q*1.0];}else if(lt<handT)ballP=[qp[0]+0.3,qp[1]-0.3,1.25];
+    if(lt<S)ballP=[los,0,0.22];else if(!qbr&&lt<S+0.15){const q=seg(lt,S,S+0.15);ballP=[lerp(los,qp[0],q),0,0.22+q*1.0];}else if(!qbr&&lt<handT)ballP=[qp[0]+0.3,qp[1]-0.3,1.25];
     else{carrier=off[1];ballP=[rp[0]+0.25,rp[1]+0.3,lt>scoreAt?2.3:1.25];}
     cpos=lt<handT?[qp[0],qp[1]]:rp;if(lt<handT&&lt>S+0.15)carrier=off[0];
   }
@@ -266,7 +287,7 @@ function playScene(pl,lt){ // offense attacks +x (the goal line is x=50); real f
   ball.position.set(...ballP);if(inAir&&vel.length()>1e-4){ball.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0),vel.normalize());ball.rotateX(lt*28);}else{ball.rotation.set(0,0,0);}
   ball.userData.prev=ballP;
   const hist=ball.userData.hist=(ball.userData.hist||[]);hist.unshift(inAir?[...ballP]:null);hist.length=Math.min(hist.length,14);
-  trail.forEach((sp,k)=>{const h=hist[k];sp.material.opacity=h?0.55*(1-k/14):0;if(h){sp.position.set(...h);sp.scale.setScalar(0.9*(1-k/16));}});
+  trail.forEach((sp,k)=>{const h=hist[k];sp.material.opacity=h?0.55*(1-k/14):0;if(h){sp.position.set(...h);sp.scale.setScalar(0.6*(1-k/16));}});
   losLine.position.x=los;fdLine.visible=!fg&&los+10<50;fdLine.position.x=los+10;losLine.visible=lt<scoreAt;
   ring.visible=!!carrier&&lt<scoreAt+1.5;if(carrier){ring.position.x=carrier.position.x;ring.position.y=carrier.position.y;ring.material.color.set(teams[pl.side].color);ring.material.color.lerp(new THREE.Color('#ffffff'),0.35);}
   return {cx:cpos[0],bx:ballP[0],by:ballP[1],bz:ballP[2],scoreAt,los,carrier,inAir,fg};}
@@ -275,11 +296,11 @@ function playScene(pl,lt){ // offense attacks +x (the goal line is x=50); real f
 const camS={};
 function camFollow(r,lt,pl){
   const fx=r.bx,fy=r.by;let pos=new THREE.Vector3(fx-12.5,fy*0.45-1.5,r.fg?6.5:8),tgt=new THREE.Vector3(fx+6.5,fy*0.7,r.fg?Math.max(0.5,r.bz*0.55):0.4);
-  const c=ease(seg(lt,r.scoreAt-0.6,r.scoreAt+0.6));
-  if(c>0){const h=r.fg?ball.position:off[1].position;const cp=r.fg?new THREE.Vector3(56,-9,3.5):new THREE.Vector3(h.x+4.2,h.y-5.0,2.0);const ct=r.fg?new THREE.Vector3(60,0,4):new THREE.Vector3(h.x,h.y,1.25);pos.lerp(cp,c);tgt.lerp(ct,c);}
-  if(camS.scene!==CUR_SCENE){camS.scene=CUR_SCENE;camS.p=pos.clone();camS.t=tgt.clone();}
+  const c=lt>r.scoreAt-0.1?1:0; // hard cut to the celebration camera, like a broadcast
+  if(c>0){const h=r.fg?ball.position:off[1].position;const cp=r.fg?new THREE.Vector3(r.los-16,-1.5,4.2):new THREE.Vector3(h.x+4.2,h.y-5.0,2.0);const ct=r.fg?new THREE.Vector3(60,0,4.5):new THREE.Vector3(h.x,h.y,1.25);pos.lerp(cp,c);tgt.lerp(ct,c);}
+  if(camS.scene!==CUR_SCENE||camS.c!==c){camS.scene=CUR_SCENE;camS.c=c;camS.p=pos.clone();camS.t=tgt.clone();}
   camS.p.lerp(pos,0.22);camS.t.lerp(tgt,0.3);cam.position.copy(camS.p);cam.lookAt(camS.t);
-  ball.scale.setScalar(clamp(cam.position.distanceTo(ball.position)/13,0.5,1.15));
+  ball.scale.setScalar(clamp(cam.position.distanceTo(ball.position)/16,0.8,1.25));
   sun.position.set(camS.t.x-30,-45,80);sun.target.position.set(camS.t.x,0,0);}
 
 window.frame=(t,draw=true)=>{
@@ -300,7 +321,7 @@ window.frame=(t,draw=true)=>{
     card.style.opacity=0;for(const p of [...off,...def])p.visible=true;ball.visible=true;
     const pl=PLAYS[sc.i];const r=playScene(pl,lt);camFollow(r,lt,pl);
     const prev=sc.i?PLAYS[sc.i-1]:{away:0,home:0};const scored=lt>r.scoreAt;const A=scored?pl.away:prev.away,Hm=scored?pl.home:prev.home;
-    bug.style.opacity=1;bug.innerHTML=`<div class="t" style="background:${G.away.color}"><span>${esc(G.away.abbr)}</span><b>${A}</b></div><div class="mid">${esc(pl.q)}<small>${esc(pl.clock)}</small></div><div class="t" style="background:${G.home.color}"><b>${Hm}</b><span>${esc(G.home.abbr)}</span></div>`;
+    bug.style.opacity=1;bug.innerHTML=`<div class="t" style="background:${G.away.color}"><span>${esc(G.away.abbr)}</span><b>${A}</b></div><div class="mid">${esc(pl.q)} · ${esc(pl.clock)}<small>${esc(((pl.det||{}).ddText||'').replace(/ at .*/,'').toUpperCase()||pl.label)}</small></div><div class="t" style="background:${G.home.color}"><b>${Hm}</b><span>${esc(G.home.abbr)}</span></div>`;
     cap.style.opacity=seg(lt,0.2,0.6);cap.style.setProperty('--c',teams[pl.side].color);
     cap.innerHTML=`<div class="k">${esc(pl.label)} · ${esc(teams[pl.side].name.toUpperCase())}</div><div class="h">${esc(pl.headline)}</div>${scored&&pl.fp.length?`<div class="fp">${pl.fp.map(f=>`<i>+${f.pts} ${esc(f.player)}</i>`).join('')}</div>`:''}`;
     const sp=seg(lt,r.scoreAt,r.scoreAt+0.5);slam.style.opacity=lt>r.scoreAt?1-seg(lt,r.scoreAt+1.6,r.scoreAt+2.0):0;slam.textContent=pl.kind==='fg'?'IT\'S GOOD!':'TOUCHDOWN!';slam.style.transform=`scale(${2.2-1.2*ob(sp)}) rotate(-4deg)`;
