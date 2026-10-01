@@ -121,7 +121,7 @@ if __name__ == '__main__':
     try:
         main(sys.argv[1], sys.argv[2])
         backfill_fantasy(sys.argv[1], sys.argv[2])
-        make_3d(sys.argv[1], sys.argv[2])
+        if os.environ.get('G3D') == 'on': make_3d(sys.argv[1], sys.argv[2])   # replaced by the in-app 3D Play Maker (public/play3d), which renders on the phone
     finally:
         try: os.remove(lock)
         except OSError: pass

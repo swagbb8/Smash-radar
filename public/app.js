@@ -538,6 +538,7 @@ const views = {
     app.recaps = recaps;
     const hlGames = finals.filter((g) => g.clips?.length || g.mainHighlight);
     if (hlGames.length) html += section('Highlight Mode', '⚡', null, `<div class="gr-pick">${hlGames.map((g) => `<button class="gr" data-action="rm-mode" data-id="${esc(g.id)}">${[g.away, g.home].map((x) => `<span class="${x.winner ? 'w' : ''}">${x.logo ? `<img src="${esc(imgUrl(x.logo))}" alt="" referrerpolicy="no-referrer">` : ''}${esc(x.abbr)} <b>${esc(x.score)}</b></span>`).join('')}<em>⚡ ${(g.clips?.length || 0) + (g.mainHighlight ? 1 : 0)} clips</em></button>`).join('')}</div>`);
+    html += section('3D Play Maker', '🏈', null, `<a class="pm-card" href="play3d/"><b>Make a 3D cartoon highlight</b><span>Type any play — or pick a real game — and get an animated video you can save.</span><em>OPEN ›</em></a>`);
     if (recaps.length) html += section('SMASH recaps — every game', '🎬', null, `<div class="recaps">${recaps.slice(0, 20).map(recapCard).join('')}</div>`);
     if (live.length) html += section('Live now', '🔴', null, `<div class="games">${live.map(gameCard).join('')}</div>`);
     if (finals.length) html += section('Final scores', '🏁', null, `<div class="games">${finals.map(gameCard).join('')}</div>`);
@@ -1001,7 +1002,7 @@ async function gameReelPicker() {
 function recapCard(r) {
   const t = (k) => `<span class="rc-t ${r.winner === k ? 'w' : ''}">${r[k].logo ? `<img src="${esc(imgUrl(r[k].logo))}" alt="" referrerpolicy="no-referrer">` : ''}<b>${esc(r[k].abbr)}</b><i>${esc(r[k].score)}</i></span>`;
   return `<div class="recap"><div class="rc-score">${t('away')}<em>FINAL</em>${t('home')}</div><div class="rc-meta">${r.week ? `Week ${r.week} · ` : ''}${r.playCount ?? (Array.isArray(r.plays) ? r.plays.length : r.plays) ?? 0} scoring plays</div>
-    <div class="rc-actions"><button class="btn" data-action="game-reel" data-id="${esc(r.id)}">🎬 Reel</button>${r.fantasyPage || r.fantasyVideo ? `<button class="btn" data-action="fz-save" data-id="${esc(r.id)}">🏆 ⬇</button>` : ''}${r.page3d || r.video3d ? `<button class="btn" data-action="g3d" data-id="${esc(r.id)}">🏈 3D</button>` : ''}${r.page || r.video ? `<button class="btn primary" data-action="recap-play" data-id="${esc(r.id)}">▶ Watch</button>` : ''}${r.page || r.video ? `<button class="btn" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save</button>` : ''}</div></div>`;
+    <div class="rc-actions"><button class="btn" data-action="game-reel" data-id="${esc(r.id)}">🎬 Reel</button>${r.fantasyPage || r.fantasyVideo ? `<button class="btn" data-action="fz-save" data-id="${esc(r.id)}">🏆 ⬇</button>` : ''}${(r.plays || []).length ? `<a class="btn" href="play3d/?game=${encodeURIComponent(r.id)}">🏈 3D</a>` : ''}${r.page || r.video ? `<button class="btn primary" data-action="recap-play" data-id="${esc(r.id)}">▶ Watch</button>` : ''}${r.page || r.video ? `<button class="btn" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save</button>` : ''}</div></div>`;
 }
 // ---------- Highlight Mode: official clips played back-to-back with SMASH cards in between (YouTube's own player)
 function loadYT() {
