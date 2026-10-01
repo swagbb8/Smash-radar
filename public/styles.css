@@ -611,3 +611,12 @@ body.tv-mode .tv-stage .ls-lion { width: min(70%, 520px); }
 .tv-vid-empty { padding: 12px; font-size: 13.5px; border-radius: 14px; background: var(--panel); border: 1px dashed var(--line-2); }
 .video-wrap.tall { aspect-ratio: 9 / 16; max-height: 70vh; margin: 0 auto; background: #000; }
 .video-wrap.tall video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.tv-scriptbtn { display: flex; width: 100%; justify-content: center; margin: 2px 0 12px; height: 48px; font-size: 15px; }
+.tv-allshows { display: flex; justify-content: center; margin: 10px 0 4px; }
+.script-text { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 14.5px; line-height: 1.5; color: var(--text-2); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-top: 12px; max-height: 60vh; overflow-y: auto; user-select: text; -webkit-user-select: text; }
+.arch-day { margin-bottom: 10px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+.arch-day summary { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; cursor: pointer; list-style: none; }
+.arch-day summary::-webkit-details-marker { display: none; }
+.arch-day .tv-vid { border-radius: 0; border: 0; border-top: 1px solid var(--line); }
+.arch-day .tv-vid-t .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+a.chip { text-decoration: none; }

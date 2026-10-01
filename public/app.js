@@ -101,7 +101,7 @@ async function staticApi(path, opts) {
   if (method !== 'GET') throw new Error('Not available in the free hosted version — edit src/config.js in the repo instead');
   const d = await loadStatic();
   if (p === 'api/meta') return { ...d.meta, refreshing: false, mode: 'static' };
-  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
+  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos' || p === 'api/archive') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
   if (p === 'api/dupage') return d.dupage;
   if (p === 'api/brands') return d.brands;
   if (p === 'api/sources') return d.sources;
@@ -149,6 +149,7 @@ const NAV = [
   { group: 'Radar' },
   { r: 'home', label: 'Home', ic: '🏠' },
   { r: 'lion', label: 'Smash Live', ic: '🦁' },
+  { r: 'shows', label: 'Saved Shows', ic: '🎬' },
   { r: 'daily', label: "Today's News", ic: '📡' },
   { r: 'breaking', label: 'Breaking', ic: '🔥', count: 'BREAKING', hot: true },
   { r: 'today', label: 'Today', ic: '🆕', count: 'NEW' },
@@ -317,7 +318,7 @@ const views = {
       <a class="stat launch" href="#/products"><b>${c.products ?? '–'}</b><span>Products</span></a>
       <a class="stat deal" href="#/deals"><b>${c.deals ?? '–'}</b><span>Deals</span></a>
       <a class="stat recall" href="#/recalls"><b>${c.recalls ?? '–'}</b><span>Recalls</span></a></div>`;
-    const banner = `<a class="live-banner" href="#/lion"><span class="lb-lion">${lionSVG()}</span><span><b>▶ Smash Live</b><br><span class="muted">Smash the lion's 30-minute news show · on air 24/7 · new show every half hour</span></span><span class="lb-live">● LIVE</span></a>`;
+    const banner = `<a class="live-banner" href="#/lion"><span class="lb-lion">${lionSVG()}</span><span><b>▶ Smash Live</b><br><span class="muted">Smash the lion's 2-minute rundown of the big stuff · new one every 10 min</span></span><span class="lb-live">● LIVE</span></a>`;
     const all = await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`);
     if (!all.stories.length) return banner + top + (noDataYet() || empty('📡', 'Radar is clear', 'Nothing collected yet. Tap Refresh to sweep all sources.'));
     const list = all.stories;
@@ -488,13 +489,14 @@ const views = {
       <button class="chip" data-action="tv-top">⏪ From the top</button>
       <button class="chip ${prefs.tvCC === false ? '' : 'on'}" data-action="tv-cc" id="tvCCBtn">CC</button>
       <button class="chip" data-action="tv-mode">📺 TV mode</button>
-      <button class="chip" data-action="tv-script">📄 Save script</button>
     </div>
-    <div class="ls-meta">Show from <b>${esc(clock(sh.startsAt || sh.createdAt))}</b> · ${Math.round((sh.totalSeconds || 0) / 60)} min · ${sh.segments.filter((g) => g.title).length} stories · ${esc(voiceLabel)} · brand-new show every 30 minutes</div>
-    <h3 class="sec-title">🎬 Saved shows</h3>
-    <div class="rows tv-vids" id="tvVids">${await videosHtml()}</div>
+    <button class="btn primary tv-scriptbtn" data-action="tv-script">📄 Read the script — everything Smash says</button>
+    <div class="ls-meta">Show from <b>${esc(clock(sh.startsAt || sh.createdAt))}</b> · ${Math.round((sh.totalSeconds || 0) / 60)} min · ${sh.segments.filter((g) => g.title).length} stories · ${esc(voiceLabel)} · new rundown every 10 minutes</div>
     <h3 class="sec-title">📝 What Smash is saying</h3>
     <div class="tv-transcript" id="tvTranscript">${transcriptHtml(sh)}</div>
+    <h3 class="sec-title">🎬 Saved shows</h3>
+    <div class="rows tv-vids" id="tvVids">${await videosHtml(6)}</div>
+    <a class="btn tv-allshows" href="#/shows">See every saved show →</a>
     <h3 class="sec-title">Rundown</h3>
     <div class="rows ls-list">${rundown(sh)}</div>`;
     setTimeout(() => initTv(sh), 0);
@@ -546,6 +548,22 @@ const views = {
     if (state === 'Illinois') html += `<div class="chips"><a class="chip ${!county ? 'on' : ''}" href="#/local?state=Illinois">All Illinois</a>${['DuPage', 'Cook', 'Kane', 'Will', 'Lake', 'McHenry', 'Kendall', 'DeKalb'].map((c) => `<a class="chip ${county === c ? 'on' : ''}" href="#/local?${qs({ state: 'Illinois', county: c })}">${esc(c)} County</a>`).join('')}</div>`;
     html += data.stories.length ? `<div class="grid">${data.stories.map(card).join('')}</div>` : (noDataYet() || empty('🗺️', `No ${county ? `${county} County` : state} stories yet`, 'State and county news fills in over the next few updates.'));
     return html;
+  },
+
+  async shows() {
+    let arch = [];
+    try { arch = (await api('/api/archive')).shows || []; } catch {}
+    const recent = await videosHtml();
+    const byDay = {};
+    for (const x of arch) (byDay[x.slot.slice(0, 10)] ||= []).push(x);
+    const dayLabel = (d) => new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const t12 = (slot) => { const [h, m] = slot.slice(11, 16).split(':').map(Number); return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+    return `${viewHead('Saved shows', 'Every Smash rundown, saved as a video + script')}
+      <h3 class="sec-title">🎬 Latest (watch here)</h3><div class="rows tv-vids">${recent}</div>
+      <h3 class="sec-title">🗄️ Every show, saved forever</h3>
+      ${arch.length ? Object.entries(byDay).map(([d, list]) => `<details class="arch-day" ${d === Object.keys(byDay)[0] ? 'open' : ''}><summary><b>${esc(dayLabel(d))}</b><span class="muted">${list.length} ${list.length === 1 ? 'show' : 'shows'}</span></summary>
+        ${list.map((x) => `<div class="tv-vid"><div class="tv-vid-i">🦁</div><div class="tv-vid-t"><b>${esc(t12(x.slot))}</b><span class="muted">${esc((x.headlines || []).slice(0, 2).join(' · '))}</span></div><a class="chip on" href="${esc(safeUrl(x.video))}" target="_blank" rel="noopener">⬇ Video</a>${x.script ? `<a class="chip" href="${esc(safeUrl(x.script))}" target="_blank" rel="noopener">📄</a>` : ''}</div>`).join('')}</details>`).join('')
+        : '<div class="muted tv-vid-empty">The forever archive starts filling up with the next rundown.</div>'}`;
   },
 
   async posts() {
@@ -858,12 +876,19 @@ function markTranscript(k) {
   p.classList.add('on');
   box.scrollTo({ top: p.offsetTop - box.offsetTop - 40, behavior: 'smooth' }); // scroll inside the box only
 }
-async function videosHtml() {
+function openScript(text, name, when) {
+  app.scriptText = text; app.scriptName = name;
+  openSheetHtml(`<div class="content"><div class="kicker">🦁 SMASH NEWS · ${esc(when || '')}</div><h2>The script</h2><p class="muted">Everything Smash says in this rundown, word for word.</p>
+    <div class="actions"><button class="btn primary" data-action="script-copy">Copy</button><button class="btn" data-action="script-save">Save as file</button></div>
+    <pre class="script-text">${esc(text)}</pre></div>`);
+}
+async function videosHtml(limit = 99) {
   let v = [];
   try { v = (await api('/api/videos')).videos || []; } catch {}
   app.tvVideos = v;
-  if (!v.length) return '<div class="muted tv-vid-empty">Every show is saved as a video a few minutes after it airs. The first one will show up here soon.</div>';
-  return v.map((x, k) => `<div class="tv-vid"><div class="tv-vid-i">🎬</div><div class="tv-vid-t"><b>${esc(clock(x.startsAt))} show</b><span class="muted">${x.minutes} min · ${x.stories} stories · ${(x.bytes / 1e6).toFixed(0)} MB</span></div>
+  v = v.slice(0, limit);
+  if (!v.length) return '<div class="muted tv-vid-empty">Every rundown is saved as a video about a minute after it airs. The first one will show up here soon.</div>';
+  return v.map((x, k) => `<div class="tv-vid"><div class="tv-vid-i">🎬</div><div class="tv-vid-t"><b>${esc(clock(x.startsAt))} rundown</b><span class="muted">${x.minutes || 2} min · ${x.stories} stories · ${(x.bytes / 1e6).toFixed(1)} MB</span></div>
     <button class="chip" data-action="vid-play" data-k="${k}">▶</button><button class="chip on" data-action="vid-save" data-k="${k}">⬇ Video</button>${x.script ? `<button class="chip" data-action="vid-script" data-k="${k}">📄</button>` : ''}</div>`).join('');
 }
 function showScript(sh) {
@@ -906,7 +931,7 @@ function showSegment(seg, k) {
   markTranscript(k);
   const sec = $('#tvSec'); const head = $('#tvHead');
   if (sec) sec.textContent = `${seg.icon ? `${seg.icon} ` : ''}${seg.section || 'SMASH NEWS'}`;
-  if (head) { head.textContent = seg.title || (seg.kind === 'intro' ? 'Smash the lion is on air' : seg.kind === 'outro' ? 'New show every 30 minutes' : seg.section || ''); head.classList.remove('in'); void head.offsetWidth; head.classList.add('in'); }
+  if (head) { head.textContent = seg.title || (seg.kind === 'intro' ? 'Smash the lion is on air' : seg.kind === 'outro' ? 'New rundown every 10 minutes' : seg.section || ''); head.classList.remove('in'); void head.offsetWidth; head.classList.add('in'); }
   const cur = app.tvShow?.segments ? seg.section : null;
   document.querySelectorAll('.ls-seg').forEach((b) => b.classList.toggle('on', b.dataset.sec === cur));
   const bump = $('#tvBumper');
@@ -1221,12 +1246,14 @@ document.addEventListener('click', async (e) => {
   if (a === 'close') return closeSheet();
   if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
   if (a === 'file-share') { if (app.pendingFile) navigator.share({ files: [app.pendingFile], title: app.pendingFile.name }).catch(() => {}); return; }
-  if (a === 'tv-script') { const sh = app.tvShow; if (sh) saveFile(new Blob([showScript(sh)], { type: 'text/plain' }), `smash-news-script-${(sh.slot || 'show').replace(/[:T]/g, '-')}.txt`, 'text/plain'); return; }
+  if (a === 'tv-script') { const sh = app.tvShow; if (sh) openScript(showScript(sh), `smash-news-script-${(sh.slot || 'show').replace(/[:T]/g, '-')}.txt`, clock(sh.startsAt || sh.createdAt)); return; }
+  if (a === 'script-copy') { navigator.clipboard?.writeText(app.scriptText || '').then(() => toast('Script copied ✓'), () => toast('Long-press the text to copy')); return; }
+  if (a === 'script-save') { saveFile(new Blob([app.scriptText || ''], { type: 'text/plain' }), app.scriptName || 'smash-news-script.txt', 'text/plain'); return; }
   if (a === 'vid-play' || a === 'vid-save' || a === 'vid-script') {
     const v = app.tvVideos?.[Number(t.dataset.k)]; if (!v) return;
     const base = `smash-news-${v.slot.replace(/[:T]/g, '-')}`;
     if (a === 'vid-save') return saveFile(v.video, `${base}.mp4`, 'video/mp4');
-    if (a === 'vid-script') return saveFile(v.script, `${base}.txt`, 'text/plain');
+    if (a === 'vid-script') { fetch(v.script).then((r) => r.text()).then((txt) => openScript(txt, `${base}.txt`, clock(v.startsAt))).catch(() => toast('Script not available')); return; }
     if (app.show?.playing) { app.show.pause(); setLive(false); }
     openSheetHtml(`<div class="video-wrap tall"><video src="${esc(v.video)}" controls playsinline autoplay preload="metadata"></video></div><div class="content"><h2>${esc(clock(v.startsAt))} SMASH NEWS show</h2><div class="actions"><button class="btn primary" data-action="vid-save" data-k="${esc(t.dataset.k)}">⬇ Save video</button>${v.script ? `<button class="btn" data-action="vid-script" data-k="${esc(t.dataset.k)}">📄 Save script</button>` : ''}</div></div>`);
     return;

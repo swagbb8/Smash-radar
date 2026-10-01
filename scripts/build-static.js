@@ -51,14 +51,15 @@ if (process.env.NFL !== 'off') {
 }
 if (!nfl) { try { nfl = JSON.parse(fs.readFileSync(path.join(OUT, 'api', 'nfl.json'), 'utf8')); } catch { nfl = { games: [], news: [], videos: [], errors: ['not loaded'] }; write('nfl', nfl); } }
 write('briefing', buildBriefing(stories, Date.now(), { nfl }));
-// 30-minute live TV show: a brand-new show every half hour (Central time). tts.py voices it and sets the real timing.
+// Live TV show: a brand-new 2-minute "big stuff" rundown every 10 minutes (Central time). tts.py voices it and sets the real timing.
 {
   const showFile = path.join(path.dirname(store.file), 'show.json');
   let show = null;
   try { show = JSON.parse(fs.readFileSync(showFile, 'utf8')); } catch {}
-  const slot = showSlot(now);
+  const slot = showSlot(now, Number(process.env.SHOW_EVERY_MINUTES || 10));
   if (!show || show.slot !== slot || process.env.SHOW_REBUILD === '1') {
-    show = { ...buildShow(stories, now, { nfl }), slot, startsAt: null };
+    const avoid = (show?.segments || []).map((g) => g.storyId).filter(Boolean); // don't repeat the last rundown
+    show = { ...buildShow(stories, now, { nfl, avoid, targetMinutes: Number(process.env.SHOW_MINUTES || 2) }), slot, startsAt: null };
     fs.writeFileSync(showFile, JSON.stringify(show));
     console.log(`show: new ${slot} show, ${show.segments.length} segments, ~${Math.round(show.totalSeconds / 60)} min`);
   } else console.log(`show: keeping ${slot} show (${show.segments.length} segments)`);

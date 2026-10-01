@@ -103,7 +103,7 @@ async def main():
             os.remove(p)
 
 VIDEO_DIR = os.environ.get('VIDEO_DIR', '/tmp/smash-video')
-KEEP_VIDEOS = int(os.environ.get('KEEP_VIDEOS', '3'))
+KEEP_VIDEOS = int(os.environ.get('KEEP_VIDEOS', '18'))  # newest on the site (3 hours); every show is also archived forever
 
 
 def slot_name(s):
@@ -130,7 +130,7 @@ def start_video(s):
     name = slot_name(s)
     mp4 = os.path.join(VIDEO_DIR, f"{name}.mp4")
     lock = os.path.join(VIDEO_DIR, 'rendering.lock')
-    if os.path.exists(mp4) or (os.path.exists(lock) and time.time() - os.path.getmtime(lock) < 1500):
+    if os.path.exists(mp4) or (os.path.exists(lock) and time.time() - os.path.getmtime(lock) < 900):
         return
     sp = os.path.join(VIDEO_DIR, f"{name}.json")
     json.dump(s, open(sp, 'w'))
@@ -139,7 +139,8 @@ def start_video(s):
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cmd = (f"(command -v ffmpeg >/dev/null || sudo apt-get install -y -qq ffmpeg >/dev/null 2>&1); "
            f"(python3 -c 'import playwright' 2>/dev/null || pip install -q playwright >/dev/null 2>&1); "
-           f"cd '{root}' && python3 scripts/video.py '{sp}' '{CACHE}' '{mp4}'; rm -f '{lock}'")
+           f"cd '{root}' && python3 scripts/video.py '{sp}' '{CACHE}' '{mp4}' && "
+           f"python3 scripts/archive.py '{mp4}' '{os.path.join(VIDEO_DIR, name + '.txt')}' '{sp}' '{os.path.join(VIDEO_DIR, 'archive-new.jsonl')}'; rm -f '{lock}'")
     import subprocess
     subprocess.Popen(['bash', '-c', cmd], stdout=open(os.path.join(VIDEO_DIR, 'render.log'), 'a'), stderr=subprocess.STDOUT, start_new_session=True)
     print(f"video: rendering {name} in the background")
@@ -166,6 +167,23 @@ def publish_videos():
                     'bytes': os.path.getsize(v), 'minutes': round((meta.get('totalSeconds') or 0) / 60), 'startsAt': meta.get('startsAt'),
                     'stories': len([g for g in meta.get('segments', []) if g.get('title')])})
     json.dump({'videos': out}, open(os.path.join(DIST, 'api', 'videos.json'), 'w'))
+    # every show ever saved (GitHub Releases); the list lives in data/ so it survives restarts
+    arch_path = os.path.join(DATA, 'archive.json')
+    try: arch = json.load(open(arch_path))
+    except Exception: arch = []
+    new_path = os.path.join(VIDEO_DIR, 'archive-new.jsonl')
+    if os.path.exists(new_path):
+        os.replace(new_path, new_path + '.reading')
+        have = {a['slot'] for a in arch}
+        for line in open(new_path + '.reading'):
+            try: r = json.loads(line)
+            except Exception: continue
+            if r['slot'] not in have: arch.append(r); have.add(r['slot'])
+        os.remove(new_path + '.reading')
+        arch.sort(key=lambda a: a['slot'], reverse=True)
+        if os.path.isdir(DATA): json.dump(arch, open(arch_path, 'w'))
+    json.dump({'shows': arch[:3000]}, open(os.path.join(DIST, 'api', 'archive.json'), 'w'))
+    if arch: print(f"archive: {len(arch)} shows saved forever")
     if out: print(f"videos: {len(out)} published ({', '.join(x['slot'] for x in out)})")
 
 

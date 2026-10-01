@@ -272,6 +272,11 @@ test('30-minute live show: sections, bumpers, timing, half-hour slots', async ()
   assert.ok(sh.totalSeconds > 8 * 60 && sh.totalSeconds < 34 * 60, `length ${sh.totalSeconds}`);
   for (let i = 1; i < sh.segments.length; i++) assert.ok(Math.abs(sh.segments[i].start - (sh.segments[i - 1].start + sh.segments[i - 1].dur)) < 1e-6);
   assert.doesNotMatch(sh.segments.map((g) => g.text).join(' '), /\b(damn|hell|crap|shit|fuck)\b/i);
-  assert.equal(showSlot(Date.parse('2026-10-01T01:50:00Z')), '2026-09-30T20:30');
-  assert.equal(showSlot(Date.parse('2026-10-01T02:05:00Z')), '2026-09-30T21:00');
+  assert.equal(showSlot(Date.parse('2026-10-01T01:50:00Z'), 30), '2026-09-30T20:30');
+  assert.equal(showSlot(Date.parse('2026-10-01T02:05:00Z'), 30), '2026-09-30T21:00');
+  assert.equal(showSlot(Date.parse('2026-10-01T02:07:00Z')), '2026-09-30T21:00');
+  assert.equal(showSlot(Date.parse('2026-10-01T02:17:00Z')), '2026-09-30T21:10');
+  const mini = buildShow(stories, now, { targetMinutes: 2 });
+  assert.ok(mini.totalSeconds < 170, `2-minute show is ${mini.totalSeconds}s`);
+  assert.equal(mini.segments.at(-1).kind, 'outro');
 });

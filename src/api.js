@@ -151,7 +151,7 @@ export async function handleApi({ method, path, query = {}, body = {} }, ctx) {
     const slot = showSlot(now);
     if (!showCache || showCache.slot !== slot) {
       const all = queryStories(state, { view: 'all', limit: 600 }, now).stories;
-      showCache = { ...buildShow(all, now, { nfl: nflCache?.data || null }), slot }; // phone voice in server mode
+      showCache = { ...buildShow(all, now, { nfl: nflCache?.data || null, targetMinutes: 2 }), slot }; // phone voice in server mode
     }
     return json(200, showCache);
   }

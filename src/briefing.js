@@ -225,6 +225,22 @@ const SECTION = {
   cars: { title: 'GARAGE', icon: '🚗', bumper: ['Welcome to the Garage, where everything goes vroom.'] },
   quick: { title: 'QUICK HITS', icon: '⚡', bumper: ['Lightning round! Quick Hits, rapid fire, here we go.'] },
 };
+const SHORT_INTRO = ["Rawr! Smash here with your SMASH NEWS rundown.", "Hey hey! It's Smash, and I've got the good stuff.", "Wake up, sleepyheads, it's Smash with the news!", "Smash the lion, live from my news desk, with way too much coffee in me."];
+const SHORT_BUMP = {
+  top: ['First up, the big one.', "Let's start with the big stuff."],
+  dupage: ['Right here at home in DuPage.', 'Over in the neighborhood.'],
+  roads: ['Heads up on the roads.', 'Road and police check.'],
+  nfl: ['Football time!', 'NFL!'],
+  drops: ['New stuff alert!', 'Something new just dropped!'],
+  deals: ['Deal alert!', 'Wallets out!'],
+  recalls: ['Quick recall check.'],
+  us: ['And around the country.'],
+};
+const SHORT_OUTRO = [
+  "That's the big stuff! I'll be back in ten minutes with what's new. Stay smashing.",
+  "And that's your rundown! New one in ten minutes. Go drink some water and pay a bill.",
+  "That's it from me! Back in ten. Don't do anything I wouldn't do, which is not much.",
+];
 const UP_NEXT = ['Coming up next:', 'Stick around, because next up is', "Don't go anywhere. Up next:"];
 const MID = [
   "If you're watching this at work, act natural. Just nod like it's a spreadsheet.",
@@ -235,14 +251,18 @@ const MID = [
   "If you're just tuning in, I'm Smash the lion and this is SMASH NEWS, everything new, every day.",
 ];
 
-export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes = 30 } = {}) {
-  const fresh = stories.filter((s) => now - pub(s) < 48 * 3600e3 && !s.tags?.includes('RUMOR') && !s.tags?.includes('LEAK'));
-  const pool = fresh.length >= 40 ? fresh : stories;
+export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes = 30, avoid = [] } = {}) {
+  const short = targetMinutes <= 5; // the 2-minute "big stuff" rundown
+  const fresh = stories.filter((s) => now - pub(s) < (short ? 18 : 48) * 3600e3 && !s.tags?.includes('RUMOR') && !s.tags?.includes('LEAK'));
+  const pool = fresh.length >= (short ? 15 : 40) ? fresh : stories;
+  const avoidSet = new Set(avoid);
+  // short show: newest big stories first, and skip what Smash said in the last rundown when there's something new
+  const rank = (s) => (short ? s.score * (now - pub(s) < 3 * 3600e3 ? 1.6 : now - pub(s) < 8 * 3600e3 ? 1.2 : 1) * (avoidSet.has(s.id) ? 0.35 : 1) : s.score);
   const used = new Set();
   const brandsUsed = new Map();
   const take = (fn, n) => {
     const out = [];
-    for (const s of pool.filter((x) => !used.has(x.id) && fn(x)).sort((a, b) => b.score - a.score)) {
+    for (const s of pool.filter((x) => !used.has(x.id) && fn(x)).sort((a, b) => rank(b) - rank(a))) {
       if (out.length >= n) break;
       if ((s.brands || []).some((b) => (brandsUsed.get(b) || 0) >= 2)) continue;
       out.push(s); used.add(s.id); (s.brands || []).forEach((b) => brandsUsed.set(b, (brandsUsed.get(b) || 0) + 1));
@@ -252,7 +272,16 @@ export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes
   const roadInc = new Set(['crash', 'closure', 'construction', 'traffic', 'trees', 'police', 'fire', 'emergency', 'flooding', 'weather', 'outage', 'metra', 'missing']);
   const ROADY = /\b(crash|collision|closure|closed|close|lanes?|traffic|construction|I-\d+|interstate|route \d+|road|highway|expressway|tollway|detour|bridge|ramp|police|cops?|sheriff|fire|firefighters|arrest\w*|charged|shooting|shot|stabb\w*|robbery|burglar\w*|theft|missing|pedestrian|driver|motorcycl\w*|metra|train|outage|evacuat\w*|swat)\b/i;
   const states = new Set();
-  const plan = [
+  const plan = short ? [
+    ['top', take((s) => (s.status === 'BREAKING' || (s.alsoReportedBy?.length || 0) >= 2) && ['news', 'dupage'].includes(s.category), 2)],
+    ['dupage', take((s) => isLocal(s), 2)],
+    ['roads', take((s) => ((s.region?.roads || s.region?.county || isLocal(s)) && ROADY.test(s.title)) || (isLocal(s) && roadInc.has(s.location?.incident?.id)), 1)],
+    ['nfl', []],
+    ['drops', take((s) => s.tags?.includes('LAUNCH') || s.tags?.includes('LIMITED'), 1)],
+    ['deals', take((s) => s.tags?.includes('DEAL'), 1)],
+    ['recalls', take((s) => s.tags?.includes('RECALL') && now - pub(s) < 12 * 3600e3, 1)],
+    ['us', take((s) => s.category === 'news' && !s.region?.state, 1)],
+  ] : [
     ['top', take((s) => (s.status === 'BREAKING' || (s.alsoReportedBy?.length || 0) >= 3) && ['news', 'dupage'].includes(s.category), 6)],
     ['dupage', take((s) => isLocal(s), 12)],
     ['roads', take((s) => ((s.region?.roads || s.region?.county || isLocal(s)) && ROADY.test(s.title)) || (isLocal(s) && roadInc.has(s.location?.incident?.id)), 10)],
@@ -273,21 +302,23 @@ export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes
   const segs = [];
   const time = new Date(now).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
   const day = new Date(now).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ });
-  segs.push({ kind: 'intro', section: 'SMASH NEWS', mood: 'hype', text: `${pick(INTRO, Math.floor(now / 18e5))} It's ${time} on ${day}, and this is your thirty minute SMASH NEWS show. We've got local news, roads, football, new stuff, deals, and news from all over the country. Let's go!` });
-  const nflSegs = nflSegments(nfl, now).map((x) => ({ ...x, section: 'NFL ZONE' }));
-  const nflNews = (nfl?.news || []).slice(0, 4).map((n, k) => ({ kind: 'nfl', section: 'NFL ZONE', title: n.title, imageUrl: n.image, category: 'nfl', source: 'ESPN', text: `${k === 0 ? 'In other football news, ' : ''}${speakable(n.title)}. ${firstSentence(n.summary, n.title)}`.trim() }));
+  segs.push({ kind: 'intro', section: 'SMASH NEWS', mood: 'hype', text: short
+    ? `${pick(SHORT_INTRO, Math.floor(now / 6e5))} It's ${time}. Here's the big stuff, in two minutes. Go!`
+    : `${pick(INTRO, Math.floor(now / 18e5))} It's ${time} on ${day}, and this is your thirty minute SMASH NEWS show. We've got local news, roads, football, new stuff, deals, and news from all over the country. Let's go!` });
+  const nflSegs = nflSegments(nfl, now).slice(0, short ? 1 : 4).map((x) => ({ ...x, section: 'NFL ZONE' }));
+  const nflNews = (nfl?.news || []).slice(0, short ? 0 : 4).map((n, k) => ({ kind: 'nfl', section: 'NFL ZONE', title: n.title, imageUrl: n.image, category: 'nfl', source: 'ESPN', text: `${k === 0 ? 'In other football news, ' : ''}${speakable(n.title)}. ${firstSentence(n.summary, n.title)}`.trim() }));
   let wordCount = words(segs[0].text);
-  const budget = targetMinutes * 60 * WPS;
+  const budget = targetMinutes * 60 * WPS * (short ? 0.85 : 1);
   const active = plan.filter(([key, list]) => (key === 'nfl' ? nflSegs.length + nflNews.length : list.length));
   active.forEach(([key, list], idx) => {
     if (wordCount > budget) return;
     const sec = SECTION[key];
-    segs.push({ kind: 'bumper', section: sec.title, icon: sec.icon, mood: ['roads', 'recalls'].includes(key) ? 'normal' : 'hype', text: pick(sec.bumper, now + idx) });
+    segs.push({ kind: 'bumper', section: sec.title, icon: sec.icon, mood: ['roads', 'recalls'].includes(key) ? 'normal' : 'hype', text: short ? pick(SHORT_BUMP[key] || [`${sec.title}.`], now + idx) : pick(sec.bumper, now + idx) });
     const items = key === 'nfl' ? [...nflSegs, ...nflNews] : list;
     for (const it of items) {
       if (wordCount > budget) break;
       let seg;
-      if (key === 'nfl') seg = it;
+      if (key === 'nfl') seg = short ? { ...it, text: it.text.replace(/^.*?(Final score|Live right now)/, '$1') } : it;
       else if (key === 'quick') seg = { kind: 'quick', storyId: it.id, title: it.title, imageUrl: it.imageUrl || null, category: it.category, source: it.sourceName, text: `${speakable(it.title)}.` };
       else {
         const inc = it.location?.incident?.id || it.region?.incident?.id;
@@ -296,7 +327,7 @@ export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes
         const lead = key === 'states' ? `In ${it.region.state},` : (key === 'dupage' || key === 'roads' || key === 'local') && where ? `In ${where},` : '';
         const cap = (t, n) => { const w = t.split(/\s+/); return w.length <= n ? t : `${w.slice(0, n).join(' ').replace(/[,;:]$/, '')}.`; };
         const deep = ['top', 'dupage', 'us', 'local', 'roads', 'recalls', 'states'].includes(key);
-        const extra = key === 'recalls' && it.recall?.action ? `${sentences(it.summary, it.title, 1)} ${speakable(it.recall.action)}.` : cap(sentences(it.summary, it.title, deep ? 3 : 2), deep ? 70 : 45);
+        const extra = key === 'recalls' && it.recall?.action ? `${short ? '' : sentences(it.summary, it.title, 1)} ${speakable(it.recall.action)}.` : short ? cap(sentences(it.summary, it.title, 1), 18) : cap(sentences(it.summary, it.title, deep ? 3 : 2), deep ? 70 : 45);
         const quipList = serious ? null : (QUIPS[it.category] && key !== 'deals' ? QUIPS[it.category] : QUIPS[key === 'drops' ? 'product' : key === 'deals' ? 'deal' : key === 'openings' ? 'opening' : ''] );
         const h = Math.abs([...it.id].reduce((a, c) => a + c.charCodeAt(0), 0));
         const adultList = ADULT[key === 'drops' ? 'product' : key === 'deals' ? 'deal' : key === 'openings' ? 'opening' : it.category] || null;
@@ -309,20 +340,21 @@ export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes
       segs.push(seg);
       wordCount += words(seg.text);
     }
-    if (idx === 3 || idx === 8) segs.push({ kind: 'bumper', section: sec.title, text: pick(MID, now + idx) });
+    if (!short && (idx === 3 || idx === 8)) segs.push({ kind: 'bumper', section: sec.title, text: pick(MID, now + idx) });
     const next = active[idx + 1];
-    if (next && wordCount < budget) segs.push({ kind: 'bumper', section: sec.title, text: `${pick(UP_NEXT, now + idx)} ${SECTION[next[0]].title.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace('Dupage', 'DuPage').replace('Nfl', 'NFL').replace('U.s.', 'U.S.').replace(' & ', ' and ')}.`.replace('..', '.') });
+    if (!short && next && wordCount < budget) segs.push({ kind: 'bumper', section: sec.title, text: `${pick(UP_NEXT, now + idx)} ${SECTION[next[0]].title.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace('Dupage', 'DuPage').replace('Nfl', 'NFL').replace('U.s.', 'U.S.').replace(' & ', ' and ')}.`.replace('..', '.') });
   });
-  segs.push({ kind: 'outro', section: 'SMASH NEWS', text: `${pick(OUTRO, Math.floor(now / 18e5) + 1).replace('in about ten minutes', 'with a brand new show in thirty minutes').replace('in ten minutes', 'in thirty minutes')}` });
+  if (short) segs.push({ kind: 'outro', section: 'SMASH NEWS', mood: 'hype', text: pick(SHORT_OUTRO, Math.floor(now / 6e5)) });
+  else segs.push({ kind: 'outro', section: 'SMASH NEWS', text: `${pick(OUTRO, Math.floor(now / 18e5) + 1).replace('in about ten minutes', 'with a brand new show in thirty minutes').replace('in ten minutes', 'in thirty minutes')}` });
   // timing estimate (replaced by real audio durations after the voice is generated)
   let t = 0;
   for (const x of segs) { x.dur = Math.max(2.5, words(x.text) / WPS + 0.4); x.start = t; t += x.dur; }
   return { id: `show-${now}`, createdAt: new Date(now).toISOString(), startsAt: new Date(now).toISOString(), totalSeconds: Math.round(t), wordCount, segments: segs };
 }
 
-/** Half-hour slot (Central time) a timestamp belongs to, e.g. 2026-10-01T20:30. */
-export function showSlot(ms = Date.now()) {
+/** Show slot (Central time, every 10 minutes by default) a timestamp belongs to, e.g. 2026-10-01T20:30. */
+export function showSlot(ms = Date.now(), minutes = 10) {
   const d = new Date(ms);
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d).map((x) => [x.type, x.value]));
-  return `${p.year}-${p.month}-${p.day}T${p.hour}:${Number(p.minute) < 30 ? '00' : '30'}`;
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${String(Math.floor(Number(p.minute) / minutes) * minutes).padStart(2, '0')}`;
 }
