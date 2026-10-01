@@ -13,7 +13,7 @@ export function speakable(text = '') {
     .replace(/\bIL-(\d+)/g, 'Route $1')
     .replace(/\bUS-(\d+)/g, 'U.S. $1')
     .replace(/&/g, ' and ')
-    .replace(/\bvs\.?\b/gi, 'versus')
+    .replace(/\bvs\.?(?=\s|$)/gi, 'versus')
     .replace(/\bw\//gi, 'with ')
     .replace(/[“”"]/g, '')
     .replace(/[‘’]/g, "'")
