@@ -134,7 +134,7 @@ async function staticApi(path, opts) {
   if (method !== 'GET') throw new Error('Not available in the free hosted version — edit src/config.js in the repo instead');
   const d = await loadStatic();
   if (p === 'api/meta') return { ...d.meta, refreshing: false, mode: 'static' };
-  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos' || p === 'api/archive' || p === 'api/recaps' || p === 'api/roadwatch') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
+  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos' || p === 'api/archive' || p === 'api/recaps' || p === 'api/roadwatch' || p === 'api/roadlive') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
   if (p === 'api/dupage') return d.dupage;
   if (p === 'api/brands') return d.brands;
   if (p === 'api/sources') return d.sources;
@@ -555,6 +555,7 @@ const views = {
     if (p.type) list = list.filter((s) => incOf(s) === p.type);
     const link = (o) => `#/roads?${qs({ ...p, ...o })}`;
     let html = viewHead('Roads & Safety', 'Crashes, closures, construction, traffic, police and fire across Chicagoland. Every item is tied to a real county or town, never a highway name alone.');
+    html += `<button class="btn primary rw-live" data-action="road-map">🗺️ Live road map · closures, construction &amp; crashes in every state</button>`;
     let rw = null; try { rw = await api('/api/roadwatch'); } catch {}
     app.rw = rw;
     if (rw?.video) html += `<div class="rw-box"><div class="rw-head"><b>🗺️ Road Watch video</b><span class="muted">${rw.total} incidents · ${rw.stateCount} states · updated ${esc(clock(rw.videoAt || rw.createdAt))}</span></div>
@@ -860,6 +861,41 @@ function openSheetHtml(html) {
 }
 function openVideo(id, title) {
   openSheetHtml(`<div class="video-wrap"><iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?playsinline=1&autoplay=1&rel=0" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div><div class="content"><h2>${esc(title)}</h2><a class="btn" href="https://www.youtube.com/watch?v=${encodeURIComponent(id)}" target="_blank" rel="noopener">Open in YouTube ↗</a></div>`);
+}
+// ---------- Live road map (official state DOT work zones/closures with exact roads + times, plus news crashes)
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  return app.leafletLoading ||= new Promise((res, rej) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.append(css);
+    const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; sc.onload = res; sc.onerror = rej; document.head.append(sc);
+  });
+}
+async function openRoadMap() {
+  openSheetHtml(`<div class="lm"><div class="lm-top"><b>🗺️ Live road map</b><span class="muted" id="lmInfo">Loading official state feeds…</span></div><div class="lm-states" id="lmStates"></div><div id="lmap"></div>
+    <div class="lm-key"><span style="--k:#ff9f1c">⛔ Closure</span><span style="--k:#ffd400">🚧 Construction</span><span style="--k:#ff3d2e">💥 Crash / news</span></div></div>`);
+  document.getElementById('sheet').classList.add('sheet-full');
+  let live = null, rw = null;
+  try { [live, rw] = await Promise.all([api('/api/roadlive').catch(() => null), api('/api/roadwatch').catch(() => null), loadLeaflet()]); } catch { toast('Map failed to load'); return; }
+  const map = app.lmap = L.map('lmap', { zoomControl: true, preferCanvas: true }).setView([39.5, -96], 4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19, attribution: '© OpenStreetMap contributors © CARTO' }).addTo(map);
+  const fmt = (iso) => (iso ? new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+  const states = {}; let n = 0;
+  for (const [st, evs] of Object.entries(live?.states || {})) {
+    for (const e of evs) {
+      const col = e.type === 'closure' ? '#ff9f1c' : '#ffd400';
+      const ll = e.coords.map((c) => [c[1], c[0]]);
+      const pop = `<b>${e.type === 'closure' ? '⛔ CLOSURE' : '🚧 CONSTRUCTION'}</b><br><b>${esc(e.road || 'Road work')}</b> ${esc(e.direction || '')}${e.from || e.to ? `<br>${esc([e.from, e.to].filter(Boolean).join(' → '))}` : ''}${e.lanes ? `<br>${e.lanes} lane(s) closed` : ''}${e.impact ? `<br>${esc(e.impact)}` : ''}<br><b>Start:</b> ${esc(fmt(e.start))}<br><b>End:</b> ${esc(fmt(e.end))}${e.desc ? `<br><small>${esc(e.desc)}</small>` : ''}<br><small>${esc(e.source)} · official</small>`;
+      const layer = ll.length > 1 ? L.polyline(ll, { color: col, weight: 5, opacity: 0.9 }) : L.circleMarker(ll[0], { radius: 6, color: col, fillOpacity: 0.9 });
+      layer.bindPopup(pop).addTo(map); n++;
+      (states[st] ||= L.latLngBounds(ll)).extend(L.latLngBounds(ll));
+    }
+  }
+  app.roadStates = states;
+  const newsCount = rw?.news || 0;
+  $('#lmInfo').textContent = `${n} official closures & work zones in ${Object.keys(states).length} states · ${newsCount} crash/news reports · updated ${clock(live?.updatedAt)}`;
+  $('#lmStates').innerHTML = Object.keys(states).sort().map((st) => `<button class="chip" data-action="rm-state" data-st="${esc(st)}">${esc(st)} <b>${(live.states[st] || []).length}</b></button>`).join('')
+    + (rw?.states || []).filter((s) => !states[s.name]).map((s) => `<span class="chip muted">${esc(s.name)} · news only</span>`).join('');
+  setTimeout(() => map.invalidateSize(), 200);
 }
 function fantasyBoard(g) {
   const f = g.fantasy; if (!f?.away || !f?.home) return '';
@@ -1226,6 +1262,7 @@ function initTv(sh) {
 function closeSheet() {
   try { app.hl?.player?.destroy(); } catch {} app.hl = null;
   try { app.rm?.player?.destroy(); } catch {} app.rm = null; $('#sheet')?.classList.remove('sheet-full');
+  try { app.lmap?.remove(); } catch {} app.lmap = null;
   $('#sheet').hidden = true;
   $('#sheetBackdrop').hidden = true;
   document.body.style.overflow = '';
@@ -1474,6 +1511,8 @@ document.addEventListener('click', async (e) => {
   if (a === 'select-off') { app.selectMode = false; reelFab(); markPicked(); return; }
   if (a === 'reel-clear') { prefs.reel = []; saveReel(); return; }
   if (a === 'reel-add') { const s2 = app.stories.get(t.dataset.id); if (s2 && !prefs.reel.some((x) => x.id === s2.id)) { prefs.reel.push(s2); saveReel(); } toast(`Added to reel (${prefs.reel.length}) — open Reel Studio to make it`); return; }
+  if (a === 'road-map') return openRoadMap();
+  if (a === 'rm-state') { const b = app.roadStates?.[t.dataset.st]; if (b && app.lmap) app.lmap.fitBounds(b, { padding: [20, 20] }); return; }
   if (a === 'rw-save') { if (app.rw?.video) saveFile(app.rw.video, `smash-road-watch-${(app.rw.videoAt || '').slice(0, 16).replace(/[:T]/g, '-')}.mp4`, 'video/mp4'); return; }
   if (a === 'fz-save') { const r = app.recaps?.find((x) => x.id === t.dataset.id); if (!r) return; return r.fantasyPage ? saveFile(r.fantasyPage, `smash-fantasy-${r.away.abbr}-at-${r.home.abbr}.mp4`.toLowerCase(), 'video/mp4') : window.open(r.fantasyVideo, '_blank'); }
   if (a === 'recap-play' || a === 'recap-save') {

@@ -162,7 +162,16 @@ async function roadWatch(list) {
   const { spawn } = await import('node:child_process');
   const WORK = '/tmp/smash-roads';
   fs.mkdirSync(WORK, { recursive: true });
-  const rw = buildRoadWatch(list, Date.now(), { hours: 12 });
+  // official live work zones & closures (state DOT WZDx feeds), refreshed every 20 minutes
+  const zf = path.join(path.dirname(store.file), 'wzdx.json');
+  let zones = null; try { zones = JSON.parse(fs.readFileSync(zf, 'utf8')); } catch {}
+  if (!zones || Date.now() - Date.parse(zones.updatedAt) > 20 * 60e3) {
+    try { const { fetchWorkZones } = await import('../src/wzdx.js'); zones = await fetchWorkZones(); fs.writeFileSync(zf, JSON.stringify(zones));
+      console.log(`work zones: ${Object.values(zones.states).reduce((a, b) => a + b.length, 0)} in ${Object.keys(zones.states).length} states (${zones.feeds.filter((f) => !f.ok).length} feeds failed)`); }
+    catch (e) { console.log('work zones failed:', e.message); }
+  }
+  if (zones) write('roadlive', zones);
+  const rw = buildRoadWatch(list, Date.now(), { hours: 12, zones, maxStates: 22, perState: 3 });
   const vids = fs.readdirSync(WORK).filter((f) => /^road-watch-\d+\.mp4$/.test(f)).sort().reverse();
   for (const old of vids.slice(6)) fs.rmSync(path.join(WORK, old), { force: true });
   fs.mkdirSync(path.join(OUT, 'roads'), { recursive: true });

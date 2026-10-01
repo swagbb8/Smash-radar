@@ -25,16 +25,20 @@ svg{width:100%;height:100%}
 .card{display:flex;gap:18px;align-items:flex-start;padding:18px 22px;border-radius:20px;background:#11161c;border:2px solid rgba(255,255,255,.08);border-left:10px solid var(--k)}
 .card .ic{font-size:50px;line-height:1}.card .tx{flex:1;min-width:0}.card .k{font-size:22px;font-weight:700;letter-spacing:.16em;color:var(--k)}
 .card .t{font-size:33px;font-weight:700;line-height:1.15;max-height:78px;overflow:hidden}.card .m{font-size:23px;color:#9aa3ad;margin-top:4px}.card .m b{color:#c6ff3d}
+.tl{position:absolute;inset:0;overflow:hidden;opacity:0;background:#0b0f14}.tl .tw{position:absolute;left:0;top:0;transform-origin:540px 450px}.tl img{position:absolute;width:256px;height:256px}
+.tl svg{position:absolute;left:0;top:0;width:1080px;height:900px;overflow:visible}.tl .attr{position:absolute;right:8px;bottom:6px;font-size:16px;color:#8a929c;background:rgba(0,0,0,.5);padding:2px 6px;border-radius:4px}
+.tl .road{position:absolute;left:24px;top:24px;font-family:Anton;font-size:52px;background:rgba(6,8,11,.82);padding:8px 18px;border-radius:12px;border-left:10px solid var(--k)}
 .fin{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(80% 60% at 50% 40%,rgba(255,61,46,.25),#06080b 70%)}
 .fin h2{font-family:Anton;font-weight:400;font-size:190px;line-height:1}.fin p{font-size:40px;letter-spacing:.16em;margin-top:10px}.fin small{display:block;margin-top:40px;font-size:30px;color:#c6ff3d;letter-spacing:.2em}
 </style></head><body><div id="st">
 <div class="top"><div class="lg"></div><b><em>SMASH</em> NEWS</b><span style="opacity:.8">ROAD WATCH</span><span class="tag" id="clock"></span></div>
 <div class="ttl"><h1 id="h1"></h1><p id="sub"></p></div>
-<div id="mapw"><svg id="map" preserveAspectRatio="xMidYMid meet"><g id="gs"></g><g id="gc"></g><g id="gp"></g></svg><div id="lbls"></div></div>
+<div id="mapw"><svg id="map" preserveAspectRatio="xMidYMid meet"><g id="gs"></g><g id="gc"></g><g id="gp"></g></svg><div id="lbls"></div><div id="tiles"></div></div>
 <div class="cards" id="cards"></div><div class="fin" id="fin" style="display:none"></div>
-</div><script>
+</div><script>/*D3*/</script><script>
 const $=(s)=>document.querySelector(s);const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));const seg=(t,a,b)=>clamp((t-a)/(b-a));const ioc=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;const oc=p=>1-Math.pow(1-p,3);const ob=p=>1+2.70158*Math.pow(p-1,3)+1.70158*Math.pow(p-1,2);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PROJ=(c)=>window.d3?d3.geoAlbersUsa().scale(1300).translate([487.5,305])(c):null;
 const KC={crash:'#ff3d2e',closure:'#ff9f1c',construction:'#ffd400',police:'#3d8bff',fire:'#ff6b2e',weather:'#22c3ee',traffic:'#c6ff3d'};
 let M,D,SC,cur=-1;const US=[-10,-10,995,630];
 function vb(b){$('#map').setAttribute('viewBox',b.map(x=>x.toFixed(2)).join(' '));}
@@ -47,9 +51,24 @@ window.setup=(d)=>{D=d.rw;M=d.map;SC=d.scenes;
  $('#gc').innerHTML=M.ilCounties.map(c=>`<path class="c" id="c-${c.id}" d="${c.d}" style="opacity:0"/>`).join('');
  // pins: county centroid when known, else spread around the state's center
  let pins='';D.states.forEach((s,si)=>{const st=M.states.find(x=>x.name===s.name);if(!st)return;s.incidents.forEach((it,k)=>{let p=st.c;const co=it.county&&s.name==='Illinois'?M.ilCounties.find(c=>c.name===it.county):null;
-   if(co)p=co.c;const a=k*2.4+si,r=co?2.5*k:(Math.min(st.bbox[2]-st.bbox[0],st.bbox[3]-st.bbox[1])*0.12)*(k?1:0);const x=p[0]+Math.cos(a)*r,y=p[1]+Math.sin(a)*r;
+   if(co)p=co.c;if(it.center){const pr=PROJ(it.center);if(pr)p=pr;}const a=k*2.4+si,r=it.center?0:co?2.5*k:(Math.min(st.bbox[2]-st.bbox[0],st.bbox[3]-st.bbox[1])*0.12)*(k?1:0);const x=p[0]+Math.cos(a)*r,y=p[1]+Math.sin(a)*r;
    pins+=`<g class="pin" data-s="${si}" data-k="${k}" transform="translate(${x} ${y})"><circle class="ring" r="0" fill="none" stroke="${KC[it.type]}" stroke-width="1.5" vector-effect="non-scaling-stroke"/><circle class="dot" r="0" fill="${KC[it.type]}"/></g>`;});});
- $('#gp').innerHTML=pins;vb(US);};
+ $('#gp').innerHTML=pins;vb(US);
+ // street-level map (CARTO dark tiles, © OpenStreetMap) for the top official incident in each state
+ const waits=[];let th='';
+ SC.forEach((sc,i)=>{if(sc.kind!=='state'||!sc.street)return;const it=sc.street;const b=it.bbox;
+   const X=(lon,z)=>(lon+180)/360*256*2**z,Y=(lat,z)=>{const r=lat*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*256*2**z};
+   const dx=Math.max(1e-4,X(b[2],0)-X(b[0],0)),dy=Math.max(1e-4,Y(b[1],0)-Y(b[3],0));
+   const z=Math.max(9,Math.min(16,Math.floor(Math.log2(Math.min(1080*0.55/dx,900*0.55/dy)))));
+   const cx=X((b[0]+b[2])/2,z),cy=Y((b[1]+b[3])/2,z),ox=cx-540,oy=cy-450;
+   let imgs='';for(let tx=Math.floor((ox-300)/256);tx<=Math.floor((ox+1380)/256);tx++)for(let ty=Math.floor((oy-300)/256);ty<=Math.floor((oy+1200)/256);ty++){const n=2**z;if(ty<0||ty>=n)continue;const sub='abcd'[(tx+ty)&3];
+     imgs+=`<img onerror="this.style.visibility='hidden'" src="https://${sub}.basemaps.cartocdn.com/dark_all/${z}/${((tx%n)+n)%n}/${ty}@2x.png" style="left:${tx*256-ox}px;top:${ty*256-oy}px">`;}
+   const pts=it.coords.map(c=>[X(c[0],z)-ox,Y(c[1],z)-oy]);const d=pts.map((p,k)=>(k?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
+   const k=KC[it.type]||'#ff9f1c';
+   th+=`<div class="tl" id="tl-${i}" style="--k:${k}"><div class="tw">${imgs}<svg width="1080" height="900"><path d="${d}" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><path class="rp" d="${d}" fill="none" stroke="${k}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>${pts.length===1?`<circle cx="${pts[0][0]}" cy="${pts[0][1]}" r="18" fill="${k}" stroke="#fff" stroke-width="4"/>`:''}</svg></div><div class="road">${esc(it.title.split(' · ')[0])}</div><div class="attr">© OpenStreetMap contributors © CARTO</div></div>`;});
+ $('#tiles').innerHTML=th;
+ document.querySelectorAll('#tiles img').forEach(im=>waits.push(new Promise(r=>{if(im.complete)r();im.onload=im.onerror=r;})));
+ return Promise.race([Promise.all(waits),new Promise(r=>setTimeout(r,20000))]);};
 window.frame=(t)=>{let i=SC.findIndex(s=>t<s.start+s.dur);if(i<0)i=SC.length-1;const sc=SC[i],lt=t-sc.start;
  const fin=$('#fin');
  if(sc.kind==='intro'){vb(US);document.querySelectorAll('.s.hot').forEach(e=>e.style.fillOpacity=.6+.4*Math.sin(t*6));$('#cards').innerHTML='';$('#lbls').innerHTML='';fin.style.display='none';
@@ -62,10 +81,14 @@ window.frame=(t)=>{let i=SC.findIndex(s=>t<s.start+s.dur);if(i<0)i=SC.length-1;c
  if(i!==cur){cur=i;document.querySelectorAll('.s').forEach(e=>{e.classList.remove('on');e.style.fillOpacity=''});const el=document.getElementById('s-'+sc.sid);el&&el.classList.add('on');
    const il=s.name==='Illinois';const cs=new Set(s.incidents.map(x=>x.county).filter(Boolean));document.querySelectorAll('.c').forEach(c=>{c.style.opacity=il?1:0;c.classList.toggle('on',il&&cs.has(M.ilCounties.find(x=>'c-'+x.id===c.id)?.name))});
    const ago=(a)=>{const m=Math.max(1,Math.round((Date.parse(SC.now)-Date.parse(a))/6e4));return m<60?`${m}m ago`:`${Math.round(m/60)}h ago`};
-   $('#cards').innerHTML=`<div class="sname"><b>${esc(s.name.toUpperCase())}</b><span>${s.count} INCIDENT${s.count>1?'S':''}</span></div>`+s.incidents.map(it=>`<div class="card" style="--k:${KC[it.type]}"><div class="ic">${it.icon}</div><div class="tx"><div class="k">${it.label}${it.place?` · ${esc(it.place.toUpperCase())}`:''}</div><div class="t">${esc(it.title)}</div><div class="m">${ago(it.at)} · ${esc(it.source||'')}${it.est?` · <b>Est: ${esc(it.est)}</b>`:''}</div></div></div>`).join('');}
+   $('#cards').innerHTML=`<div class="sname"><b>${esc(s.name.toUpperCase())}</b><span>${s.count} INCIDENT${s.count>1?'S':''}</span></div>`+s.incidents.map(it=>`<div class="card" style="--k:${KC[it.type]}"><div class="ic">${it.icon}</div><div class="tx"><div class="k">${it.label}${it.place?` · ${esc(it.place.toUpperCase())}`:''}</div><div class="t">${esc(it.title)}</div><div class="m">${it.official?`since ${new Date(it.at).toLocaleDateString('en-US',{month:'short',day:'numeric'})}`:ago(it.at)} · ${esc(it.source||'')}${it.est?` · <b>Est: ${esc(it.est)}</b>`:''}</div></div></div>`).join('');}
  const z=sc.box[2]/975;
  document.querySelectorAll('.pin').forEach(p=>{const on=+p.dataset.s===sc.si;const k=+p.dataset.k;const q=on?seg(lt,.8+k*.18,1.1+k*.18):0;
    p.querySelector('.dot').setAttribute('r',((on?11:3)*z*ob(q||0.0001)+(on?0:2.5*z)).toFixed(2));const rr=((lt*1.4+k*.3)%1);p.querySelector('.ring').setAttribute('r',(on?(8+rr*26)*z:0).toFixed(2));p.querySelector('.ring').setAttribute('opacity',(1-rr).toFixed(2));});
+ document.querySelectorAll('.tl').forEach(e=>{if(e.id!=='tl-'+i)e.style.opacity=0;});
+ const tl=document.getElementById('tl-'+i);
+ if(tl){const q=seg(lt,1.0,1.5);tl.style.opacity=q;tl.querySelector('.tw').style.transform=`scale(${1+seg(lt,1.0,sc.dur)*0.18})`;tl.querySelector('.rp').setAttribute('stroke-dashoffset',(1-oc(seg(lt,1.3,2.4))).toFixed(3));
+   tl.querySelector('.road').style.transform=`translateX(${(1-oc(seg(lt,1.6,2.0)))*-700}px)`;}
  const sn=$('#cards .sname');if(sn)sn.style.transform=`translateX(${(1-oc(seg(lt,.5,.9)))*-900}px)`;
  document.querySelectorAll('#cards .card').forEach((c,k)=>{const q=oc(seg(lt,.9+k*.18,1.3+k*.18));c.style.opacity=q;c.style.transform=`translateY(${(1-q)*80}px)`;});
 };
@@ -95,8 +118,10 @@ def build(rw_path, out, clock=None):
         if s['name'] == 'Illinois':  # zoom to the counties that have incidents (Chicagoland), not the whole state
             cs = [c for c in mp['ilCounties'] if c['name'] in {i.get('county') for i in s['incidents']}]
             if cs: bb = [min(c['bbox'][0] for c in cs), min(c['bbox'][1] for c in cs), max(c['bbox'][2] for c in cs), max(c['bbox'][3] for c in cs)]
-        dur = 2.4 + 0.9 * len(s['incidents'])
-        scenes.append({'kind': 'state', 'si': si, 'sid': st['id'], 'start': t, 'dur': dur, 'box': box(bb)})
+        street = next((i for i in s['incidents'] if i.get('coords')), None)
+        if street and s['name'] != 'Illinois': bb = st['bbox']
+        dur = 2.4 + 0.9 * len(s['incidents']) + (1.6 if street else 0)
+        scenes.append({'kind': 'state', 'si': si, 'sid': st['id'], 'start': t, 'dur': dur, 'box': box(bb), 'street': street})
         t += dur
     scenes.append({'kind': 'outro', 'start': t, 'dur': 3.2, 'box': US})
     total = t + 3.2
@@ -112,9 +137,10 @@ def build(rw_path, out, clock=None):
             kw = {'args': ['--no-sandbox']}; cp = rv.chrome_path()
             if cp: kw['executable_path'] = cp
             b = await p.chromium.launch(**kw); pg = await b.new_page(viewport={'width': W, 'height': H})
-            await pg.set_content(PAGE.replace('/*FONTS*/', rv.font_css()))
+            d3 = ''.join(open(os.path.join(ROOT, 'assets', 'vendor', f)).read() for f in ('d3-array.min.js', 'd3-geo.min.js'))
+            await pg.set_content(PAGE.replace('/*FONTS*/', rv.font_css()).replace('/*D3*/', d3))
             sc = scenes; sc_js = json.loads(json.dumps(sc))
-            await pg.evaluate('(d) => { d.scenes.now = d.now; window.setup(d); }', {'rw': rw, 'map': mp, 'scenes': sc_js, 'clock': clock, 'now': rw['createdAt']})
+            await pg.evaluate('(d) => { d.scenes.now = d.now; return window.setup(d); }', {'rw': rw, 'map': mp, 'scenes': sc_js, 'clock': clock, 'now': rw['createdAt']})
             for i in range(int(total * FPS)):
                 await pg.evaluate('(t) => window.frame(t)', i / FPS)
                 ff.stdin.write(await pg.screenshot(type='jpeg', quality=88))
