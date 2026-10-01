@@ -137,6 +137,8 @@ async function nflRecaps(nflData) {
   for (const r of recs) {
     if (onSite.has(r.file) && fs.existsSync(path.join(pagesDir, r.file))) { fs.copyFileSync(path.join(pagesDir, r.file), path.join(OUT, 'nfl', r.file)); r.page = `nfl/${r.file}`; }
     else delete r.page;
+    if (r.fantasyFile && onSite.has(r.file) && fs.existsSync(path.join(pagesDir, r.fantasyFile))) { fs.copyFileSync(path.join(pagesDir, r.fantasyFile), path.join(OUT, 'nfl', r.fantasyFile)); r.fantasyPage = `nfl/${r.fantasyFile}`; }
+    else delete r.fantasyPage;
   }
   write('recaps', { recaps: recs });
   console.log(`recaps: ${recs.length} made, ${recs.filter((r) => r.page).length} on the site`);

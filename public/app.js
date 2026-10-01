@@ -933,7 +933,7 @@ async function gameReelPicker() {
 function recapCard(r) {
   const t = (k) => `<span class="rc-t ${r.winner === k ? 'w' : ''}">${r[k].logo ? `<img src="${esc(imgUrl(r[k].logo))}" alt="" referrerpolicy="no-referrer">` : ''}<b>${esc(r[k].abbr)}</b><i>${esc(r[k].score)}</i></span>`;
   return `<div class="recap"><div class="rc-score">${t('away')}<em>FINAL</em>${t('home')}</div><div class="rc-meta">${r.week ? `Week ${r.week} · ` : ''}${r.playCount ?? (Array.isArray(r.plays) ? r.plays.length : r.plays) ?? 0} scoring plays</div>
-    <div class="rc-actions"><button class="btn" data-action="game-reel" data-id="${esc(r.id)}">🎬 Reel</button>${r.page || r.video ? `<button class="btn primary" data-action="recap-play" data-id="${esc(r.id)}">▶ Watch</button>` : ''}${r.page || r.video ? `<button class="btn" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save</button>` : ''}</div></div>`;
+    <div class="rc-actions"><button class="btn" data-action="game-reel" data-id="${esc(r.id)}">🎬 Reel</button>${r.fantasyPage || r.fantasyVideo ? `<button class="btn" data-action="fz-save" data-id="${esc(r.id)}">🏆 ⬇</button>` : ''}${r.page || r.video ? `<button class="btn primary" data-action="recap-play" data-id="${esc(r.id)}">▶ Watch</button>` : ''}${r.page || r.video ? `<button class="btn" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save</button>` : ''}</div></div>`;
 }
 // ---------- Highlight Mode: official clips played back-to-back with SMASH cards in between (YouTube's own player)
 function loadYT() {
@@ -1469,6 +1469,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'select-off') { app.selectMode = false; reelFab(); markPicked(); return; }
   if (a === 'reel-clear') { prefs.reel = []; saveReel(); return; }
   if (a === 'reel-add') { const s2 = app.stories.get(t.dataset.id); if (s2 && !prefs.reel.some((x) => x.id === s2.id)) { prefs.reel.push(s2); saveReel(); } toast(`Added to reel (${prefs.reel.length}) — open Reel Studio to make it`); return; }
+  if (a === 'fz-save') { const r = app.recaps?.find((x) => x.id === t.dataset.id); if (!r) return; return r.fantasyPage ? saveFile(r.fantasyPage, `smash-fantasy-${r.away.abbr}-at-${r.home.abbr}.mp4`.toLowerCase(), 'video/mp4') : window.open(r.fantasyVideo, '_blank'); }
   if (a === 'recap-play' || a === 'recap-save') {
     const r = app.recaps?.find((x) => x.id === t.dataset.id); if (!r) return;
     const src = r.page || r.video;

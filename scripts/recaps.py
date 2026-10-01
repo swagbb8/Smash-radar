@@ -38,10 +38,21 @@ def main(nfl_json, done_json):
                 url = archive.upload(release(), out, slug, 'video/mp4')
             except Exception as e:
                 print(f'recap {gid} upload failed: {e}', file=sys.stderr)
+        fz_url, fz_file = None, None
+        try:  # fantasy showdown video for the same game (real ESPN PPR points)
+            g = next((x for x in json.load(open(nfl_json))['games'] if str(x['id']) == gid), None)
+            if g and g.get('fantasy'):
+                fz_out = os.path.join(WORK, 'out', f'{gid}-fantasy.mp4')
+                subprocess.run(['python3', 'scripts/fantasy_video.py', nfl_json, gid, fz_out], cwd=ROOT, check=True, timeout=900)
+                fz_file = f'{gid}-fantasy.mp4'
+                if archive.TOKEN and archive.REPO:
+                    fz_url = archive.upload(release(), fz_out, f"nfl-fantasy-week{spec.get('week') or ''}-{spec['away']['abbr']}-at-{spec['home']['abbr']}-{gid}.mp4".lower(), 'video/mp4')
+        except Exception as e:
+            print(f'fantasy video {gid} failed: {e}', file=sys.stderr)
         side = lambda k: {x: spec[k].get(x) for x in ('abbr', 'name', 'full', 'score', 'logo', 'color')}
         rec = {'id': gid, 'title': spec['title'], 'week': spec.get('week'), 'date': spec.get('date'), 'away': side('away'), 'home': side('home'),
                'winner': spec.get('winner'), 'video': url, 'file': f'{gid}.mp4', 'bytes': os.path.getsize(out), 'madeAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-               'playCount': len(spec.get('plays', [])), 'plays': spec.get('plays', []), 'leaders': spec.get('leaders', []), 'stats': spec.get('stats')}
+               'playCount': len(spec.get('plays', [])), 'plays': spec.get('plays', []), 'leaders': spec.get('leaders', []), 'stats': spec.get('stats'), 'fantasyVideo': fz_url, 'fantasyFile': fz_file}
         with open(os.path.join(WORK, 'new.jsonl'), 'a') as f:
             f.write(json.dumps(rec) + '\n')
         shutil.move(spec_path, os.path.join(WORK, 'done', f'{gid}.json'))
