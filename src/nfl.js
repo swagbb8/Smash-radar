@@ -6,7 +6,15 @@ import { parseXmlFeed } from './feeds.js';
 const ESPN = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl';
 const NFL_YT = 'https://www.youtube.com/feeds/videos.xml?channel_id=UCDVYQ4Zhbm3S2dlz7P1GBDg';
 
-const getJson = async (url) => JSON.parse((await fetchText(url, { timeout: 10000, headers: { accept: 'application/json' } })).text);
+const BROWSER = { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', accept: 'application/json, text/plain, */*', referer: 'https://www.espn.com/', origin: 'https://www.espn.com' };
+// ESPN serves the same JSON from two hosts; try the second if the first refuses.
+async function getJson(url) {
+  let lastErr;
+  for (const u of [url, url.replace('site.api.espn.com', 'site.web.api.espn.com')]) {
+    try { return JSON.parse((await fetchText(u, { timeout: 10000, headers: BROWSER })).text); } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
 
 function mapGame(ev) {
   const comp = ev.competitions?.[0] || {};
