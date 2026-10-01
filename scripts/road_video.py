@@ -59,13 +59,13 @@ window.setup=(d)=>{D=d.rw;M=d.map;SC=d.scenes;
  SC.forEach((sc,i)=>{if(sc.kind!=='state'||!sc.street)return;const it=sc.street;const b=it.bbox;
    const X=(lon,z)=>(lon+180)/360*256*2**z,Y=(lat,z)=>{const r=lat*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*256*2**z};
    const dx=Math.max(1e-4,X(b[2],0)-X(b[0],0)),dy=Math.max(1e-4,Y(b[1],0)-Y(b[3],0));
-   const z=Math.max(9,Math.min(16,Math.floor(Math.log2(Math.min(1080*0.55/dx,900*0.55/dy)))));
+   const z=Math.max(9,Math.min(15,Math.floor(Math.log2(Math.min(1080*0.55/dx,900*0.55/dy)))));
    const cx=X((b[0]+b[2])/2,z),cy=Y((b[1]+b[3])/2,z),ox=cx-540,oy=cy-450;
-   let imgs='';for(let tx=Math.floor((ox-300)/256);tx<=Math.floor((ox+1380)/256);tx++)for(let ty=Math.floor((oy-300)/256);ty<=Math.floor((oy+1200)/256);ty++){const n=2**z;if(ty<0||ty>=n)continue;const sub='abcd'[(tx+ty)&3];
-     imgs+=`<img onerror="this.style.visibility='hidden'" src="https://${sub}.basemaps.cartocdn.com/dark_all/${z}/${((tx%n)+n)%n}/${ty}@2x.png" style="left:${tx*256-ox}px;top:${ty*256-oy}px">`;}
+   let imgs='';for(let tx=Math.floor((ox-300)/256);tx<=Math.floor((ox+1380)/256);tx++)for(let ty=Math.floor((oy-300)/256);ty<=Math.floor((oy+1200)/256);ty++){const n=2**z;if(ty<0||ty>=n)continue;
+     imgs+=`<img onerror="this.style.visibility='hidden'" src="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${z}/${ty}/${((tx%n)+n)%n}" style="left:${tx*256-ox}px;top:${ty*256-oy}px">`;}
    const pts=it.coords.map(c=>[X(c[0],z)-ox,Y(c[1],z)-oy]);const d=pts.map((p,k)=>(k?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
    const k=KC[it.type]||'#ff9f1c';
-   th+=`<div class="tl" id="tl-${i}" style="--k:${k}"><div class="tw">${imgs}<svg width="1080" height="900"><path d="${d}" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><path class="rp" d="${d}" fill="none" stroke="${k}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>${pts.length===1?`<circle cx="${pts[0][0]}" cy="${pts[0][1]}" r="18" fill="${k}" stroke="#fff" stroke-width="4"/>`:''}</svg></div><div class="road">${esc(it.title.split(' · ')[0])}</div><div class="attr">© OpenStreetMap contributors © CARTO</div></div>`;});
+   th+=`<div class="tl" id="tl-${i}" style="--k:${k}"><div class="tw">${imgs}<svg width="1080" height="900"><path d="${d}" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><path class="rp" d="${d}" fill="none" stroke="${k}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>${pts.length===1?`<circle cx="${pts[0][0]}" cy="${pts[0][1]}" r="18" fill="${k}" stroke="#fff" stroke-width="4"/>`:''}</svg></div><div class="road">${esc(it.title.split(' · ')[0])}</div><div class="attr">Esri, HERE, Garmin, © OpenStreetMap contributors</div></div>`;});
  $('#tiles').innerHTML=th;
  document.querySelectorAll('#tiles img').forEach(im=>waits.push(new Promise(r=>{if(im.complete)r();im.onload=im.onerror=r;})));
  return Promise.race([Promise.all(waits),new Promise(r=>setTimeout(r,20000))]);};

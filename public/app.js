@@ -877,7 +877,8 @@ async function openRoadMap() {
   let live = null, rw = null;
   try { [live, rw] = await Promise.all([api('/api/roadlive').catch(() => null), api('/api/roadwatch').catch(() => null), loadLeaflet()]); } catch { toast('Map failed to load'); return; }
   const map = app.lmap = L.map('lmap', { zoomControl: true, preferCanvas: true }).setView([39.5, -96], 4);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19, attribution: '© OpenStreetMap contributors © CARTO' }).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Esri, HERE, Garmin, © OpenStreetMap contributors' }).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, opacity: 0.9 }).addTo(map);
   const fmt = (iso) => (iso ? new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
   const states = {}; let n = 0;
   for (const [st, evs] of Object.entries(live?.states || {})) {
