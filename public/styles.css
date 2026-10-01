@@ -663,3 +663,9 @@ body.selecting #view [data-story]::after { content: ''; position: absolute; top:
 #view [data-story].picked { outline: 3px solid var(--accent); outline-offset: -3px; }
 #view [data-story].picked::after { content: attr(data-pick) !important; position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent) !important; color: var(--accent-ink); border: 3px solid var(--accent) !important; font-weight: 900; font-size: 15px; z-index: 5; }
 body.selecting .toast { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 96px); }
+.gr-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.gr { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); text-align: left; font-size: 14px; color: var(--text-2); }
+.gr span { display: flex; align-items: center; gap: 8px; } .gr span.w { color: var(--text); } .gr span.w b { color: var(--accent); }
+.gr img { width: 26px; height: 26px; object-fit: contain; } .gr b { margin-left: auto; font-family: var(--display); font-size: 18px; }
+.gr em { font-style: normal; font-size: 12.5px; font-weight: 800; color: var(--accent); margin-top: 2px; }
+.gr:active { transform: scale(.97); }

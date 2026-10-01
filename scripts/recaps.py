@@ -41,7 +41,7 @@ def main(nfl_json, done_json):
         side = lambda k: {x: spec[k].get(x) for x in ('abbr', 'name', 'full', 'score', 'logo', 'color')}
         rec = {'id': gid, 'title': spec['title'], 'week': spec.get('week'), 'date': spec.get('date'), 'away': side('away'), 'home': side('home'),
                'winner': spec.get('winner'), 'video': url, 'file': f'{gid}.mp4', 'bytes': os.path.getsize(out), 'madeAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-               'plays': len(spec.get('plays', [])), 'leaders': [f"{l['player']}: {l['value']}" for l in spec.get('leaders', [])]}
+               'playCount': len(spec.get('plays', [])), 'plays': spec.get('plays', []), 'leaders': spec.get('leaders', []), 'stats': spec.get('stats')}
         with open(os.path.join(WORK, 'new.jsonl'), 'a') as f:
             f.write(json.dumps(rec) + '\n')
         shutil.move(spec_path, os.path.join(WORK, 'done', f'{gid}.json'))

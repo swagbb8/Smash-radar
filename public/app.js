@@ -1,6 +1,6 @@
 // SMASH NEWS — client app (no build step). Hash-routed SPA, installable PWA.
 const $ = (s, el = document) => el.querySelector(s);
-import { makeReel, reelSupported } from './reel.js';
+import { makeReel, makeGameReel, reelSupported } from './reel.js';
 const lionSVG = () => ''; const LionShow = null; // Smash the lion is retired
 const view = $('#view');
 
@@ -516,7 +516,8 @@ const views = {
       <div class="reel-pick">${list.length ? list.map((x) => `<button class="rp ${sel.has(x.id) ? 'on' : ''}" data-reel="${esc(x.id)}">
         <span class="rp-img">${x.imageUrl ? `<img src="${esc(imgUrl(x.imageUrl))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span>${esc(CAT[x.category]?.[0] || '📰')}</span>`}</span>
         <span class="rp-t"><small>${esc((CAT[x.category]?.[1] || x.category || '').toUpperCase())} · ${esc(x.sourceName || '')}</small>${esc(x.title)}</span><span class="rp-check">✓</span></button>`).join('') : empty('🎬', 'Nothing here yet', 'Try another tab.')}</div>
-      ${recaps.length ? section('NFL game recaps', '🏈', null, `<div class="recaps">${recaps.slice(0, 30).map(recapCard).join('')}</div>`) : ''}
+      ${await gameReelPicker()}
+      ${recaps.length ? section('NFL recap videos (with voice-over)', '🎙️', null, `<div class="recaps">${recaps.slice(0, 30).map(recapCard).join('')}</div>`) : ''}
       <div class="reel-bar" id="reelBar"><span><b>${prefs.reel.length}</b> picked</span><button class="btn" data-action="reel-clear">Clear</button><button class="btn primary" data-action="reel-make">🎬 Make reel</button></div>`;
   },
 
@@ -860,7 +861,7 @@ function openGame(id) {
     ${box}
     ${g.leaders.length ? `<div class="box why"><h5>Player stats — game leaders</h5>${g.leaders.map((l) => `<div class="leader">${l.headshot ? `<img src="${esc(imgUrl(l.headshot))}" alt="" referrerpolicy="no-referrer">` : '<span class="hs">🏈</span>'}<div><b>${esc(l.player)}</b> <span class="muted">${esc(l.position)} ${esc(l.team)}</span><br><span class="muted">${esc(l.category)}</span> · ${esc(l.value)}</div></div>`).join('')}</div>` : ''}
     <div class="src-line">${g.venue ? `<span>📍 ${esc(g.venue)}</span>` : ''}${g.broadcast ? `<span>📺 ${esc(g.broadcast)}</span>` : ''}</div>
-    <div class="actions"><a class="btn primary" href="${esc(safeUrl(g.link))}" target="_blank" rel="noopener">Full box score on ESPN ↗</a></div></div>`);
+    <div class="actions">${g.state === 'post' ? `<button class="btn primary" data-action="game-reel" data-id="${esc(g.id)}">🎬 Make game reel</button>` : ''}<a class="btn ${g.state === 'post' ? '' : 'primary'}" href="${esc(safeUrl(g.link))}" target="_blank" rel="noopener">ESPN box score ↗</a></div></div>`);
 }
 
 // ===================== SMASH LIVE: 24/7 TV channel =====================
@@ -897,10 +898,41 @@ function markTranscript(k) {
   p.classList.add('on');
   box.scrollTo({ top: p.offsetTop - box.offsetTop - 40, behavior: 'smooth' }); // scroll inside the box only
 }
+async function gameReelPicker() {
+  let nfl = app.nfl; if (!nfl) { try { nfl = app.nfl = await api('/api/nfl'); } catch { return ''; } }
+  const finals = (nfl.games || []).filter((g) => g.state === 'post').reverse();
+  if (!finals.length) return '';
+  return section('NFL game reels — pick a game', '🏈', null, `<div class="gr-pick">${finals.map((g) => {
+    const t = (x) => `<span class="${x.winner ? 'w' : ''}">${x.logo ? `<img src="${esc(imgUrl(x.logo))}" alt="" referrerpolicy="no-referrer">` : ''}${esc(x.abbr)} <b>${esc(x.score)}</b></span>`;
+    return `<button class="gr" data-action="game-reel" data-id="${esc(g.id)}">${t(g.away)}${t(g.home)}<em>🎬 Make reel</em></button>`;
+  }).join('')}</div>`);
+}
 function recapCard(r) {
   const t = (k) => `<span class="rc-t ${r.winner === k ? 'w' : ''}">${r[k].logo ? `<img src="${esc(imgUrl(r[k].logo))}" alt="" referrerpolicy="no-referrer">` : ''}<b>${esc(r[k].abbr)}</b><i>${esc(r[k].score)}</i></span>`;
-  return `<div class="recap"><div class="rc-score">${t('away')}<em>FINAL</em>${t('home')}</div><div class="rc-meta">${r.week ? `Week ${r.week} · ` : ''}${r.plays || 0} scoring plays</div>
-    <div class="rc-actions">${r.page || r.video ? `<button class="btn primary" data-action="recap-play" data-id="${esc(r.id)}">▶ Watch</button>` : ''}${r.page || r.video ? `<button class="btn" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save</button>` : ''}</div></div>`;
+  return `<div class="recap"><div class="rc-score">${t('away')}<em>FINAL</em>${t('home')}</div><div class="rc-meta">${r.week ? `Week ${r.week} · ` : ''}${r.playCount ?? (Array.isArray(r.plays) ? r.plays.length : r.plays) ?? 0} scoring plays</div>
+    <div class="rc-actions"><button class="btn" data-action="game-reel" data-id="${esc(r.id)}">🎬 Reel</button>${r.page || r.video ? `<button class="btn primary" data-action="recap-play" data-id="${esc(r.id)}">▶ Watch</button>` : ''}${r.page || r.video ? `<button class="btn" data-action="recap-save" data-id="${esc(r.id)}">⬇ Save</button>` : ''}</div></div>`;
+}
+async function runGameReel(id) {
+  if (!reelSupported()) return toast('This browser can\'t record video');
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const actx = new AC(); actx.resume?.();
+  let nfl = app.nfl; if (!nfl) { try { nfl = app.nfl = await api('/api/nfl'); } catch {} }
+  const g = nfl?.games?.find((x) => String(x.id) === String(id));
+  if (!g) return toast('Game not found');
+  const details = (app.recaps || []).find((r) => String(r.id) === String(id));
+  openSheetHtml(`<div class="content reel-make"><h2>🏈 Making the ${esc(g.away.abbr)} @ ${esc(g.home.abbr)} reel</h2><p class="muted" id="rmStatus">Getting ready…</p>
+    <div class="rm-prog"><i id="rmBar"></i></div><div class="rm-stage"><canvas id="rmCanvas"></canvas></div><p class="muted">Keep this screen open while it records.</p></div>`);
+  try {
+    const res = await makeGameReel(g, details && Array.isArray(details.plays) ? details : null, { canvas: $('#rmCanvas'), base: './', audioCtx: actx,
+      onProgress: (p, msg) => { const b = $('#rmBar'); if (b) b.style.width = `${(p * 100).toFixed(1)}%`; const st = $('#rmStatus'); if (st) st.textContent = msg; } });
+    const ext = res.type.includes('mp4') ? 'mp4' : 'webm';
+    const url = URL.createObjectURL(res.blob);
+    app.pendingFile = new File([res.blob], `smash-news-${g.away.abbr}-at-${g.home.abbr}.${ext}`.toLowerCase(), { type: res.type });
+    openSheetHtml(`<div class="content reel-make"><h2>🔥 Game reel ready</h2><div class="video-wrap tall"><video src="${url}" controls playsinline autoplay loop></video></div>
+      <div class="actions"><button class="btn primary" data-action="file-share">Save / share reel</button><button class="btn" data-action="game-reel" data-id="${esc(id)}">Make again</button></div>
+      ${g.highlight ? `<p class="muted">Want the real footage? <a href="${esc(safeUrl(g.highlight.url))}" target="_blank" rel="noopener">Official NFL highlights ↗</a></p>` : ''}</div>`);
+  } catch (e) { toast(`Reel failed: ${e.message}`); }
+  finally { setTimeout(() => actx.close?.(), 2000); }
 }
 async function runReel() {
   const picks = prefs.reel.slice(0, 8);
@@ -1299,6 +1331,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'close') return closeSheet();
   if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
   if (a === 'reel-make') return runReel();
+  if (a === 'game-reel') return runGameReel(t.dataset.id);
   if (a === 'select-on') { app.selectMode = true; reelFab(); markPicked(); toast('Tap stories to pick them for your reel'); return; }
   if (a === 'select-off') { app.selectMode = false; reelFab(); markPicked(); return; }
   if (a === 'reel-clear') { prefs.reel = []; saveReel(); return; }

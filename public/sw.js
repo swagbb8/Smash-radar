@@ -1,5 +1,5 @@
 // SMASH NEWS service worker — offline app shell + last-sweep data fallback.
-const VERSION = 'sr-v4.1.0';
+const VERSION = 'sr-v4.2.0';
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const IMG = 'sr-img';

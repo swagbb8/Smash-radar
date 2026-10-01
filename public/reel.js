@@ -415,6 +415,10 @@ export async function makeReel(stories, { canvas, base = './', title = 'TOP STOR
     if (now > INTRO && now < t && pz > 0.55) { ctx.strokeStyle = `rgba(198,255,61,${(pz - 0.55) * 0.9})`; ctx.lineWidth = 16; ctx.strokeRect(8, 8, W - 16, H - 16); }
     grain(ctx, now);
   };
+  return recordCanvas(canvas, actx, beat, total, draw, onProgress);
+}
+
+async function recordCanvas(canvas, actx, beat, total, draw, onProgress) {
   draw(0);
   // record: canvas video + the beat
   const dest = actx.createMediaStreamDestination();
@@ -446,4 +450,211 @@ export async function makeReel(stories, { canvas, base = './', title = 'TOP STOR
   stream.getTracks().forEach((tr) => tr.stop());
   const blob = new Blob(chunks, { type: (type || 'video/webm').split(';')[0] });
   return { blob, type: blob.type, seconds: total };
+}
+
+// ======================= NFL GAME REEL =======================
+function loadLogo(url) {
+  return new Promise((res) => {
+    if (!url) return res(null);
+    const i = new Image(); i.crossOrigin = 'anonymous';
+    i.onload = () => res(i); i.onerror = () => res(null);
+    i.src = `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=500&h=500&fit=contain&output=png`;
+    setTimeout(() => res(null), 8000);
+  });
+}
+const QN = ['', '1ST', '2ND', '3RD', '4TH', 'OT', '2OT'];
+function teamBg(ctx, color, t, flip) {
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, hexA(color, 1)); g.addColorStop(0.6, hexA(color, 0.45)); g.addColorStop(1, '#07080b');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  rays(ctx, t * (flip ? -1 : 1), '#ffffff', 0.6);
+}
+function bigWord(ctx, word, y, t, color, alt) {
+  ctx.save(); ctx.font = HEAD(10); const fs = Math.min(230, Math.floor((W - 100) / (ctx.measureText(word).width / 10)));
+  ctx.font = HEAD(fs); ctx.textBaseline = 'alphabetic';
+  const full = ctx.measureText(word).width; let idx = 0;
+  for (const ch of word) {
+    const x = (W - full) / 2 + ctx.measureText(word.slice(0, idx)).width; idx++;
+    if (ch === ' ') continue;
+    const p = seg(t, 0.05 + idx * 0.035, 0.4 + idx * 0.035);
+    ctx.save(); ctx.translate(x, y + lerp(-700, 0, oback(p))); ctx.rotate(lerp((idx % 2 ? 1 : -1) * 0.5, 0, oc(p)));
+    ctx.globalAlpha = clamp(p * 3);
+    ctx.fillStyle = alt || hexA('#000000', 0.35); ctx.fillText(ch, 10, 10);
+    ctx.fillStyle = color; ctx.fillText(ch, 0, 0); ctx.restore();
+  }
+  ctx.restore();
+  return fs;
+}
+function scoreBar(ctx, g, logos, a, h, flip, t, y) {
+  ctx.save(); ctx.fillStyle = 'rgba(5,6,8,.85)';
+  if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(50, y, W - 100, 190, 26); ctx.fill(); } else ctx.fillRect(50, y, W - 100, 190);
+  const side = (k, x, val, hot) => {
+    if (logos[k]) ctx.drawImage(logos[k], x, y + 35, 120, 120);
+    ctx.font = HEAD(56); ctx.fillStyle = '#c9ced6'; ctx.textBaseline = 'middle'; ctx.fillText(g[k].abbr, k === 'away' ? x + 135 : x - 120, y + 97);
+    ctx.save(); ctx.translate(k === 'away' ? x + 330 : x - 220, y + 97); const s = hot ? 1 + Math.sin(clamp(hot) * Math.PI) * 0.6 : 1; ctx.scale(s, s);
+    ctx.font = HEAD(130); ctx.textAlign = 'center'; ctx.fillStyle = hot > 0.5 ? LIME : '#fff'; ctx.fillText(String(val), 0, 6); ctx.restore();
+  };
+  const flipP = seg(t, 0.9, 1.3);
+  side('away', 80, flip === 'away' && flipP > 0.5 ? a[1] : a[0], flip === 'away' ? flipP : 0);
+  side('home', W - 200, flip === 'home' && flipP > 0.5 ? h[1] : h[0], flip === 'home' ? flipP : 0);
+  ctx.restore();
+}
+
+/** Animated reel for one NFL game (score, quarters, scoring plays, player of the game). */
+export async function makeGameReel(game, details, { canvas, base = './', onProgress = () => {}, audioCtx } = {}) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const actx = audioCtx || new AC(); await actx.resume?.();
+  onProgress(0, 'Loading team logos…');
+  await loadFonts(base); try { await document.fonts.ready; } catch {}
+  const logos = { away: await loadLogo(game.away.logo), home: await loadLogo(game.home.logo) };
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const g = game; const winner = Number(g.away.score) > Number(g.home.score) ? 'away' : 'home';
+  const color = (k) => g[k].color || (k === 'home' ? '#1f6feb' : '#d93025');
+  const plays = (details?.plays || []).slice(-6);
+  const leaders = (details?.leaders?.length ? details.leaders : g.leaders || []).slice(0, 3);
+  const scenes = [['open', 1.7], ['matchup', 3.4]];
+  if ((g.away.linescores || []).length) scenes.push(['box', 2.8]);
+  plays.forEach((_, i) => scenes.push([`play${i}`, 2.7]));
+  leaders.forEach((_, i) => scenes.push([`leader${i}`, 2.5]));
+  scenes.push(['outro', 2.6]);
+  let t0 = 0; const timeline = scenes.map(([name, d]) => { const x = { name, start: t0, dur: d }; t0 += d; return x; });
+  const total = t0; const cuts = timeline.slice(1).map((x) => x.start);
+  onProgress(0, 'Making the beat…');
+  const beat = await makeBeat(total, cuts);
+  const BEAT = 60 / 124, B0 = 0.9;
+  const pulse = (now) => (now < B0 ? 0 : Math.exp(-(((now - B0) % BEAT) / BEAT) * 7));
+  const W2 = W / 2;
+  const sceneDraw = {
+    open(t) {
+      ctx.fillStyle = '#07080b'; ctx.fillRect(0, 0, W, H);
+      ctx.save(); ctx.translate(W2, H / 2); ctx.rotate(-0.25);
+      const p = oexp(seg(t, 0, 0.5));
+      ctx.fillStyle = color('away'); ctx.fillRect(lerp(-2200, -1100, p), -1400, 1100, 2800);
+      ctx.fillStyle = color('home'); ctx.fillRect(lerp(1100, 0, p), -1400, 1100, 2800);
+      ctx.fillStyle = LIME; ctx.fillRect(-12, -1400, 24 * p, 2800);
+      ctx.restore();
+      if (t > 0.45) { const q = seg(t, 0.45, 0.75); ctx.save(); ctx.translate(W2, H / 2); const sc = lerp(2.6, 1, oexp(q)); ctx.scale(sc, sc); ctx.rotate(-0.08); ctx.font = HEAD(300); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 40; ctx.fillText('FINAL', 0, 0); ctx.restore(); }
+      if (t > 0.5 && t < 0.9) { ctx.fillStyle = `rgba(255,255,255,${0.8 - (t - 0.5) * 2})`; ctx.fillRect(0, 0, W, H); }
+      const s = seg(t, 0.9, 1.4); ctx.font = BODY(44); ctx.textAlign = 'center'; ctx.fillStyle = LIME; ctx.globalAlpha = s;
+      ctx.fillText(`${g.week ? `WEEK ${g.week} · ` : ''}SMASH NEWS NFL`, W2, H / 2 + 260); ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    },
+    matchup(t) {
+      for (const [k, top, dir] of [['away', 0, -1], ['home', H / 2, 1]]) {
+        ctx.save(); ctx.beginPath(); ctx.rect(0, top, W, H / 2); ctx.clip();
+        ctx.translate(lerp(dir * W, 0, oexp(seg(t, 0, 0.45))), 0);
+        const gr = ctx.createLinearGradient(0, top, W, top + H / 2); gr.addColorStop(0, hexA(color(k), 1)); gr.addColorStop(1, hexA(color(k), 0.35));
+        ctx.fillStyle = gr; ctx.fillRect(0, top, W, H / 2); rays(ctx, t * dir, '#fff', 0.35);
+        const lp = oback(seg(t, 0.25, 0.8)); const lx = k === 'away' ? 70 : W - 470;
+        if (logos[k]) { ctx.save(); ctx.translate(lx + 200, top + 470); ctx.scale(lp, lp); ctx.rotate(Math.sin(t * 2) * 0.03); ctx.drawImage(logos[k], -200, -200, 400, 400); ctx.restore(); }
+        ctx.font = HEAD(110); ctx.fillStyle = '#fff'; ctx.textAlign = k === 'away' ? 'right' : 'left'; ctx.textBaseline = 'alphabetic';
+        const nx = k === 'away' ? W - 60 : 60;
+        ctx.fillText(String(g[k].name || g[k].abbr).toUpperCase(), nx, top + 230);
+        const fin = Number(g[k].score) || 0; const c = oc(seg(t, 0.6, 1.8));
+        ctx.font = HEAD(300); const lose = k !== winner;
+        ctx.globalAlpha = lose ? lerp(1, 0.55, seg(t, 2.0, 2.4)) : 1;
+        if (!lose) { ctx.shadowColor = LIME; ctx.shadowBlur = lerp(0, 60, seg(t, 1.8, 2.2)); }
+        ctx.fillText(String(Math.round(fin * c)), nx, top + 600);
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        if (g[k].record) { ctx.font = BODY(40); ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillText(g[k].record, nx, top + 680); }
+        if (!lose) { const w = oback(seg(t, 1.9, 2.3)); if (w > 0) { ctx.save(); ctx.translate(k === 'away' ? W - 470 : 470, top + 440); ctx.rotate(-0.12); ctx.scale(w, w); ctx.fillStyle = LIME; ctx.fillRect(-90, -45, 180, 90); ctx.font = HEAD(64); ctx.fillStyle = '#0b1100'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('WIN', 0, 4); ctx.restore(); } }
+        ctx.restore();
+      }
+      ctx.save(); ctx.translate(W2, H / 2); ctx.rotate(-0.05); ctx.fillStyle = LIME; ctx.fillRect(-W, -40, 2 * W * oexp(seg(t, 0.3, 0.7)), 80);
+      ctx.font = HEAD(60); ctx.fillStyle = '#0b1100'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = seg(t, 0.5, 0.8); ctx.fillText('F I N A L', 0, 4); ctx.restore();
+    },
+    box(t) {
+      teamBg(ctx, color(winner), t, false);
+      ctx.fillStyle = 'rgba(7,8,11,.55)'; ctx.fillRect(0, 0, W, H);
+      ctx.font = HEAD(120); ctx.fillStyle = '#fff'; ctx.textBaseline = 'alphabetic';
+      const tp = oexp(seg(t, 0, 0.4)); ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W * tp, H); ctx.clip(); ctx.fillText('QUARTER BY', 60, 420); ctx.fillText('QUARTER', 60, 540); ctx.restore();
+      ctx.fillStyle = LIME; ctx.fillRect(60, 575, 320 * oc(seg(t, 0.2, 0.6)), 14);
+      const q = Math.max(g.away.linescores.length, g.home.linescores.length);
+      const cw = (W - 340) / (q + 1);
+      ctx.font = BODY(40); ctx.fillStyle = '#c9ced6'; ctx.textAlign = 'center';
+      for (let i = 0; i < q; i++) ctx.fillText(i < 4 ? `Q${i + 1}` : 'OT', 300 + cw * (i + 0.5), 760);
+      ctx.fillText('T', 300 + cw * (q + 0.5), 760);
+      ['away', 'home'].forEach((k, r) => {
+        const y = 820 + r * 250; const p = oexp(seg(t, 0.25 + r * 0.12, 0.7 + r * 0.12));
+        ctx.save(); ctx.translate(lerp(W, 0, p), 0);
+        ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fillRect(40, y, W - 80, 210); ctx.fillStyle = color(k); ctx.fillRect(40, y, 16, 210);
+        if (logos[k]) ctx.drawImage(logos[k], 80, y + 35, 140, 140);
+        ctx.font = HEAD(110); ctx.textBaseline = 'middle';
+        for (let i = 0; i <= q; i++) {
+          const v = i < q ? (g[k].linescores[i] ?? 0) : g[k].score;
+          const pp = seg(t, 0.7 + (i * 2 + r) * 0.07, 0.95 + (i * 2 + r) * 0.07);
+          ctx.save(); ctx.translate(300 + cw * (i + 0.5), y + 110); const sc = lerp(2, 1, oback(pp)); ctx.scale(sc, sc); ctx.globalAlpha = clamp(pp * 2);
+          if (i === q && k === winner) { ctx.fillStyle = LIME; ctx.fillRect(-cw / 2 + 6, -95, cw - 12, 190); ctx.fillStyle = '#0b1100'; } else ctx.fillStyle = '#fff';
+          ctx.fillText(String(v), 0, 6); ctx.restore();
+        }
+        ctx.restore();
+      });
+      ctx.textAlign = 'left';
+    },
+    play(t, i) {
+      const p = plays[i]; const k = p.team === g.home.abbr ? 'home' : 'away';
+      teamBg(ctx, color(k), t, i % 2);
+      if (logos[k]) { ctx.save(); ctx.globalAlpha = 0.12; ctx.translate(W2, 900); ctx.rotate(-0.2 + t * 0.03); ctx.drawImage(logos[k], -560, -560, 1120, 1120); ctx.restore(); }
+      ctx.font = BODY(44); ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle';
+      const cp = oexp(seg(t, 0, 0.3)); ctx.save(); ctx.translate(0, lerp(-200, 0, cp)); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(60, 220, 520, 80); ctx.fillStyle = LIME; ctx.fillText(`${QN[p.period] || ''} QTR`, 85, 262); ctx.fillStyle = '#fff'; ctx.fillText(`· ${p.clock || ''} LEFT`, 290, 262); ctx.restore();
+      const word = /touchdown/i.test(p.type) || p.abbr === 'TD' ? 'TOUCHDOWN' : /field goal/i.test(p.type) ? 'FIELD GOAL' : /safety/i.test(p.type) ? 'SAFETY' : String(p.type || 'SCORE').toUpperCase();
+      bigWord(ctx, word, 640, t, '#fff', hexA('#000000', 0.4));
+      ctx.font = BODY(40); ctx.fillStyle = LIME; ctx.globalAlpha = seg(t, 0.5, 0.8); ctx.fillText(`▶ ${String(g[k].full || g[k].name).toUpperCase()}`, 60, 760); ctx.globalAlpha = 1;
+      const txt = String(p.text || '').replace(/\s*\((?:[^()]|\([^()]*\))*\)\s*$/, '').replace(/\bYd\b/g, 'YD').toUpperCase();
+      const L = layoutHeadline(ctx, txt, W - 120, 4); const fs = Math.min(L.fs, 92); const L2 = fs === L.fs ? L : (ctx.font = HEAD(fs), layoutHeadline(ctx, txt, W - 120, 4));
+      ctx.font = HEAD(L2.fs); ctx.textBaseline = 'alphabetic';
+      L2.words.forEach((wd, j) => { const q2 = seg(t, 0.55 + j * 0.05, 0.9 + j * 0.05); if (q2 <= 0) return; ctx.save(); ctx.globalAlpha = clamp(q2 * 2.5); ctx.translate(60 + wd.x, 880 + wd.li * L2.lh + L2.fs * 0.9 + lerp(60, 0, oc(q2))); ctx.fillStyle = wd.hot ? LIME : '#fff'; ctx.fillText(wd.w, 0, 0); ctx.restore(); });
+      const sb = oexp(seg(t, 0.3, 0.7));
+      ctx.save(); ctx.translate(0, lerp(400, 0, sb));
+      scoreBar(ctx, g, logos, [p.prevAway ?? 0, p.away], [p.prevHome ?? 0, p.home], k, t, H - 420);
+      ctx.restore();
+      ctx.font = BODY(34); ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillText(`SCORING PLAY ${i + 1} / ${plays.length}`, W2, H - 170); ctx.textAlign = 'left';
+    },
+    leader(t, i) {
+      const l = leaders[i];
+      teamBg(ctx, color(winner), t, true);
+      ctx.save(); ctx.translate(0, 700); ctx.rotate(-0.12); ctx.fillStyle = LIME; ctx.fillRect(lerp(-W * 1.4, -100, oexp(seg(t, 0, 0.45))), -150, W * 1.4, 360); ctx.restore();
+      ctx.font = BODY(46); ctx.fillStyle = '#fff'; ctx.globalAlpha = seg(t, 0, 0.3); ctx.fillText(i === 0 ? 'PLAYER OF THE GAME' : String(l.category || '').toUpperCase(), 60, 330); ctx.globalAlpha = 1;
+      const parts = String(l.player).split(' '); const last = (parts.length > 1 ? parts.slice(1).join(' ') : parts[0]).toUpperCase();
+      ctx.font = BODY(70); ctx.fillStyle = '#0b1100'; ctx.save(); ctx.translate(lerp(-700, 0, oc(seg(t, 0.15, 0.5))), 0); ctx.fillText(parts.length > 1 ? parts[0].toUpperCase() : '', 70, 560); ctx.restore();
+      ctx.save(); ctx.font = HEAD(10); const fs = Math.min(210, Math.floor((W - 140) / (ctx.measureText(last).width / 10))); ctx.font = HEAD(fs);
+      ctx.translate(lerp(900, 0, oexp(seg(t, 0.2, 0.6))), 0); ctx.fillStyle = '#0b1100'; ctx.textBaseline = 'alphabetic'; ctx.fillText(last, 60, 600 + fs * 0.85); ctx.restore();
+      const stats = []; const v = String(l.value || ''); let m;
+      if ((m = v.match(/(\d+)\/(\d+)/))) stats.push([`${m[1]}/${m[2]}`, 'COMP/ATT', null]);
+      if ((m = v.match(/(\d+)\s*CAR/i))) stats.push([m[1], 'CARRIES', +m[1]]);
+      if ((m = v.match(/(\d+)\s*REC/i))) stats.push([m[1], 'CATCHES', +m[1]]);
+      if ((m = v.match(/(-?\d+)\s*YDS/i))) stats.push([m[1], 'YARDS', +m[1]]);
+      if ((m = v.match(/(\d+)\s*TD/i))) stats.push([m[1], 'TD', +m[1]]);
+      const tw = (W - 120 - (stats.length - 1) * 24) / Math.max(1, stats.length);
+      stats.slice(0, 3).forEach(([val, label, n], j) => {
+        const p = seg(t, 0.6 + j * 0.15, 0.95 + j * 0.15); if (p <= 0) return;
+        const x = 60 + j * (tw + 24), y = 1100;
+        ctx.save(); ctx.translate(x + tw / 2, y + 160); ctx.scale(oback(p), oback(p)); ctx.globalAlpha = clamp(p * 2);
+        ctx.fillStyle = 'rgba(255,255,255,.1)'; ctx.fillRect(-tw / 2, -160, tw, 320); ctx.fillStyle = LIME; ctx.fillRect(-tw / 2, 150, tw, 10);
+        ctx.font = HEAD(120); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(n == null ? val : String(Math.round(n * oc(seg(t, 0.7 + j * 0.15, 1.6 + j * 0.15)))), 0, -20);
+        ctx.font = BODY(34); ctx.fillStyle = LIME; ctx.fillText(label, 0, 100); ctx.restore();
+      });
+    },
+    outro(t, _, dur) {
+      outroScene(ctx, t, dur);
+      ctx.save(); ctx.globalAlpha = seg(t, 0.1, 0.5) * (1 - seg(t, dur - 0.5, dur));
+      for (const [k, x] of [['away', 150], ['home', W - 350]]) { if (logos[k]) ctx.drawImage(logos[k], x, 330, 200, 200); ctx.font = HEAD(130); ctx.textAlign = 'center'; ctx.fillStyle = k === winner ? LIME : 'rgba(255,255,255,.6)'; ctx.fillText(String(g[k].score), x + 100, 650); }
+      ctx.restore(); ctx.textAlign = 'left';
+    },
+  };
+  const draw = (now) => {
+    const pz = pulse(now);
+    let sc = timeline[timeline.length - 1]; for (const x of timeline) if (now >= x.start) sc = x;
+    let shake = 0; for (const c of cuts) { const d = now - c; if (d >= 0 && d < 0.3) shake = (0.3 - d) * 60; }
+    const z = 1 + pz * 0.016;
+    ctx.setTransform(z, 0, 0, z, (W - W * z) / 2 + Math.sin(now * 97) * shake, (H - H * z) / 2 + Math.cos(now * 71) * shake);
+    const base2 = sc.name.replace(/\d+$/, ''); const idx = +(sc.name.match(/\d+$/) || [0])[0];
+    sceneDraw[base2](now - sc.start, idx, sc.dur);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (sc.name !== 'open' && sc.name !== 'outro') { bug(ctx, 1); sparks(ctx, now, LIME, 0.6); }
+    cuts.forEach((c, k) => { if (Math.abs(now - c) < 0.22) transition(ctx, canvas, now - c, k); });
+    grain(ctx, now);
+  };
+  return recordCanvas(canvas, actx, beat, total, draw, onProgress);
 }
