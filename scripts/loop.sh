@@ -11,7 +11,7 @@ while [ "$(date +%s)" -lt "$END" ]; do
   echo "::group::Update #$i — $(date -u +%FT%TZ)"
   git pull -q --ff-only origin main || echo "code pull skipped"
   node scripts/build-static.js || echo "BUILD FAILED"
-  if [ -f dist/api/briefing.json ]; then python3 scripts/tts.py || echo "voice failed (app will use phone voice)"; fi
+  if [ -f dist/api/briefing.json ] || [ -f dist/api/show.json ]; then python3 scripts/tts.py || echo "voice failed (app will use phone voice)"; fi
 
   # Instagram auto-post (only does anything when IG secrets are set)
   node scripts/autopost.js plan > /tmp/plan.log 2>&1; cat /tmp/plan.log
@@ -26,7 +26,7 @@ while [ "$(date +%s)" -lt "$END" ]; do
 
   # Publish the site
   if [ -f dist/index.html ]; then
-    ( cd dist && rm -rf .git && git init -q -b gh-pages && git config user.name "smash-news-bot" \
+    ( cd dist && rm -rf .git && git init -q -b gh-pages && (git fetch -q --depth 1 "$REPO_URL" gh-pages 2>/dev/null || true) && git config user.name "smash-news-bot" \
       && git config user.email "41898282+github-actions[bot]@users.noreply.github.com" && git add -A \
       && git commit -qm "Update $(date -u +%FT%TZ)" && git push -q --force "$REPO_URL" gh-pages ) || echo "publish failed"
   fi

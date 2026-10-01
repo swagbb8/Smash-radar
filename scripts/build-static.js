@@ -9,7 +9,7 @@ const { FileStore } = await import('../src/store.js');
 const { refresh } = await import('../src/collector.js');
 const { handleApi } = await import('../src/api.js');
 const { present } = await import('../src/engine.js');
-const { buildBriefing } = await import('../src/briefing.js');
+const { buildBriefing, buildShow, showSlot } = await import('../src/briefing.js');
 
 const OUT = path.resolve(ROOT, process.env.STATIC_OUT || 'dist');
 const store = new FileStore(path.resolve(ROOT, process.env.DATABASE_PATH || 'data/smash-radar.json'));
@@ -51,6 +51,19 @@ if (process.env.NFL !== 'off') {
 }
 if (!nfl) { try { nfl = JSON.parse(fs.readFileSync(path.join(OUT, 'api', 'nfl.json'), 'utf8')); } catch { nfl = { games: [], news: [], videos: [], errors: ['not loaded'] }; write('nfl', nfl); } }
 write('briefing', buildBriefing(stories, Date.now(), { nfl }));
+// 30-minute live TV show: a brand-new show every half hour (Central time). tts.py voices it and sets the real timing.
+{
+  const showFile = path.join(path.dirname(store.file), 'show.json');
+  let show = null;
+  try { show = JSON.parse(fs.readFileSync(showFile, 'utf8')); } catch {}
+  const slot = showSlot(now);
+  if (!show || show.slot !== slot || process.env.SHOW_REBUILD === '1') {
+    show = { ...buildShow(stories, now, { nfl }), slot, startsAt: null };
+    fs.writeFileSync(showFile, JSON.stringify(show));
+    console.log(`show: new ${slot} show, ${show.segments.length} segments, ~${Math.round(show.totalSeconds / 60)} min`);
+  } else console.log(`show: keeping ${slot} show (${show.segments.length} segments)`);
+  write('show', show);
+}
 write('dupage', await call('/api/dupage'));
 write('brands', await call('/api/brands'));
 write('sources', await call('/api/sources'));

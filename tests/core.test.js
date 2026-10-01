@@ -255,3 +255,23 @@ test('lion briefing: clean, funny on fun stuff, serious on emergencies, NFL stat
   assert.equal(b.segments[0].kind, 'intro');
   assert.equal(b.segments.at(-1).kind, 'outro');
 });
+
+test('30-minute live show: sections, bumpers, timing, half-hour slots', async () => {
+  const { buildShow, showSlot } = await import('../src/briefing.js');
+  const now = Date.parse('2026-10-01T01:50:00Z');
+  const mk = (o, k) => ({ id: `s${k}`, score: 100 - k, publishedAt: new Date(now - 3600e3).toISOString(), summary: 'The company said the change takes effect next week. Customers can sign up online starting Monday. More details are expected soon.', tags: [], brands: [], ...o });
+  const stories = [];
+  for (let k = 0; k < 60; k++) stories.push(mk({ title: `Wheaton police investigate crash on Roosevelt Road number ${k}`, category: 'dupage', location: { status: 'verified', places: ['Wheaton'], incident: { id: 'crash' } } }, k));
+  for (let k = 60; k < 120; k++) stories.push(mk({ title: `New snack flavor ${k} launches nationwide`, category: 'food', tags: ['LAUNCH'] }, k));
+  for (let k = 120; k < 180; k++) stories.push(mk({ title: `National news story ${k} from Washington`, category: 'news' }, k));
+  const sh = buildShow(stories, now, {});
+  assert.equal(sh.segments[0].kind, 'intro');
+  assert.equal(sh.segments.at(-1).kind, 'outro');
+  assert.ok(sh.segments.some((g) => g.kind === 'bumper' && g.section === 'DUPAGE DESK' && g.icon));
+  assert.ok(sh.segments.some((g) => g.section === 'ROADS & POLICE'));
+  assert.ok(sh.totalSeconds > 8 * 60 && sh.totalSeconds < 34 * 60, `length ${sh.totalSeconds}`);
+  for (let i = 1; i < sh.segments.length; i++) assert.ok(Math.abs(sh.segments[i].start - (sh.segments[i - 1].start + sh.segments[i - 1].dur)) < 1e-6);
+  assert.doesNotMatch(sh.segments.map((g) => g.text).join(' '), /\b(damn|hell|crap|shit|fuck)\b/i);
+  assert.equal(showSlot(Date.parse('2026-10-01T01:50:00Z')), '2026-09-30T20:30');
+  assert.equal(showSlot(Date.parse('2026-10-01T02:05:00Z')), '2026-09-30T21:00');
+});

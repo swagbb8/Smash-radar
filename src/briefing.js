@@ -18,7 +18,8 @@ export function speakable(text = '') {
     .replace(/[“”"]/g, '')
     .replace(/[‘’]/g, "'")
     .replace(/\s*[—–]\s*/g, ', ')
-    .replace(/:\s*/g, ': ')
+    .replace(/:(?!\d\d)\s*/g, ': ')
+    .replace(/^(live updates?|watch live|breaking|update|updated|developing)\s*:\s*/i, '')
     .replace(/\s{2,}/g, ' ')
     .replace(/[.!?]*$/, '')
     .trim();
@@ -40,6 +41,23 @@ function firstSentence(summary = '', title = '') {
   const b = first.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
   if (b.filter((w) => a.has(w)).length / Math.max(1, b.length) > 0.6) return '';
   return `${speakable(first)}.`;
+}
+
+/** Up to n speakable sentences from a summary (skips ones that just repeat the headline). */
+function sentences(summary = '', title = '', n = 2) {
+  const first = firstSentence(summary, title);
+  const s = String(summary).replace(/\s+/g, ' ').replace(/(…|\.\.\.)$/, '').trim();
+  const ABBR = /\b(Sept|Sep|Oct|Nov|Dec|Jan|Feb|Mar|Apr|Aug|Mr|Mrs|Ms|Dr|St|Ave|Blvd|Rd|Inc|Co|Corp|Jr|Sr|vs|U\.S|No|Gov|Sen|Rep|Lt|Sgt|Capt)\.$/;
+  const parts = [];
+  let last = 0;
+  for (const m of s.matchAll(/[.!?](\s|$)/g)) {
+    const cand = s.slice(last, m.index + 1).trim();
+    if (cand.length < 25 || ABBR.test(cand)) continue;
+    parts.push(cand); last = m.index + 1;
+  }
+  const rest = parts.slice(first ? 1 : 0).filter((x) => x.length <= 260 && !/(click|subscribe|sign up|newsletter|read more|copyright|all rights)/i.test(x));
+  const out = [first ? first.replace(/\.$/, '') : '', ...rest.slice(0, n - (first ? 1 : 0)).map(speakable)].filter(Boolean);
+  return out.length ? `${out.join('. ').replace(/\.\./g, '.')}.` : '';
 }
 
 // Deterministic "random" so the same story gets the same joke within one episode.
@@ -165,4 +183,120 @@ function nflSegments(nfl, now) {
   };
   [...live, ...finals].slice(0, 4).forEach((g, i) => out.push({ kind: 'nfl', gameId: g.id, title: `${g.away.abbr} ${g.away.score} – ${g.home.abbr} ${g.home.score}`, imageUrl: g.home.logo || null, category: 'nfl', text: say(g, i) }));
   return out;
+}
+
+// ======================= 30-MINUTE LIVE TV SHOW =======================
+const WPS = 2.55; // spoken words per second for the neural voice at +8%
+const words = (t) => String(t).split(/\s+/).filter(Boolean).length;
+const SECTION = {
+  top: { title: 'TOP STORIES', icon: '🚨', bumper: ["Let's start with the big stuff. Here are your top stories."] },
+  dupage: { title: 'DUPAGE DESK', icon: '📍', bumper: ['Welcome to the DuPage Desk, where the news is so local you can probably hear it from your porch.', "Time for the DuPage Desk. Let's see what's happening in the neighborhood."] },
+  roads: { title: 'ROADS & POLICE', icon: '🚓', bumper: ['Roads and Police time. Buckle up, this is the part that keeps you safe and out of traffic.', "It's Roads and Police. Crashes, closures, construction and police news across Chicagoland."] },
+  local: { title: 'CHICAGOLAND', icon: '🏙️', bumper: ['Now a spin around Chicagoland, county by county.'] },
+  nfl: { title: 'NFL ZONE', icon: '🏈', bumper: ['Welcome to the NFL Zone! Foam finger on. Let us talk football.', 'NFL Zone time. Scores, stars and stat lines.'] },
+  drops: { title: 'NEW DROPS', icon: '📦', bumper: ['New Drops! The part of the show where my wallet gets nervous.', 'Time for New Drops: the newest stuff that just hit the shelves.'] },
+  deals: { title: 'DEAL DEN', icon: '💰', bumper: ['Welcome to the Deal Den, where we save money and feel smart about it.', 'Deal Den time. Grab your coupons, I mean, your phone.'] },
+  recalls: { title: 'RECALL CHECK', icon: '⚠️', bumper: ['Recall Check. Quick, important, and maybe check your garage after this.'] },
+  openings: { title: 'GRAND OPENINGS', icon: '🏪', bumper: ['Grand Openings! New places to try, and yes, I will be first in line.'] },
+  us: { title: 'AROUND THE U.S.', icon: '🇺🇸', bumper: ["Let's zoom out. Here's what's going on around the country."] },
+  states: { title: 'STATE BY STATE', icon: '🗺️', bumper: ["State by State! Let's road trip across America, no gas money needed."] },
+  tech: { title: 'TECH TALK', icon: '📱', bumper: ['Tech Talk. Gadgets, apps and things that beep.'] },
+  games: { title: 'GAME ON', icon: '🎮', bumper: ['Game On! Controllers up.'] },
+  food: { title: 'SNACK ATTACK', icon: '🍔', bumper: ['Snack Attack! Warning, this segment may cause hunger.'] },
+  cars: { title: 'GARAGE', icon: '🚗', bumper: ['Welcome to the Garage, where everything goes vroom.'] },
+  quick: { title: 'QUICK HITS', icon: '⚡', bumper: ['Lightning round! Quick Hits, rapid fire, here we go.'] },
+};
+const UP_NEXT = ['Coming up next:', 'Stick around, because next up is', "Don't go anywhere. Up next:"];
+const MID = [
+  "You're watching SMASH NEWS, live, with me, Smash the lion. No commercials, just news and a lot of mane.",
+  "Quick mane fluff break. Okay, I'm back. Let's keep it rolling.",
+  "If you're just tuning in, I'm Smash the lion and this is SMASH NEWS, everything new, every day.",
+];
+
+export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes = 30 } = {}) {
+  const fresh = stories.filter((s) => now - pub(s) < 48 * 3600e3 && !s.tags?.includes('RUMOR') && !s.tags?.includes('LEAK'));
+  const pool = fresh.length >= 40 ? fresh : stories;
+  const used = new Set();
+  const brandsUsed = new Map();
+  const take = (fn, n) => {
+    const out = [];
+    for (const s of pool.filter((x) => !used.has(x.id) && fn(x)).sort((a, b) => b.score - a.score)) {
+      if (out.length >= n) break;
+      if ((s.brands || []).some((b) => (brandsUsed.get(b) || 0) >= 2)) continue;
+      out.push(s); used.add(s.id); (s.brands || []).forEach((b) => brandsUsed.set(b, (brandsUsed.get(b) || 0) + 1));
+    }
+    return out;
+  };
+  const roadInc = new Set(['crash', 'closure', 'construction', 'traffic', 'trees', 'police', 'fire', 'emergency', 'flooding', 'weather', 'outage', 'metra', 'missing']);
+  const ROADY = /\b(crash|collision|closure|closed|close|lanes?|traffic|construction|I-\d+|interstate|route \d+|road|highway|expressway|tollway|detour|bridge|ramp|police|cops?|sheriff|fire|firefighters|arrest\w*|charged|shooting|shot|stabb\w*|robbery|burglar\w*|theft|missing|pedestrian|driver|motorcycl\w*|metra|train|outage|evacuat\w*|swat)\b/i;
+  const states = new Set();
+  const plan = [
+    ['top', take((s) => (s.status === 'BREAKING' || (s.alsoReportedBy?.length || 0) >= 3) && ['news', 'dupage'].includes(s.category), 6)],
+    ['dupage', take((s) => isLocal(s), 12)],
+    ['roads', take((s) => ((s.region?.roads || s.region?.county || isLocal(s)) && ROADY.test(s.title)) || (isLocal(s) && roadInc.has(s.location?.incident?.id)), 10)],
+    ['local', take((s) => s.region?.county && s.region.county !== 'DuPage', 8)],
+    ['nfl', []],
+    ['drops', take((s) => s.tags?.includes('LAUNCH') || s.tags?.includes('LIMITED'), 14)],
+    ['deals', take((s) => s.tags?.includes('DEAL'), 12)],
+    ['recalls', take((s) => s.tags?.includes('RECALL'), 4)],
+    ['openings', take((s) => s.tags?.includes('OPENING') || s.tags?.includes('CLOSING'), 4)],
+    ['us', take((s) => s.category === 'news' && !s.region?.state, 14)],
+    ['states', take((s) => { const st = s.region?.state; if (!st || st === 'Illinois' || states.has(st)) return false; states.add(st); return true; }, 12)],
+    ['tech', take((s) => s.category === 'tech', 6)],
+    ['games', take((s) => s.category === 'gaming', 5)],
+    ['food', take((s) => s.category === 'food' || s.category === 'energy', 6)],
+    ['cars', take((s) => s.category === 'auto', 5)],
+    ['quick', take(() => true, 40)],
+  ];
+  const segs = [];
+  const time = new Date(now).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+  const day = new Date(now).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ });
+  segs.push({ kind: 'intro', section: 'SMASH NEWS', text: `${pick(INTRO, Math.floor(now / 18e5))} It's ${time} on ${day}, and this is your thirty minute SMASH NEWS show. We've got local news, roads, football, new stuff, deals, and news from all over the country. Let's go!` });
+  const nflSegs = nflSegments(nfl, now).map((x) => ({ ...x, section: 'NFL ZONE' }));
+  const nflNews = (nfl?.news || []).slice(0, 4).map((n, k) => ({ kind: 'nfl', section: 'NFL ZONE', title: n.title, imageUrl: n.image, category: 'nfl', source: 'ESPN', text: `${k === 0 ? 'In other football news, ' : ''}${speakable(n.title)}. ${firstSentence(n.summary, n.title)}`.trim() }));
+  let wordCount = words(segs[0].text);
+  const budget = targetMinutes * 60 * WPS;
+  const active = plan.filter(([key, list]) => (key === 'nfl' ? nflSegs.length + nflNews.length : list.length));
+  active.forEach(([key, list], idx) => {
+    if (wordCount > budget) return;
+    const sec = SECTION[key];
+    segs.push({ kind: 'bumper', section: sec.title, icon: sec.icon, text: pick(sec.bumper, now + idx) });
+    const items = key === 'nfl' ? [...nflSegs, ...nflNews] : list;
+    for (const it of items) {
+      if (wordCount > budget) break;
+      let seg;
+      if (key === 'nfl') seg = it;
+      else if (key === 'quick') seg = { kind: 'quick', storyId: it.id, title: it.title, imageUrl: it.imageUrl || null, category: it.category, source: it.sourceName, text: `${speakable(it.title)}.` };
+      else {
+        const inc = it.location?.incident?.id || it.region?.incident?.id;
+        const serious = ['top', 'roads', 'recalls'].includes(key) || SERIOUS_INC.has(inc) || /\b(killed|dead|dies|death|shooting|shot|stabb|crash|injur|missing|fire|arrest)/i.test(it.title);
+        const where = isLocal(it) ? (it.location.places.filter((p) => p !== 'DuPage County')[0] || 'DuPage County') : it.region?.county ? `${it.region.county} County` : it.region?.state || '';
+        const lead = key === 'states' ? `In ${it.region.state},` : (key === 'dupage' || key === 'roads' || key === 'local') && where ? `In ${where},` : '';
+        const cap = (t, n) => { const w = t.split(/\s+/); return w.length <= n ? t : `${w.slice(0, n).join(' ').replace(/[,;:]$/, '')}.`; };
+        const deep = ['top', 'dupage', 'us', 'local', 'roads', 'recalls', 'states'].includes(key);
+        const extra = key === 'recalls' && it.recall?.action ? `${sentences(it.summary, it.title, 1)} ${speakable(it.recall.action)}.` : cap(sentences(it.summary, it.title, deep ? 3 : 2), deep ? 70 : 45);
+        const quipList = serious ? null : (QUIPS[it.category] && key !== 'deals' ? QUIPS[it.category] : QUIPS[key === 'drops' ? 'product' : key === 'deals' ? 'deal' : key === 'openings' ? 'opening' : ''] );
+        const quip = quipList && Math.abs([...it.id].reduce((h, c) => h + c.charCodeAt(0), 0)) % 2 === 0 ? ` ${pick(quipList, it.id)}` : '';
+        seg = { kind: key, storyId: it.id, title: it.title, imageUrl: it.imageUrl || null, category: it.category, source: it.sourceName, place: where || null, serious, text: `${lead} ${speakable(it.title)}. ${extra}${quip}`.replace(/\s+/g, ' ').replace(/\.\./g, '.').trim() };
+      }
+      seg.section = sec.title;
+      segs.push(seg);
+      wordCount += words(seg.text);
+    }
+    if (idx === 3 || idx === 8) segs.push({ kind: 'bumper', section: sec.title, text: pick(MID, now + idx) });
+    const next = active[idx + 1];
+    if (next && wordCount < budget) segs.push({ kind: 'bumper', section: sec.title, text: `${pick(UP_NEXT, now + idx)} ${SECTION[next[0]].title.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()).replace('Dupage', 'DuPage').replace('Nfl', 'NFL').replace('U.s.', 'U.S.').replace(' & ', ' and ')}.`.replace('..', '.') });
+  });
+  segs.push({ kind: 'outro', section: 'SMASH NEWS', text: `${pick(OUTRO, Math.floor(now / 18e5) + 1).replace('in about ten minutes', 'with a brand new show in thirty minutes').replace('in ten minutes', 'in thirty minutes')}` });
+  // timing estimate (replaced by real audio durations after the voice is generated)
+  let t = 0;
+  for (const x of segs) { x.dur = Math.max(2.5, words(x.text) / WPS + 0.4); x.start = t; t += x.dur; }
+  return { id: `show-${now}`, createdAt: new Date(now).toISOString(), startsAt: new Date(now).toISOString(), totalSeconds: Math.round(t), wordCount, segments: segs };
+}
+
+/** Half-hour slot (Central time) a timestamp belongs to, e.g. 2026-10-01T20:30. */
+export function showSlot(ms = Date.now()) {
+  const d = new Date(ms);
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(d).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${Number(p.minute) < 30 ? '00' : '30'}`;
 }

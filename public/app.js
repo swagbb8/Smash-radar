@@ -14,6 +14,7 @@ const prefs = {
   dupageInForYou: LS.get('sr.dupageForYou', true),
   nearby: LS.get('sr.nearby', false),
   lionAuto: LS.get('sr.lionAuto', true),
+  tvCC: LS.get('sr.tvCC', true),
   customBrands: LS.get('sr.customBrands', []),
   cats: new Set(LS.get('sr.cats', [])),
 };
@@ -100,7 +101,7 @@ async function staticApi(path, opts) {
   if (method !== 'GET') throw new Error('Not available in the free hosted version — edit src/config.js in the repo instead');
   const d = await loadStatic();
   if (p === 'api/meta') return { ...d.meta, refreshing: false, mode: 'static' };
-  if (p === 'api/briefing' || p === 'api/nfl') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
+  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
   if (p === 'api/dupage') return d.dupage;
   if (p === 'api/brands') return d.brands;
   if (p === 'api/sources') return d.sources;
@@ -316,7 +317,7 @@ const views = {
       <a class="stat launch" href="#/products"><b>${c.products ?? '–'}</b><span>Products</span></a>
       <a class="stat deal" href="#/deals"><b>${c.deals ?? '–'}</b><span>Deals</span></a>
       <a class="stat recall" href="#/recalls"><b>${c.recalls ?? '–'}</b><span>Recalls</span></a></div>`;
-    const banner = `<a class="live-banner" href="#/lion"><span class="lb-lion">${lionSVG()}</span><span><b>▶ Smash Live</b><br><span class="muted">Smash the lion reads you everything new · fresh episode every 10 min</span></span><span class="lb-live">● LIVE</span></a>`;
+    const banner = `<a class="live-banner" href="#/lion"><span class="lb-lion">${lionSVG()}</span><span><b>▶ Smash Live</b><br><span class="muted">Smash the lion's 30-minute news show · on air 24/7 · new show every half hour</span></span><span class="lb-live">● LIVE</span></a>`;
     const all = await api(`/api/stories?${qs({ view: 'all', limit: 200 })}`);
     if (!all.stories.length) return banner + top + (noDataYet() || empty('📡', 'Radar is clear', 'Nothing collected yet. Tap Refresh to sweep all sources.'));
     const list = all.stories;
@@ -458,26 +459,40 @@ const views = {
 
 
   async lion() {
-    let b;
-    try { b = await api('/api/briefing'); } catch (e) { return viewHead('Smash Live') + empty('🦁', 'Smash is getting ready', 'The first episode appears after the next update. Check back in a few minutes.'); }
-    app.briefing = b;
-    const voiceLabel = b.voice ? 'Neural AI voice' : 'Phone voice (neural voice arrives with the next update)';
-    const html = `<div class="live-stage" id="liveStage">
-      <div class="ls-top"><span class="ls-live">● LIVE</span><span class="ls-brand"><b>SMASH</b> NEWS</span><span class="ls-time">${esc(clock(b.createdAt))}</span></div>
+    let sh;
+    try { sh = await api('/api/show'); } catch {
+      try { sh = asShow(await api('/api/briefing')); } catch { return viewHead('Smash Live') + empty('🦁', 'Smash is getting ready', 'The first show goes on air after the next update. Check back in a few minutes.'); }
+    }
+    app.tvShow = sh;
+    const voiceLabel = sh.voice ? 'Neural AI voice' : 'Phone voice (neural voice arrives with the next update)';
+    const html = `<div class="live-stage tv-stage" id="liveStage">
+      <div class="ls-top"><span class="ls-live">● LIVE</span><span class="ls-brand"><b>SMASH</b> NEWS <small>24/7</small></span><span class="ls-time" id="tvClock"></span></div>
       <div class="ls-lion">${lionSVG()}</div>
       <div class="ls-desk"><span class="radar-logo"><i></i></span><b>SMASH</b>&nbsp;NEWS</div>
       <div class="ls-graphic" id="lsGraphic"></div>
-      <div class="ls-caption" id="lsCaption">Tap ▶ and Smash will tell you everything that's new.</div>
+      <div class="tv-bumper" id="tvBumper"></div>
+      <div class="tv-cc ${prefs.tvCC === false ? 'off' : ''}" id="lsCaption"></div>
+      <div class="tv-chyron"><span class="tc-sec" id="tvSec">SMASH NEWS</span><span class="tc-head" id="tvHead">Smash the lion is on air</span></div>
+      <div class="tv-ticker"><span class="tt-label">LATEST</span><div class="tt-track"><div class="tt-run" id="tvTicker">${tickerHtml(sh)}</div></div></div>
+      <div class="tv-progress"><i id="tvProg"></i></div>
+      <button class="tv-tap" data-action="tv-start" id="tvTap"><span class="tt-play">▶</span><b>Watch live</b><small>Smash is on air right now</small></button>
+      <button class="tv-exit" data-action="tv-mode" aria-label="Exit TV mode">✕</button>
     </div>
     <div class="ls-controls">
       <button class="ls-btn" data-action="lion-prev" aria-label="Previous">⏮</button>
       <button class="ls-btn big" data-action="lion-play" id="lionPlay" aria-label="Play">▶</button>
       <button class="ls-btn" data-action="lion-next" aria-label="Next">⏭</button>
     </div>
-    <div class="ls-meta">Episode from <b>${esc(clock(b.createdAt))}</b> · ${b.segments.length - 2} stories · ${esc(voiceLabel)} · new episode about every 10 min</div>
-    <div class="toggle" style="margin:10px 0"><span>Auto-play new episodes while this screen is open</span><button class="switch ${prefs.lionAuto ? 'on' : ''}" data-action="lion-auto" aria-label="Auto-play"></button></div>
-    <div class="rows ls-list">${b.segments.map((g, k) => `<button class="ls-seg" data-seg="${k}"><span class="n">${k + 1}</span><span><b>${esc(SEG_LABEL[g.kind] || g.kind)}</b> ${esc(g.title || g.text.slice(0, 90))}</span></button>`).join('')}</div>`;
-    setTimeout(() => initLion(b), 0);
+    <div class="tv-row">
+      <button class="chip tv-golive" data-action="tv-live" id="tvGoLive">● Live</button>
+      <button class="chip" data-action="tv-top">⏪ From the top</button>
+      <button class="chip ${prefs.tvCC === false ? '' : 'on'}" data-action="tv-cc" id="tvCCBtn">CC</button>
+      <button class="chip" data-action="tv-mode">📺 TV mode</button>
+    </div>
+    <div class="ls-meta">Show from <b>${esc(clock(sh.startsAt || sh.createdAt))}</b> · ${Math.round((sh.totalSeconds || 0) / 60)} min · ${sh.segments.filter((g) => g.title).length} stories · ${esc(voiceLabel)} · brand-new show every 30 minutes</div>
+    <h3 class="sec-title">Rundown</h3>
+    <div class="rows ls-list">${rundown(sh)}</div>`;
+    setTimeout(() => initTv(sh), 0);
     return html;
   },
 
@@ -804,39 +819,124 @@ function openGame(id) {
     <div class="actions"><a class="btn primary" href="${esc(safeUrl(g.link))}" target="_blank" rel="noopener">Full box score on ESPN ↗</a></div></div>`);
 }
 
+// ===================== SMASH LIVE: 24/7 TV channel =====================
+const mmss = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+/** Older 10-minute briefing → show format (fallback before the first 30-minute show exists). */
+function asShow(b) {
+  let t = 0;
+  const segments = b.segments.map((g) => { const dur = g.dur || Math.max(2.5, g.text.split(/\s+/).length / 2.55 + 0.4); const x = { ...g, section: g.section || (SEG_LABEL[g.kind] || 'SMASH NEWS').toUpperCase(), start: t, dur }; t += dur; return x; });
+  return { ...b, segments, totalSeconds: Math.round(t), startsAt: b.createdAt };
+}
+function tickerHtml(sh) {
+  const seen = new Set();
+  const items = sh.segments.filter((g) => g.title && !seen.has(g.title) && seen.add(g.title)).slice(0, 40);
+  const one = items.map((g) => `<span><b>${esc((g.section || '').replace(/^THE /, ''))}</b> ${esc(g.title.replace(/^(live updates?|breaking|update)\s*:\s*/i, ''))}</span>`).join('<i>◆</i>');
+  return `${one}<i>◆</i>${one}`;
+}
+function rundown(sh) {
+  const out = [];
+  sh.segments.forEach((g, k) => {
+    if (k && g.section === sh.segments[k - 1].section) return;
+    const n = sh.segments.slice(k).findIndex((x) => x.section !== g.section);
+    const stories = sh.segments.slice(k, n < 0 ? undefined : k + n).filter((x) => x.title).length;
+    out.push(`<button class="ls-seg" data-seg="${k}" data-sec="${esc(g.section)}"><span class="n">${mmss(g.start || 0)}</span><span><b>${esc(g.section)}</b>${stories ? ` <span class="muted">${stories} ${stories === 1 ? 'story' : 'stories'}</span>` : ''}</span></button>`);
+  });
+  return out.join('');
+}
+function livePos(sh) {
+  const total = sh.totalSeconds || 1;
+  const e = (Date.now() - Date.parse(sh.startsAt || sh.createdAt)) / 1000;
+  return ((e % total) + total) % total;
+}
+function segAt(sh, pos) {
+  for (let i = 0; i < sh.segments.length; i++) { const g = sh.segments[i]; if (pos < g.start + g.dur) return [i, Math.max(0, pos - g.start)]; }
+  return [0, 0];
+}
 function showSegment(seg, k) {
   const gfx = $('#lsGraphic');
   const cap = $('#lsCaption');
-  if (!gfx || !cap) return;
+  if (!gfx || !cap || !seg) return;
   cap.textContent = seg.text;
-  document.querySelectorAll('.ls-seg').forEach((b) => b.classList.toggle('on', Number(b.dataset.seg) === k));
-  document.querySelector(`.ls-seg[data-seg="${k}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const sec = $('#tvSec'); const head = $('#tvHead');
+  if (sec) sec.textContent = `${seg.icon ? `${seg.icon} ` : ''}${seg.section || 'SMASH NEWS'}`;
+  if (head) { head.textContent = seg.title || (seg.kind === 'intro' ? 'Smash the lion is on air' : seg.kind === 'outro' ? 'New show every 30 minutes' : seg.section || ''); head.classList.remove('in'); void head.offsetWidth; head.classList.add('in'); }
+  const cur = app.tvShow?.segments ? seg.section : null;
+  document.querySelectorAll('.ls-seg').forEach((b) => b.classList.toggle('on', b.dataset.sec === cur));
+  const bump = $('#tvBumper');
+  if (bump) {
+    if (seg.kind === 'bumper' && seg.icon) { bump.innerHTML = `<span>${seg.icon}</span><b>${esc(seg.section)}</b><small>SMASH NEWS</small>`; bump.classList.remove('show'); void bump.offsetWidth; bump.classList.add('show'); }
+    else if (seg.kind !== 'bumper') bump.classList.remove('show');
+  }
   if (!seg.title) { gfx.classList.remove('show'); return; }
   const s = { category: seg.category === 'nfl' ? 'news' : seg.category, brands: [], location: null };
   const img = imgUrl(seg.imageUrl);
-  gfx.innerHTML = `<div class="g-media">${img ? `<img src="${esc(img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : placeholder(s)}</div><div class="g-text"><span class="g-kind">${esc(SEG_LABEL[seg.kind] || '')}${seg.place ? ` · ${esc(seg.place)}` : ''}</span><b>${esc(seg.title)}</b>${seg.source ? `<small>${esc(seg.source)}</small>` : ''}</div>`;
+  gfx.innerHTML = `<div class="g-media">${img ? `<img src="${esc(img)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : placeholder(s)}</div><div class="g-text"><span class="g-kind">${esc(seg.section || SEG_LABEL[seg.kind] || '')}${seg.place ? ` · ${esc(seg.place)}` : ''}</span><b>${esc(seg.title)}</b>${seg.source ? `<small>${esc(seg.source)}</small>` : ''}</div>`;
   gfx.classList.remove('show'); void gfx.offsetWidth; gfx.classList.add('show');
 }
-function setPlayBtn(state) { const b = $('#lionPlay'); if (b) b.textContent = state === 'playing' ? '⏸' : '▶'; }
-function initLion(b) {
+function setPlayBtn(state) {
+  const b = $('#lionPlay'); if (b) b.textContent = state === 'playing' ? '⏸' : '▶';
+  $('#tvTap')?.classList.toggle('hide', state === 'playing' || app.tvStarted);
+}
+function setLive(on) { app.tvLive = on; $('#tvGoLive')?.classList.toggle('on', on); $('#liveStage')?.classList.toggle('not-live', !on); }
+function tvGoLive() {
+  const sh = app.tvShow; if (!sh || !app.show) return;
+  const [i, off] = segAt(sh, livePos(sh));
+  app.tvStarted = true;
+  setLive(true);
+  app.show.stop();
+  app.show.play(i, off);
+}
+async function tvSwitch(nb) {
+  // a brand-new show just went on air: load it and join live
+  app.tvShow = nb; app.tvPending = null;
+  app.show.load(nb);
+  const tk = $('#tvTicker'); if (tk) tk.innerHTML = tickerHtml(nb);
+  const rl = document.querySelector('.ls-list'); if (rl) rl.innerHTML = rundown(nb);
+  toast('🦁 New SMASH NEWS show is on air');
+}
+function initTv(sh) {
   if (app.show) app.show.destroy();
   const stage = $('#liveStage');
   if (!stage) return;
-  app.show = new LionShow(stage, { onSegment: showSegment, onState: setPlayBtn, onEnd: () => { setPlayBtn('ended'); if (app.pendingBriefing && prefs.lionAuto) { const nb = app.pendingBriefing; app.pendingBriefing = null; render({ quiet: true }).then(() => app.show?.play(0)); } } });
+  app.tvStarted = false;
+  app.show = new LionShow(stage, {
+    onSegment: showSegment,
+    onState: setPlayBtn,
+    onAdvance: (i) => {
+      if (app.tvPending && app.tvLive) { tvSwitch(app.tvPending); app.show.playing = true; tvGoLive(); return true; }
+      return false;
+    },
+    onEnd: async () => {
+      // end of the show: jump to the newest show (or run this one again) and stay live
+      try { const nb = await api('/api/show'); if (nb.id !== app.tvShow?.id) await tvSwitch(nb); } catch {}
+      if (app.tvLive) tvGoLive(); else { app.show.playing = true; app.show.play(0); }
+    },
+  });
   const vs = LionShow.voices();
   app.show.voice = vs[0] || null;
   if (window.speechSynthesis && !vs.length) window.speechSynthesis.onvoiceschanged = () => { if (app.show) app.show.voice = LionShow.voices()[0] || null; };
-  app.show.load(b);
-  showSegment(b.segments[0], 0);
+  app.show.load(sh);
+  setLive(true);
+  const [i] = segAt(sh, livePos(sh));
+  app.show.i = i;
+  showSegment(sh.segments[i], i);
+  clearInterval(app.tvTick);
+  app.tvTick = setInterval(() => {
+    const c = $('#tvClock'); if (c) c.textContent = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
+    const cur = app.tvShow; if (!cur || !app.show) return;
+    let pos;
+    if (app.show.playing) { const g = cur.segments[app.show.i]; pos = (g?.start || 0) + Math.min(app.show.segTime, g?.dur || 0); }
+    else if (app.tvLive && !app.tvStarted) { pos = livePos(cur); const [k] = segAt(cur, pos); if (k !== app.show.i) { app.show.i = k; showSegment(cur.segments[k], k); } }
+    else pos = cur.segments[app.show.i]?.start || 0;
+    const p = $('#tvProg'); if (p) p.style.width = `${Math.min(100, (pos / (cur.totalSeconds || 1)) * 100).toFixed(2)}%`;
+  }, 500);
   clearInterval(app.lionPoll);
   app.lionPoll = setInterval(async () => {
     try {
-      const nb = await api('/api/briefing');
-      if (nb.id !== app.briefing?.id) {
-        app.briefing = nb;
-        if (app.show?.playing) { app.pendingBriefing = nb; toast('New Smash Live episode is ready'); }
-        else { await render({ quiet: true }); if (prefs.lionAuto) app.show?.play(0); else toast('New Smash Live episode — tap ▶'); }
-      }
+      const nb = await api('/api/show');
+      if (nb.id === app.tvShow?.id) return;
+      if (app.show?.playing) app.tvPending = nb; // switch after the current sentence
+      else { await tvSwitch(nb); if (app.tvLive && !app.tvStarted) { const [k] = segAt(nb, livePos(nb)); app.show.i = k; showSegment(nb.segments[k], k); } }
     } catch {}
   }, 60e3);
 }
@@ -915,7 +1015,7 @@ function parseHash() {
 let renderSeq = 0;
 async function render({ quiet = false } = {}) {
   const { route, params } = parseHash();
-  if (route !== 'lion' && app.show) { app.show.destroy(); app.show = null; clearInterval(app.lionPoll); }
+  if (route !== 'lion' && app.show) { app.show.destroy(); app.show = null; clearInterval(app.lionPoll); clearInterval(app.tvTick); document.body.classList.remove('tv-mode'); }
   const changedRoute = route !== app.route;
   app.route = route;
   app.params = params;
@@ -1032,7 +1132,7 @@ document.addEventListener('click', async (e) => {
   const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],[data-post],[data-fmt],[data-seg],[data-game],[data-video],.src-link');
   if (!t) return;
   if (t.classList.contains('src-link')) return; // let links inside cards open normally
-  if (t.dataset.seg) return app.show?.play(Number(t.dataset.seg));
+  if (t.dataset.seg) { if (!app.show) return; app.tvStarted = true; setLive(false); app.show.stop(); app.show.play(Number(t.dataset.seg)); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (t.dataset.game) return openGame(t.dataset.game);
   if (t.dataset.video) return openVideo(t.dataset.video, t.dataset.vtitle || 'Highlights');
   if (t.dataset.post) { e.preventDefault(); e.stopPropagation(); return openPostStudio({ ids: [t.dataset.post] }); }
@@ -1070,10 +1170,13 @@ document.addEventListener('click', async (e) => {
   }
   const a = t.dataset.action;
   if (a === 'close') return closeSheet();
-  if (a === 'lion-play') { if (!app.show) return; if (app.show.playing) app.show.pause(); else app.show.play(app.show.i >= app.show.segments.length - 1 ? 0 : app.show.i); return; }
-  if (a === 'lion-next') return app.show?.next();
-  if (a === 'lion-prev') return app.show?.prev();
-  if (a === 'lion-auto') { prefs.lionAuto = !prefs.lionAuto; LS.set('sr.lionAuto', prefs.lionAuto); t.classList.toggle('on', prefs.lionAuto); return; }
+  if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
+  if (a === 'lion-play') { if (!app.show) return; if (app.show.playing) { app.show.pause(); setLive(false); return; } if (!app.tvStarted) return tvGoLive(); app.tvStarted = true; app.show.play(app.show.i); return; }
+  if (a === 'lion-next') { app.tvStarted = true; setLive(false); return app.show?.next(); }
+  if (a === 'lion-prev') { app.tvStarted = true; setLive(false); return app.show?.prev(); }
+  if (a === 'tv-top') { if (!app.show) return; app.tvStarted = true; setLive(false); app.show.stop(); app.show.play(0); return; }
+  if (a === 'tv-cc') { prefs.tvCC = prefs.tvCC === false; LS.set('sr.tvCC', prefs.tvCC); t.classList.toggle('on', prefs.tvCC); $('#lsCaption')?.classList.toggle('off', !prefs.tvCC); return; }
+  if (a === 'tv-mode') { const on = !document.body.classList.contains('tv-mode'); document.body.classList.toggle('tv-mode', on); if (on && !app.show?.playing) tvGoLive(); return; }
   if (a === 'recap') return openPostStudio({ recap: true });
   if (a === 'recap-week') return openPostStudio({ recap: true, weekly: true });
   if (a === 'share-post') return sharePost();

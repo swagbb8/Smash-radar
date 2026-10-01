@@ -3,7 +3,8 @@ import { APP, BRANDS, CATEGORIES, DUPAGE_PLACES, slug } from './config.js';
 import { queryStories, present, counts } from './engine.js';
 import { getSources, isRefreshing, refresh, liveSearch, tierMinutes } from './collector.js';
 import { INCIDENT_TYPES } from './dupage.js';
-import { buildBriefing } from './briefing.js';
+import { buildBriefing, buildShow, showSlot } from './briefing.js';
+let showCache = null;
 
 const json = (status, body) => ({ status, body });
 let nflCache = null;
@@ -144,6 +145,15 @@ export async function handleApi({ method, path, query = {}, body = {} }, ctx) {
     const b = buildBriefing(all, now, { nfl: nflCache?.data || null });
     b.id = `b-${state.meta.lastRefreshAt || now}`;
     return json(200, b);
+  }
+
+  if (method === 'GET' && r0 === 'show') {
+    const slot = showSlot(now);
+    if (!showCache || showCache.slot !== slot) {
+      const all = queryStories(state, { view: 'all', limit: 600 }, now).stories;
+      showCache = { ...buildShow(all, now, { nfl: nflCache?.data || null }), slot }; // phone voice in server mode
+    }
+    return json(200, showCache);
   }
 
   if (method === 'GET' && r0 === 'runs') return json(200, { runs: state.runs || [] });

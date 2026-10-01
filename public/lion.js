@@ -56,8 +56,10 @@ export function lionSVG() {
 
 /** SMASH Live show: plays the briefing (neural-voice MP3s when available, phone voice otherwise) and animates the lion. */
 export class LionShow {
-  constructor(root, { onSegment, onState, onEnd } = {}) {
+  constructor(root, { onSegment, onState, onEnd, onAdvance } = {}) {
     this.root = root;
+    this.onAdvance = onAdvance || (() => false);
+    this.offset = 0;
     this.onSegment = onSegment || (() => {});
     this.onState = onState || (() => {});
     this.onEnd = onEnd || (() => {});
@@ -96,8 +98,11 @@ export class LionShow {
       this.buf = new Uint8Array(this.analyser.fftSize);
     } catch { this.ctx = null; }
   }
-  play(from = this.i) {
+  /** Seconds into the current segment (for the show's progress bar). */
+  get segTime() { return this.audio && !this.audio.paused ? this.audio.currentTime : this._fallbackStart ? (performance.now() - this._fallbackStart) / 1000 : 0; }
+  play(from = this.i, offset = 0) {
     this.i = Math.max(0, Math.min(from, this.segments.length - 1));
+    this.offset = offset > 1 ? offset : 0;
     this.playing = true;
     if (this.mode === 'neural') this._ensureAudioGraph();
     this._playCurrent();
@@ -107,9 +112,12 @@ export class LionShow {
     const seg = this.segments[this.i];
     if (!seg) { this.playing = false; this.onState('ended'); this.onEnd(); return; }
     this.onSegment(seg, this.i);
+    this._fallbackStart = 0;
     if (seg.audio) {
       window.speechSynthesis?.cancel();
-      this.audio.src = seg.audio;
+      const off = this.offset; this.offset = 0;
+      this.audio.src = off ? `${seg.audio}#t=${off.toFixed(1)}` : seg.audio; // join mid-sentence, like real live TV
+      if (off) this.audio.addEventListener('loadedmetadata', () => { try { if (this.audio.currentTime < off - 1) this.audio.currentTime = off; } catch {} }, { once: true });
       this.audio.playbackRate = this.rate;
       const p = this.audio.play();
       if (p?.catch) p.catch(() => this._speakFallback());
@@ -119,6 +127,8 @@ export class LionShow {
     const seg = this.segments[this.i];
     if (!seg || !window.speechSynthesis) return this._advance();
     window.speechSynthesis.cancel();
+    this.offset = 0;
+    this._fallbackStart = performance.now();
     const u = new SpeechSynthesisUtterance(seg.text);
     u.rate = this.rate;
     u.pitch = 0.85;
@@ -130,6 +140,7 @@ export class LionShow {
   }
   _advance() {
     if (!this.playing) return;
+    if (this.onAdvance(this.i)) return; // the host switched to a new show
     this.i++;
     setTimeout(() => this.playing && this._playCurrent(), 280);
   }
