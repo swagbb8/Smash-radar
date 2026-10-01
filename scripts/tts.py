@@ -7,9 +7,9 @@ from datetime import datetime, timezone
 DIST = os.environ.get('STATIC_OUT', 'dist')
 DATA = os.environ.get('DATA_DIR', 'data')
 CACHE = os.environ.get('AUDIO_CACHE', '/tmp/smash-audio')
-VOICE = os.environ.get('LION_VOICE', 'en-US-AndrewMultilingualNeural')
-RATE = os.environ.get('LION_RATE', '+8%')
-PITCH = os.environ.get('LION_PITCH', '-4Hz')
+VOICE = os.environ.get('LION_VOICE', 'en-US-BrianMultilingualNeural')  # conversational, upbeat, natural
+RATE = os.environ.get('LION_RATE', '+4%')
+PITCH = os.environ.get('LION_PITCH', '+0Hz')  # no pitch shifting: it makes voices sound processed
 BITRATE = 48000  # edge-tts default output: 24 kHz, 48 kbit/s mono MP3
 
 def clip_name(text):

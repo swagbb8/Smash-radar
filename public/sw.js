@@ -1,5 +1,5 @@
 // SMASH NEWS service worker — offline app shell + last-sweep data fallback.
-const VERSION = 'sr-v3.1.0';
+const VERSION = 'sr-v3.2.0';
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const IMG = 'sr-img';
@@ -54,6 +54,8 @@ self.addEventListener('fetch', (e) => {
 
   if (url.origin === location.origin) {
     if (url.pathname.endsWith('/api/events')) return; // live stream: never cache
+    // Smash's voice clips: let Safari stream them directly (it needs byte-range requests, which a cached copy breaks).
+    if (url.pathname.startsWith(`${BASE}audio/`) || req.destination === 'audio' || req.headers.has('range')) return;
     if (url.pathname.startsWith(`${BASE}api/`)) {
       e.respondWith(networkFirst(req, DATA, { offlineHeader: true }));
       return;

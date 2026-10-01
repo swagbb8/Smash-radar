@@ -464,7 +464,7 @@ const views = {
       try { sh = asShow(await api('/api/briefing')); } catch { return viewHead('Smash Live') + empty('🦁', 'Smash is getting ready', 'The first show goes on air after the next update. Check back in a few minutes.'); }
     }
     app.tvShow = sh;
-    const voiceLabel = sh.voice ? 'Neural AI voice' : 'Phone voice (neural voice arrives with the next update)';
+    const voiceLabel = sh.voice ? '🎙️ Real human-style voice' : 'Real voice arrives with the next update';
     const html = `<div class="live-stage tv-stage" id="liveStage">
       <div class="ls-top"><span class="ls-live">● LIVE</span><span class="ls-brand"><b>SMASH</b> NEWS <small>24/7</small></span><span class="ls-time" id="tvClock"></span></div>
       <div class="ls-lion">${lionSVG()}</div>
@@ -875,7 +875,8 @@ function showSegment(seg, k) {
 }
 function setPlayBtn(state) {
   const b = $('#lionPlay'); if (b) b.textContent = state === 'playing' ? '⏸' : '▶';
-  $('#tvTap')?.classList.toggle('hide', state === 'playing' || app.tvStarted);
+  if (state === 'blocked') { app.tvStarted = false; }
+  $('#tvTap')?.classList.toggle('hide', state === 'playing' || (app.tvStarted && state !== 'blocked'));
 }
 function setLive(on) { app.tvLive = on; $('#tvGoLive')?.classList.toggle('on', on); $('#liveStage')?.classList.toggle('not-live', !on); }
 function tvGoLive() {

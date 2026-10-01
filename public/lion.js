@@ -73,7 +73,13 @@ export class LionShow {
     this.audio.preload = 'auto';
     this.audio.playsInline = true;
     this.audio.addEventListener('ended', () => this._advance());
-    this.audio.addEventListener('error', () => { if (this.playing) this._speakFallback(); });
+    // If a real-voice clip hiccups, retry it once, then move on. Never switch to the robot phone voice when real clips exist.
+    this.audio.addEventListener('error', () => {
+      if (!this.playing) return;
+      const seg = this.segments[this.i];
+      if (seg?.audio && !this._retried) { this._retried = true; this.audio.src = `${seg.audio}?r=${Date.now()}`; this.audio.play().catch(() => {}); return; }
+      this._advance();
+    });
     this._blinkT = performance.now() + 2500;
     this.tick = this.tick.bind(this);
     this._raf = requestAnimationFrame(this.tick);
@@ -119,8 +125,9 @@ export class LionShow {
       this.audio.src = off ? `${seg.audio}#t=${off.toFixed(1)}` : seg.audio; // join mid-sentence, like real live TV
       if (off) this.audio.addEventListener('loadedmetadata', () => { try { if (this.audio.currentTime < off - 1) this.audio.currentTime = off; } catch {} }, { once: true });
       this.audio.playbackRate = this.rate;
+      this._retried = false;
       const p = this.audio.play();
-      if (p?.catch) p.catch(() => this._speakFallback());
+      if (p?.catch) p.catch((e) => { if (e?.name === 'NotAllowedError') { this.playing = false; this.onState('blocked'); } });
     } else this._speakFallback();
   }
   _speakFallback() {
