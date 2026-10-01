@@ -51,13 +51,13 @@ def build(nfl_path, gid, out, recs_path=None):
     for i, p in enumerate(gplays):
         kind, yd, headline, who, passer, label = parse_play(p)
         side = 'home' if p.get('team') == game['home']['abbr'] else 'away'
-        if kind == 'pass':
-            flight = min(1.6, max(0.7, yd / 28)); cx = min(47, (50 - yd) + max(4, yd * 0.7))
-            dur = 0.6 + 1.3 + flight + max(1.2, (55 - cx) / 9) + 2.2
+        if kind == 'pass':  # snap at 1.3s, throw 1.4s later, then the flight, run after the catch, 2.4s celebration
+            flight = min(1.5, max(0.6, yd / 26)); cx = min(56, 52 + yd * 0.12) if yd <= 16 else min(47, (50 - yd) + yd * 0.72)
+            dur = 1.3 + 1.4 + flight + max(0.6, (max(cx, 53) - cx) / 7) + 2.4
         elif kind == 'fg':
-            flight = min(2.2, max(1.0, yd / 22)); dur = 0.6 + 1.0 + flight + 2.4
+            flight = min(2.2, max(1.0, yd / 22)); dur = 1.3 + 1.0 + flight + 2.4
         else:
-            dur = 0.6 + 0.6 + max(0.9, (55 - (50 - yd)) / 10) + 2.4
+            dur = 1.3 + 0.6 + 0.5 + max(1.0, (yd + 3) / 8.5) + 2.4
         plays.append({'_i': len(plays), 'kind': kind, 'yards': yd, 'side': side, 'headline': headline.upper(), 'label': label,
                       'q': QN[p.get('period') or 0], 'clock': p.get('clock', ''), 'away': p.get('away'), 'home': p.get('home'),
                       'num': jn(who), 'qbNum': jn(passer), 'fp': [{'player': (f"{p['team']} D/ST" if f['player'] == 'D/ST' else f['player']), 'pts': f['pts']} for f in (p.get('fantasy') or [])], 'dur': round(dur, 2)})
@@ -89,13 +89,22 @@ def build(nfl_path, gid, out, recs_path=None):
             await pg.goto('http://smash.local/game3d.html')
             await pg.wait_for_function('window.ready === true', timeout=60000)
             await pg.evaluate('async (d) => { await window.setup(d); }', {'game': game, 'plays': plays, 'timeline': tl})
+            shots = [float(x) for x in os.environ.get('G3D_SHOTS', '').split(',') if x]  # debug: only grab these moments
+            if os.environ.get('G3D_CAM'): await pg.evaluate('(c) => { window.CAM = c }', json.loads(os.environ['G3D_CAM']))
             for i in range(int(total * FPS)):
-                await pg.evaluate('(t) => window.frame(t)', i / FPS)
+                want = not shots or any(abs(i / FPS - x) < 0.5 / FPS for x in shots)
+                await pg.evaluate('([t, d]) => window.frame(t, d)', [i / FPS, want])
+                if shots:
+                    if want and os.environ.get('G3D_DBG'): print(i / FPS, await pg.evaluate('window._dbg()'))
+                    if any(abs(i / FPS - x) < 0.5 / FPS for x in shots): await pg.screenshot(path=os.path.join(os.environ['G3D_SHOTDIR'], f'shot_{i / FPS:06.2f}.jpg'), type='jpeg', quality=85)
+                    if i / FPS > max(shots): break
+                    continue
                 ff.stdin.write(await pg.screenshot(type='jpeg', quality=88))
             if errs: print('page errors:', errs[:3], file=sys.stderr)
             await b.close()
         ff.stdin.close(); ff.wait()
     asyncio.run(render())
+    if os.environ.get('G3D_SHOTS'): print('timeline', json.dumps([(x['kind'], round(x['start'], 2), x['dur']) for x in tl])); return
     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', vid, '-i', os.path.join(tmp, 'm.wav'), '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', out + '.part.mp4'], check=True)
     os.replace(out + '.part.mp4', out)
     print(f'3d replay: {out} ({os.path.getsize(out) / 1e6:.1f} MB, {total:.0f}s, {len(plays)} plays)')
