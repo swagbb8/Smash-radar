@@ -834,11 +834,15 @@ function roadRow(s, i = 0) {
   </article>`;
 }
 
+function ytSearch(g) {
+  const q = `${g.away.full || g.away.name} vs ${g.home.full || g.home.name} highlights${g.week ? ` week ${g.week}` : ''} NFL`;
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+}
 function gameCard(g) {
   const team = (t, other) => `<div class="gt ${g.state === 'post' && t.winner ? 'win' : ''}">${t.logo ? `<img src="${esc(imgUrl(t.logo))}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="lg">${esc(t.abbr)}</span>`}<span class="nm">${esc(t.name || t.abbr)}<small>${esc(t.record)}</small></span><span class="sc">${g.state === 'pre' ? '' : esc(t.score)}</span></div>`;
   const when = g.state === 'pre' ? new Date(g.date).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZone: TZ }) : g.detail;
   const lead = g.leaders?.[0];
-  return `<button class="game" data-game="${esc(g.id)}"><div class="gs ${g.state}">${g.state === 'in' ? '● ' : ''}${esc(when)}${g.broadcast && g.state === 'pre' ? ` · ${esc(g.broadcast)}` : ''}</div>${team(g.away)}${team(g.home)}${lead ? `<div class="gl">⭐ ${esc(lead.player)} · ${esc(lead.value)}</div>` : ''}${g.highlight ? '<div class="gh">▶ Highlights</div>' : ''}</button>`;
+  return `<button class="game" data-game="${esc(g.id)}"><div class="gs ${g.state}">${g.state === 'in' ? '● ' : ''}${esc(when)}${g.broadcast && g.state === 'pre' ? ` · ${esc(g.broadcast)}` : ''}</div>${team(g.away)}${team(g.home)}${lead ? `<div class="gl">⭐ ${esc(lead.player)} · ${esc(lead.value)}</div>` : ''}${g.state === 'post' ? '<div class="gh">▶ Highlights</div>' : ''}</button>`;
 }
 function videoCard(v) {
   return `<button class="card vcard" data-video="${esc(v.videoId)}" data-vtitle="${esc(v.title)}"><div class="media"><img src="${esc(imgUrl(v.thumb))}" alt="" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add('loaded')"><span class="play">▶</span></div><div class="body"><h3>${esc(v.title)}</h3><div class="foot"><span class="src">NFL</span><span>·</span><span>${ago(v.published)}</span></div></div></button>`;
@@ -861,6 +865,7 @@ function openGame(id) {
     ${box}
     ${g.leaders.length ? `<div class="box why"><h5>Player stats — game leaders</h5>${g.leaders.map((l) => `<div class="leader">${l.headshot ? `<img src="${esc(imgUrl(l.headshot))}" alt="" referrerpolicy="no-referrer">` : '<span class="hs">🏈</span>'}<div><b>${esc(l.player)}</b> <span class="muted">${esc(l.position)} ${esc(l.team)}</span><br><span class="muted">${esc(l.category)}</span> · ${esc(l.value)}</div></div>`).join('')}</div>` : ''}
     <div class="src-line">${g.venue ? `<span>📍 ${esc(g.venue)}</span>` : ''}${g.broadcast ? `<span>📺 ${esc(g.broadcast)}</span>` : ''}</div>
+    ${g.state === 'post' ? `<div class="actions">${g.highlight ? '' : `<a class="btn primary" href="${esc(ytSearch(g))}" target="_blank" rel="noopener">▶ Official highlights</a>`}<a class="btn" href="https://www.nfl.com/plus/" target="_blank" rel="noopener">Full replay / condensed game (NFL+) ↗</a></div>` : ''}
     <div class="actions">${g.state === 'post' ? `<button class="btn primary" data-action="game-reel" data-id="${esc(g.id)}">🎬 Make game reel</button>` : ''}<a class="btn ${g.state === 'post' ? '' : 'primary'}" href="${esc(safeUrl(g.link))}" target="_blank" rel="noopener">ESPN box score ↗</a></div></div>`);
 }
 
