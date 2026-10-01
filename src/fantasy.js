@@ -57,8 +57,9 @@ export function fantasyFromSummary(d, scoringPlays = []) {
         + (s.rushYd || 0) * S.rushYd + (s.rushTd || 0) * S.rushTd + (s.rec || 0) * S.rec + (s.recYd || 0) * S.recYd + (s.recTd || 0) * S.recTd
         + (s.fumLost || 0) * S.fumLost + (s.twoPt || 0) * S.twoPt;
       if (p.pos === 'K') { const dists = s.fgYds || []; pts = (s.xpm || 0) * S.pat + dists.reduce((a, y) => a + fgPts(y), 0) + Math.max(0, (s.fgm || 0) - dists.length) * 3 + ((s.fga || 0) - (s.fgm || 0)) * S.fgMiss; }
-      const line = [s.cmpAtt && `${s.cmpAtt}, ${s.passYd} PASS YDS`, s.passTd && `${s.passTd} PASS TD`, s.int && `${s.int} INT`, s.car && `${s.car}-${s.rushYd} RUSH`, s.rushTd && `${s.rushTd} RUSH TD`, s.rec && `${s.rec}-${s.recYd} REC`, s.recTd && `${s.recTd} REC TD`, s.fumLost && `${s.fumLost} FUM`, p.pos === 'K' && `${s.fgm || 0}/${s.fga || 0} FG, ${s.xpm || 0} XP`].filter(Boolean).join(' · ');
+      const line = [s.cmpAtt && `${s.cmpAtt}, ${s.passYd} PASS YDS`, s.passTd && `${s.passTd} PASS TD`, s.int && `${s.int} INT`, s.car && `${s.car} CAR, ${s.rushYd} YDS`, s.rushTd && `${s.rushTd} RUSH TD`, s.rec && `${s.rec} REC, ${s.recYd} YDS`, s.recTd && `${s.recTd} REC TD`, s.fumLost && `${s.fumLost} FUM`, p.pos === 'K' && `${s.fgm || 0}/${s.fga || 0} FG, ${s.xpm || 0} XP`].filter(Boolean).join(' · ');
       if (!line) continue;
+      if (!p.pos || p.pos === '') p.pos = s.passYd || s.cmpAtt ? 'QB' : (s.car || 0) >= 3 && (s.rushYd || 0) >= (s.recYd || 0) ? 'RB' : 'WR/TE';
       list.push({ player: p.player, short: p.short, pos: p.pos, pts: r1(pts), line, headshot: p.headshot });
     }
     // D/ST from the opponent's side of the box score
