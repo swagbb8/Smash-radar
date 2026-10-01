@@ -59,25 +59,30 @@ def main(nfl_json, done_json):
         print(f'recap done: {spec["title"]}')
 
 
-def make_3d(nfl_json, done_json, limit=1):
-    """3D cartoon replay (every scoring play acted out) — slow to render, so one game per run, newest first."""
+V3D = 2  # bump to re-make every 3D replay after a big look change
+
+
+def make_3d(nfl_json, done_json, budget=float(os.environ.get('G3D_BUDGET_MIN', '28')) * 60):
+    """3D replay for every recapped game, new and old (newest first). Slow to render, so it keeps going
+    until the time budget is used and picks up where it left off next run."""
     try: recs = json.load(open(done_json))
     except Exception: return
-    games = {str(g['id']): g for g in json.load(open(nfl_json)).get('games', [])}
-    n = 0
+    t0 = time.time(); n = 0
     for rec in recs:
-        if n >= limit: break
-        g = games.get(str(rec['id']))
-        if rec.get('file3d') or not g or not g.get('plays'): continue
+        if time.time() - t0 > budget: break
+        if rec.get('file3d') and rec.get('v3d', 1) >= V3D: continue
+        if not rec.get('plays') and not rec.get('id'): continue
         gid = str(rec['id']); out = os.path.join(WORK, 'out', f'{gid}-3d.mp4')
-        try: subprocess.run(['python3', 'scripts/game3d_video.py', nfl_json, gid, out], cwd=ROOT, check=True, timeout=2400)
-        except Exception as e: print(f'3d {gid} failed: {e}', file=sys.stderr); continue
+        if os.path.exists(os.path.join(WORK, 'failed', f'{gid}-3d')): continue
+        try: subprocess.run(['python3', 'scripts/game3d_video.py', nfl_json, gid, out, done_json], cwd=ROOT, check=True, timeout=2400)
+        except Exception as e:
+            print(f'3d {gid} failed: {e}', file=sys.stderr); open(os.path.join(WORK, 'failed', f'{gid}-3d'), 'w').close(); continue
         url = None
         if archive.TOKEN and archive.REPO:
-            try: url = archive.upload(release(), out, f"nfl-3d-week{rec.get('week') or ''}-{rec['away']['abbr']}-at-{rec['home']['abbr']}-{gid}.mp4".lower(), 'video/mp4')
+            try: url = archive.upload(release(), out, f"nfl-3d-week{rec.get('week') or ''}-{rec['away']['abbr']}-at-{rec['home']['abbr']}-{gid}-v{V3D}.mp4".lower(), 'video/mp4')
             except Exception as e: print(f'3d upload {gid}: {e}', file=sys.stderr)
         with open(os.path.join(WORK, 'new.jsonl'), 'a') as f:
-            f.write(json.dumps(dict(rec, video3d=url, file3d=f'{gid}-3d.mp4')) + '\n')
+            f.write(json.dumps(dict(rec, video3d=url, file3d=f'{gid}-3d.mp4', v3d=V3D)) + '\n')
         n += 1
         print(f'3d replay done: {rec.get("title")}')
 

@@ -47,25 +47,56 @@ function crowdTexture(){const c=document.createElement('canvas');c.width=512;c.h
   const cols=['#c9ced6','#ff5a4f','#22c3ee','#ffd400','#ffffff','#8b7dff','#ff9f1c'];for(let i=0;i<5000;i++){x.fillStyle=cols[i%cols.length];x.globalAlpha=.55;x.fillRect((i*97)%512,(i*53)%256,3,3);}
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(8,2);t.colorSpace=THREE.SRGBColorSpace;return t;}
 
-function makePlayer(color,alt){
-  const g=new THREE.Group();
-  const jersey=toon(color),pants=toon('#f2f2f2'),skin=toon('#c68a5c'),helm=toon(color),mask=toon('#9aa3ad');
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.55,0.9,6,12),jersey);body.rotation.x=Math.PI/2;body.position.z=2.0;g.add(body);
-  const pads=new THREE.Mesh(new THREE.SphereGeometry(0.75,12,8),jersey);pads.scale.set(1,0.75,0.5);pads.position.z=2.55;g.add(pads);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),helm);head.position.z=3.25;g.add(head);
-  const stripe=new THREE.Mesh(new THREE.TorusGeometry(0.56,0.06,6,20,Math.PI),toon(alt||'#ffffff'));stripe.rotation.y=Math.PI/2;stripe.position.z=3.25;g.add(stripe);
-  const fm=new THREE.Mesh(new THREE.TorusGeometry(0.35,0.06,6,12,Math.PI),mask);fm.position.set(0.42,0,3.12);fm.rotation.set(0,Math.PI/2,Math.PI/2);g.add(fm);
-  const legs=[],arms=[];
-  for(const s of [-1,1]){const leg=new THREE.Group();const l=new THREE.Mesh(new THREE.CapsuleGeometry(0.22,0.8,4,8),pants);l.rotation.x=Math.PI/2;l.position.z=-0.55;leg.add(l);
-    const shoe=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.28,0.18),toon('#111'));shoe.position.set(0.1,0,-1.05);leg.add(shoe);leg.position.set(0,s*0.28,1.35);g.add(leg);legs.push(leg);
-    const arm=new THREE.Group();const a=new THREE.Mesh(new THREE.CapsuleGeometry(0.17,0.65,4,8),jersey);a.rotation.x=Math.PI/2;a.position.z=-0.4;arm.add(a);
-    const hand=new THREE.Mesh(new THREE.SphereGeometry(0.17,8,6),skin);hand.position.z=-0.85;arm.add(hand);arm.position.set(0,s*0.75,2.55);g.add(arm);arms.push(arm);}
-  const sh=new THREE.Mesh(new THREE.CircleGeometry(0.8,16),new THREE.MeshBasicMaterial({color:'#000',transparent:true,opacity:.28}));sh.position.z=0.03;g.add(sh);
-  g.userData={legs,arms,body,shadow:sh};g.scale.setScalar(1.05);return g;}
-function pose(p,{x,y,z=0,face=0,run=0,phase=0,dive=0,jump=0,armsUp=0}){
-  p.position.set(x,y,z+Math.max(0,jump));p.rotation.z=face;p.rotation.y=dive;
-  const s=Math.sin(phase)*run;p.userData.legs[0].rotation.y=s*0.9;p.userData.legs[1].rotation.y=-s*0.9;
-  p.userData.arms[0].rotation.y=-s*0.8-armsUp*2.6;p.userData.arms[1].rotation.y=s*0.8-armsUp*2.6;
+// ---- NFL-style cartoon player: helmet + facemask cage, shoulder pads, numbered jersey, pants, socks, cleats, gloves.
+// Built Y-up inside `inner`, which is turned so Y-up becomes the world's Z-up; the player faces +x.
+const SKINS=['#8d5524','#c68642','#e0ac69','#f1c27d','#5c3a1e','#a0673c'];
+function numTex(){const c=document.createElement('canvas');c.width=256;c.height=128;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return {c,t};}
+function drawNum(nt,num,bg,fg,trim){const x=nt.c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,256,128);
+  x.fillStyle=trim;x.fillRect(0,0,256,10);x.font='bold 74px Anton, Impact';x.textAlign='center';x.textBaseline='middle';x.lineWidth=7;x.strokeStyle=trim;
+  for(const u of [64,192]){x.strokeText(String(num),u,72);x.fillStyle=fg;x.fillText(String(num),u,72);}nt.t.needsUpdate=true;}
+function makePlayer(){
+  const g=new THREE.Group(),inner=new THREE.Group();inner.rotation.x=Math.PI/2;g.add(inner);
+  const M={jersey:toon('#888'),pants:toon('#eee'),helm:toon('#888'),sock:toon('#888'),trim:toon('#fff'),skin:toon('#c68642'),glove:toon('#fff'),mask:toon('#e8e8e8'),black:toon('#151515')};
+  const nt=numTex();const torsoMat=new THREE.MeshToonMaterial({map:nt.t,gradientMap:gm});
+  const add=(geo,mat,x,y,z,parent=inner)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);parent.add(m);return m;};
+  // torso: wide at the shoulders, narrow at the waist, number front and back
+  const torso=add(new THREE.CylinderGeometry(0.66,0.46,1.15,20,1),torsoMat,0,2.05,0);torso.scale.set(0.82,1,1);
+  // shoulder pads (big and boxy, the football look)
+  const pads=add(new THREE.SphereGeometry(1,16,10),M.jersey,0,2.62,0);pads.scale.set(0.62,0.34,0.98);
+  for(const s of [-1,1]){const cap=add(new THREE.SphereGeometry(0.34,12,8),M.jersey,0,2.6,s*0.82);cap.scale.set(1,0.75,1);}
+  add(new THREE.CylinderGeometry(0.47,0.47,0.14,18),M.trim,0,1.5,0).scale.set(0.82,1,1); // belt line
+  add(new THREE.CylinderGeometry(0.2,0.22,0.3,10),M.skin,0,2.9,0); // neck
+  // helmet with center stripe, ear holes and a facemask cage
+  const helmet=add(new THREE.SphereGeometry(0.52,20,14),M.helm,0.02,3.28,0);helmet.scale.set(1.12,1.0,0.98);
+  const stripe=add(new THREE.TorusGeometry(0.535,0.07,6,24,Math.PI),M.trim,0.02,3.28,0);stripe.scale.set(1.12,1,1.12);
+  for(const s of [-1,1])add(new THREE.CircleGeometry(0.09,10),M.black,0.04,3.22,s*0.515).rotation.y=s>0?0:Math.PI;
+  add(new THREE.SphereGeometry(0.37,14,10),M.skin,0.28,3.18,0).scale.set(0.6,0.9,0.85); // face
+  const bar=(len,x,y,z,rx,ry,rz)=>{const m=add(new THREE.CylinderGeometry(0.035,0.035,len,6),M.mask,x,y,z);m.rotation.set(rx,ry,rz);return m;};
+  bar(0.78,0.56,3.17,0,Math.PI/2,0,0);bar(0.7,0.58,3.0,0,Math.PI/2,0,0);bar(0.55,0.55,2.86,0,Math.PI/2,0,0); // horizontal bars
+  bar(0.36,0.58,3.02,0,0,0,0.12);for(const s of [-1,1])bar(0.45,0.5,3.03,s*0.34,0,0,0.25);                         // vertical bars
+  // arms: sleeve (jersey) -> forearm (skin) -> glove
+  const arms=[],legs=[];
+  for(const s of [-1,1]){
+    const arm=new THREE.Group();arm.position.set(0,2.62,s*0.9);inner.add(arm);
+    add(new THREE.CapsuleGeometry(0.2,0.32,4,10),M.jersey,0,-0.25,0,arm);add(new THREE.CapsuleGeometry(0.155,0.42,4,10),M.skin,0,-0.72,0,arm);add(new THREE.SphereGeometry(0.19,10,8),M.glove,0,-1.06,0,arm);arms.push(arm);
+    const leg=new THREE.Group();leg.position.set(0,1.45,s*0.27);inner.add(leg);
+    add(new THREE.CapsuleGeometry(0.25,0.42,4,10),M.pants,0,-0.32,0,leg);                       // thigh (pants)
+    add(new THREE.BoxGeometry(0.06,0.5,0.06),M.trim,0,-0.32,s*0.25,leg);                        // pants stripe
+    add(new THREE.CapsuleGeometry(0.18,0.42,4,10),M.sock,0,-0.86,0,leg);                        // socks
+    const cleat=add(new THREE.BoxGeometry(0.5,0.2,0.28),M.black,0.1,-1.28,0,leg);cleat.geometry.translate(0,0,0);legs.push(leg);}
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(0.85,16),new THREE.MeshBasicMaterial({color:'#000',transparent:true,opacity:.3}));sh.position.z=0.03;g.add(sh);
+  g.rotation.order='ZYX';g.userData={legs,arms,inner,shadow:sh,M,nt,skin:M.skin};g.scale.setScalar(1.05);return g;}
+// NFL uniforms: home team in dark jerseys, road team in white with team-colored numbers
+function dress(p,team,home,num,k){const M=p.userData.M;const c=team.color,alt=team.alt&&team.alt.toLowerCase()!==c.toLowerCase()?team.alt:'#ffffff';
+  const jersey=home?c:'#f4f4f4',numFg=home?(lum(alt)>0.55?alt:'#ffffff'):c,trim=home?alt:c;
+  M.jersey.color.set(jersey);M.helm.color.set(c);M.sock.color.set(home?c:c);M.trim.color.set(trim);M.pants.color.set(home?'#f2f2f2':(lum(alt)<0.85?alt:'#d9d9d9'));
+  M.glove.color.set(home?'#f4f4f4':c);M.skin.color.set(SKINS[k%SKINS.length]);drawNum(p.userData.nt,num,jersey,numFg,trim);}
+function lum(hex){const c=new THREE.Color(hex);return 0.2126*c.r+0.7152*c.g+0.0722*c.b;}
+function pose(p,{x,y,z=0,face=0,run=0,phase=0,dive=0,jump=0,armsUp=0,crouch=0}){
+  p.position.set(x,y,z+Math.max(0,jump)-crouch*0.35);p.rotation.z=face;p.rotation.y=dive+crouch*0.35;
+  const s=Math.sin(phase)*run;const L=p.userData.legs,A=p.userData.arms;
+  L[0].rotation.z=s*0.85+crouch*0.5;L[1].rotation.z=-s*0.85+crouch*0.5;
+  A[0].rotation.z=-s*0.8+armsUp*2.7+crouch*0.6;A[1].rotation.z=s*0.8+armsUp*2.7+crouch*0.6;
   p.userData.shadow.position.z=0.03-Math.max(0,jump)-z;}
 
 const ball=new THREE.Mesh(new THREE.SphereGeometry(0.42,16,10),toon('#7a3e17'));ball.scale.set(1.5,1,1);scene.add(ball);
@@ -84,58 +115,74 @@ window.setup=async(d)=>{G=d.game;PLAYS=d.plays;TL=d.timeline;
   for(const X of [-60,60]){const g=new THREE.Group();const base=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,10,8),yel);base.rotation.x=Math.PI/2;base.position.z=5;g.add(base);
     const cb=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,18.5,8),yel);cb.position.z=10;g.add(cb);
     for(const s of [-1,1]){const up=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,20,8),yel);up.rotation.x=Math.PI/2;up.position.set(0,s*9.25,20);g.add(up);}g.position.x=X;posts.add(g);}scene.add(posts);
-  for(let i=0;i<7;i++){const p=makePlayer('#000');scene.add(p);off.push(p);}for(let i=0;i<6;i++){const p=makePlayer('#000');scene.add(p);def.push(p);}
+  for(let i=0;i<11;i++){const p=makePlayer();scene.add(p);off.push(p);}for(let i=0;i<11;i++){const p=makePlayer();scene.add(p);def.push(p);}
   confetti=new THREE.InstancedMesh(new THREE.PlaneGeometry(0.5,0.3),new THREE.MeshBasicMaterial({color:'#ffffff',side:THREE.DoubleSide}),300);scene.add(confetti);
   await document.fonts.ready;return true;};
 
-function colorTeam(arr,team){for(const p of arr)p.traverse(o=>{if(o.isMesh&&o.material&&o.material.isMeshToonMaterial&&o!==p.userData.shadow){const c=o.material.color.getHexString();}});
-  for(const p of arr){const [body,pads,head]=[p.children[0],p.children[1],p.children[2]];body.material.color.set(team.color);pads.material.color.set(team.color);head.material.color.set(team.color);p.children[3].material.color.set(team.alt||'#ffffff');
-    p.userData.arms.forEach(a=>a.children[0].material.color.set(team.color));}}
+// jersey numbers by spot (real number for the scorer and the QB when ESPN has it)
+const OFFN=[[1,3,7,9,10,12,14,15,16],[0,1,2,4,5,8,10,11,13,17,18,19,81,84,88],[71,64,55,62,76],[62,66,52,68,74],[77,73,65,54,70],[68,72,63,60,75],[74,79,67,61,78],[85,87,86,89,80],[11,13,17,18,19,15],[10,12,14,16,83],[21,22,26,28,30,33,34]];
+const DEFN=[[90,91,94,99],[93,95,97,98],[92,96,90,91],[99,97,94,95],[50,54,56,58],[52,53,55,57],[44,45,48,51],[21,22,23,24],[20,24,25,26,29],[31,32,33,36],[27,37,38,39,42]];
+const KN=[1,2,3,4,5,6,9];
 let lastPlay=-1;
-function playScene(pl,lt){ // offense always attacks +x toward the x=50 goal line
+function dressPlay(pl){const offT=teams[pl.side],dside=pl.side==='away'?'home':'away',defT=teams[dside],h=pl._i*7;
+  off.forEach((p,i)=>{let n=OFFN[i][(h+i)%OFFN[i].length];if(i===1&&pl.num)n=pl.num;if(i===1&&pl.kind==='fg')n=pl.num||KN[h%KN.length];if(i===0&&pl.qbNum)n=pl.qbNum;dress(p,offT,pl.side==='home',n,h+i);});
+  def.forEach((p,i)=>dress(p,defT,dside==='home',DEFN[i][(h+i*3)%DEFN[i].length],h+i*5+3));}
+function playScene(pl,lt){ // offense always attacks +x toward the x=50 goal line; full 11 v 11
   const D=pl.dur;const yd=Math.min(99,Math.max(1,pl.yards||1));const los=pl.kind==='fg'?50-(yd-17):50-yd;
-  const offT=teams[pl.side],defT=teams[pl.side==='away'?'home':'away'];
-  if(pl._i!==lastPlay){lastPlay=pl._i;colorTeam(off,offT);colorTeam(def,defT);}
-  const snap=0.6;let bx=los,by=0,bz=1.2,ballCarrier=null,cx=los,scoreAt=D-1.6;
-  // linemen
-  for(let i=2;i<7;i++){const yy=(i-4)*1.6;const push=seg(lt,snap,snap+1.2)*1.5;pose(off[i],{x:los-0.8+push,y:yy,face:0,run:lt>snap?0.4:0,phase:lt*10+i});}
+  if(pl._i!==lastPlay){lastPlay=pl._i;dressPlay(pl);}
+  const snap=0.6;let bx=los,by=0,bz=1.2,cx=los,scoreAt=D-1.6;const after=t=>lt>t;
+  // offensive line (2-6): fire out and block
+  for(let i=2;i<7;i++){const yy=(i-4)*1.5;const push=ease(seg(lt,snap,snap+1.2))*1.4;pose(off[i],{x:los-0.9+push,y:yy,run:after(snap)?0.35:0,phase:lt*10+i,crouch:after(snap)?0.6:1});}
+  // defensive front (0-3) engages the line, then everyone pursues the ball
+  const pursue=(p,i,sx,sy,delay,lag)=>{const q=seg(lt,snap+delay,D);const tx=lerp(sx,bx-lag-(i%3)*1.3,ease(q)),ty=lerp(sy,by+((i%5)-2)*1.4,ease(q));
+    const dive=lt>scoreAt-0.6&&i%3===0?clamp((lt-(scoreAt-0.6))*3,0,1.25):0;
+    pose(p,{x:tx,y:ty,face:Math.atan2(by-ty,bx-tx),run:after(snap)?0.9:0,phase:lt*13+i,dive,z:dive>0?-dive*0.55:0,crouch:lt<snap?0.7:0});};
   if(pl.kind==='pass'){
     const throwT=snap+1.3,flight=clamp(yd/28,0.7,1.6),catchT=throwT+flight;const cX=Math.min(47,los+Math.max(4,yd*0.7)),cY=6;
-    const qx=lerp(los-4,los-8,ease(seg(lt,snap,throwT)));pose(off[0],{x:qx,y:0,face:0,run:lt>snap&&lt<throwT?0.6:0,phase:lt*12,armsUp:lt>throwT-0.3&&lt<throwT+0.3?1:0});
-    const rStart=[los,14];const rx=lt<catchT?lerp(rStart[0],cX,ease(seg(lt,snap,catchT))):lerp(cX,55,ease(seg(lt,catchT,scoreAt)));const ry=lt<catchT?lerp(rStart[1],cY,ease(seg(lt,snap,catchT))):lerp(cY,2,seg(lt,catchT,scoreAt));
-    pose(off[1],{x:rx,y:ry,face:lt<catchT?Math.atan2(cY-rStart[1],cX-rStart[0]):0,run:lt>snap&&lt<scoreAt?1:0,phase:lt*14,armsUp:lt>catchT-0.25&&lt<catchT+0.15?1:0,jump:lt>scoreAt?Math.abs(Math.sin((lt-scoreAt)*6))*1.6:0});
-    if(lt<throwT){bx=qx+0.6;by=0.5;bz=lt<snap?0.6:2.6;}else if(lt<catchT){const p=seg(lt,throwT,catchT);bx=lerp(qx,cX,p);by=lerp(0,cY,p);bz=2.8+Math.sin(p*Math.PI)*(4+yd*0.18);}else{bx=rx+0.4;by=ry;bz=2.3;ballCarrier=off[1];}
+    const qx=lerp(los-4.5,los-8,ease(seg(lt,snap,throwT)));pose(off[0],{x:qx,y:0,run:lt>snap&&lt<throwT?0.6:0,phase:lt*12,armsUp:lt>throwT-0.3&&lt<throwT+0.3?1:0});
+    const rStart=[los-0.5,14];const rx=lt<catchT?lerp(rStart[0],cX,ease(seg(lt,snap,catchT))):lerp(cX,55,ease(seg(lt,catchT,scoreAt)));const ry=lt<catchT?lerp(rStart[1],cY,ease(seg(lt,snap,catchT))):lerp(cY,2,seg(lt,catchT,scoreAt));
+    pose(off[1],{x:rx,y:ry,face:lt<catchT?Math.atan2(cY-rStart[1],cX-rStart[0]):0,run:lt>snap&&lt<scoreAt?1:0,phase:lt*14,armsUp:lt>catchT-0.25&&lt<catchT+0.15?1:lt>scoreAt?1:0,jump:lt>scoreAt?Math.abs(Math.sin((lt-scoreAt)*6))*1.6:0});
+    if(lt<throwT){bx=qx+0.6;by=0.5;bz=lt<snap?0.6:2.7;}else if(lt<catchT){const p=seg(lt,throwT,catchT);bx=lerp(qx,cX,p);by=lerp(0,cY,p);bz=2.8+Math.sin(p*Math.PI)*(4+yd*0.18);}else{bx=rx+0.4;by=ry;bz=2.3;}
     cx=lt<throwT?los:lt<catchT?lerp(los,cX,seg(lt,throwT,catchT)):rx;
+    // other routes: TE seam, outside WR go route, slot crosser; RB stays in to block
+    const route=(p,sx,sy,ex,ey,k)=>{const q=ease(seg(lt,snap,D-0.4));pose(p,{x:lerp(sx,ex,q),y:lerp(sy,ey,q),face:Math.atan2(ey-sy,ex-sx),run:after(snap)&&q<1?1:0,phase:lt*14+k,crouch:lt<snap?0.4:0});};
+    route(off[7],los-0.9,-4.8,Math.min(58,los+16),-6,1);route(off[8],los-0.5,-17,Math.min(58,los+22),-16,2);route(off[9],los-1.5,8.5,Math.min(58,los+10),-2,3);
+    pose(off[10],{x:qx+1.2,y:1.6,face:0.2,run:0.2,phase:lt*8,crouch:0.5});
   }else if(pl.kind==='fg'){
     const kickT=snap+1.0,flight=clamp(yd/22,1.0,2.2);
-    pose(off[0],{x:los-7,y:0.6,face:0,run:0,dive:0});
-    const kx=lerp(los-10,los-7.4,seg(lt,snap,kickT));pose(off[1],{x:kx,y:-1.5,face:0.3,run:lt>snap&&lt<kickT?1:0,phase:lt*14});
+    pose(off[0],{x:los-7,y:0.6,face:Math.PI,crouch:1});
+    const kx=lerp(los-10,los-7.4,seg(lt,snap,kickT));pose(off[1],{x:kx,y:-1.5,face:0.3,run:lt>snap&&lt<kickT?1:0,phase:lt*14,armsUp:lt>kickT&&lt>kickT+flight*0.85?1:0});
     if(lt<snap){bx=los;bz=0.5}else if(lt<kickT){bx=los-7;by=0;bz=0.5}else{const p=seg(lt,kickT,kickT+flight);bx=lerp(los-7,61,p);by=0;bz=0.5+Math.sin(p*Math.PI*0.62)*(13+yd*0.15);}
     cx=lt<kickT?los-5:bx;scoreAt=kickT+flight*0.85;
+    pose(off[7],{x:los-1.2,y:-4.8,crouch:0.8});pose(off[8],{x:los-1.2,y:4.8,crouch:0.8});pose(off[9],{x:los-1.6,y:-6.2,crouch:0.8});pose(off[10],{x:los-1.6,y:6.2,crouch:0.8});
   }else{ // run / return
-    const handT=snap+0.6,runEnd=Math.max(handT+0.8,scoreAt);const qx=los-4;pose(off[0],{x:qx,y:0,run:0});
-    const rx=lt<handT?lerp(los-6,qx-0.5,seg(lt,snap,handT)):lerp(qx,55,ease(seg(lt,handT,runEnd)));const ry=lt<handT?0:Math.sin((rx-los)*0.25)*3;
-    pose(off[1],{x:rx,y:ry,face:0,run:lt>snap&&lt<runEnd?1:0,phase:lt*15,jump:lt>scoreAt?Math.abs(Math.sin((lt-scoreAt)*6))*1.6:0,armsUp:lt>scoreAt?1:0});
-    if(lt<handT){bx=lt<snap?los:qx;by=0;bz=lt<snap?0.6:2.4}else{bx=rx+0.4;by=ry;bz=2.3;ballCarrier=off[1];}cx=lt<handT?los:rx;
+    const handT=snap+0.6,runEnd=Math.max(handT+0.8,scoreAt);const qx=los-4.5;pose(off[0],{x:qx,y:0,run:0,face:lt>handT?-0.6:0});
+    const rx=lt<handT?lerp(los-6.5,qx-0.4,seg(lt,snap,handT)):lerp(qx,55,ease(seg(lt,handT,runEnd)));const ry=lt<handT?lerp(1.5,0.3,seg(lt,snap,handT)):Math.sin((rx-los)*0.25)*3;
+    pose(off[1],{x:rx,y:ry,run:lt>snap&&lt<runEnd?1:0,phase:lt*15,jump:lt>scoreAt?Math.abs(Math.sin((lt-scoreAt)*6))*1.6:0,armsUp:lt>scoreAt?1:0});
+    if(lt<handT){bx=lt<snap?los:qx;by=0;bz=lt<snap?0.6:2.4}else{bx=rx+0.4;by=ry;bz=2.3;}cx=lt<handT?los:rx;
+    // lead blockers run ahead of the ball carrier
+    const lead=(p,sx,sy,k,ahead,side)=>{const q=ease(seg(lt,snap,runEnd));pose(p,{x:lerp(sx,Math.min(56,rx+ahead),q),y:lerp(sy,ry+side,q),run:after(snap)?1:0,phase:lt*14+k,crouch:lt<snap?0.4:0});};
+    lead(off[7],los-0.9,-4.8,1,2.5,-2);lead(off[8],los-0.5,-17,2,5,-4);lead(off[9],los-1.5,8.5,3,4,3);pose(off[10],{x:los-5,y:-1.6,face:0,run:after(snap)?0.6:0,phase:lt*12});
   }
-  // defense: line up, chase the ball, some dive and miss
-  for(let i=0;i<6;i++){const sx=los+3+(i%3)*5,sy=(i-2.5)*4;const p=seg(lt,snap+0.2,D);const tx=lerp(sx,bx-1.5-(i%2)*2,ease(p)),ty=lerp(sy,by+(i-2.5)*1.2,ease(p));
-    const dive=lt>scoreAt-0.6&&i%2===0?clamp((lt-(scoreAt-0.6))*3,0,1.3):0;pose(def[i],{x:tx,y:ty,face:Math.PI+Math.atan2(by-ty,bx-tx)+Math.PI,run:lt>snap?0.9:0,phase:lt*13+i,dive:-dive,z:dive>0?-dive*0.6:0});}
+  // defense: 4 down linemen, 3 linebackers, 2 corners, 2 safeties
+  const DS=[[los+0.9,-2.6,0.1,1.2],[los+0.9,-0.8,0.1,1.4],[los+0.9,0.9,0.1,1.6],[los+0.9,2.7,0.1,1.3],[los+5,-5,0.2,2.0],[los+5,0,0.2,2.4],[los+5,5,0.2,2.2],[los+6,-16,0.3,2.8],[los+6,15,0.3,3.0],[los+13,-7,0.4,3.4],[los+13,7,0.4,3.2]];
+  DS.forEach(([sx,sy,dl,lag],i)=>pursue(def[i],i,Math.min(sx,59),sy,dl,lag));
   ball.position.set(bx,by,bz);ball.rotation.set(0,lt*6,0);
   return {cx,bx,by,scoreAt,los};}
 
 function camFollow(cx,lt,pl,scoreAt){ // behind-the-play broadcast cam that swings to the sideline for the score
   const s=ease(seg(lt,scoreAt-1.0,scoreAt+0.4));
-  const behind=new THREE.Vector3(cx-30,-6,24),side=new THREE.Vector3(cx-4,-36,20);const p=behind.lerp(side,s);
+  const behind=new THREE.Vector3(cx-24,-5,16),side=new THREE.Vector3(cx-3,-27,12);const p=behind.lerp(side,s);
   cam.position.copy(p);cam.lookAt(new THREE.Vector3(cx+lerp(16,1,s),0,lerp(0,2,s)));}
 
 window.frame=(t)=>{
   const sc=TL.find(s=>t>=s.start&&t<s.start+s.dur)||TL[TL.length-1];const lt=t-sc.start;
   const card=$('#card'),slam=$('#slam'),cap=$('#cap'),bug=$('#bug');
   if(sc.kind==='intro'){ // stadium flyover
-    const a=lt*0.35;cam.position.set(Math.cos(a)*70,Math.sin(a)*70-20,lerp(60,30,seg(lt,0,sc.dur)));cam.lookAt(0,0,0);
-    for(const p of [...off,...def])p.visible=false;ball.visible=false;
-    card.style.opacity=1-seg(lt,sc.dur-0.6,sc.dur);card.innerHTML=`<h1>${esc(G.away.name)}<br><em>VS</em><br>${esc(G.home.name)}</h1><p>${G.week?`WEEK ${G.week} · `:''}EVERY SCORE IN 3D</p>`;
+    // both teams lined up for the first scoring play, camera sweeps around them
+    for(const p of [...off,...def])p.visible=true;ball.visible=true;const r0=playScene(PLAYS[0],0);
+    const a=-2.6+lt*0.45,R=lerp(34,20,ease(seg(lt,0,sc.dur)));cam.position.set(r0.los+Math.cos(a)*R,Math.sin(a)*R,lerp(22,9,ease(seg(lt,0,sc.dur))));cam.lookAt(r0.los,0,1.5);
+    card.style.opacity=lt<1.4?1:1-seg(lt,1.4,2.0);card.innerHTML=`<h1>${esc(G.away.name)}<br><em>VS</em><br>${esc(G.home.name)}</h1><p>${G.week?`WEEK ${G.week} · `:''}EVERY SCORE IN 3D</p>`;
     card.querySelector('h1').style.transform=`scale(${2-ob(seg(lt,0.2,0.8))})`;cap.style.opacity=0;bug.style.opacity=0;slam.style.opacity=0;}
   else if(sc.kind==='outro'){
     const a=lt*0.25+1;cam.position.set(Math.cos(a)*60,Math.sin(a)*60,35);cam.lookAt(0,0,0);for(const p of [...off,...def])p.visible=false;ball.visible=false;

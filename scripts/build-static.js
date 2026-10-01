@@ -132,7 +132,7 @@ async function nflRecaps(nflData) {
     fs.mkdirSync(pagesDir, { recursive: true });
     try { execSync(`git fetch -q --depth 1 origin gh-pages && git archive FETCH_HEAD nfl | tar -x -C ${JSON.stringify(pagesDir)} --strip-components=1`, { cwd: ROOT, stdio: 'ignore', timeout: 120000 }); } catch {}
   }
-  for (const f of fs.readdirSync(path.join(WORK, 'out'))) if (f.endsWith('.mp4') && !fs.existsSync(path.join(pagesDir, f))) fs.copyFileSync(path.join(WORK, 'out', f), path.join(pagesDir, f));
+  for (const f of fs.readdirSync(path.join(WORK, 'out'))) if (f.endsWith('.mp4') && (!fs.existsSync(path.join(pagesDir, f)) || fs.statSync(path.join(WORK, 'out', f)).mtimeMs > fs.statSync(path.join(pagesDir, f)).mtimeMs)) fs.copyFileSync(path.join(WORK, 'out', f), path.join(pagesDir, f));
   fs.mkdirSync(path.join(OUT, 'nfl'), { recursive: true });
   const onSite = new Set(recs.slice(0, PAGES_KEEP).map((r) => r.file));
   for (const r of recs) {

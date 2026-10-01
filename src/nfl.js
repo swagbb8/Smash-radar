@@ -102,5 +102,7 @@ export async function fetchGameSummary(id) {
       if (l?.athlete) leaders.push({ team: tl.team?.abbreviation, category: cat.displayName || cat.name, key: cat.name, player: l.athlete.displayName, position: l.athlete.position?.abbreviation || '', value: l.displayValue || '' });
     }
   }
-  return { id, teams, scoring, teamStats, leaders, fantasy, venue: d.gameInfo?.venue?.fullName || '', week: d.header?.week ?? null, season: d.header?.season?.year ?? null, date: comp.date || null };
+  const jerseys = {}; // real jersey numbers so the 3D replay puts the right number on the right player
+  for (const t of d.boxscore?.players || []) for (const st of t.statistics || []) for (const a of st.athletes || []) if (a.athlete?.displayName && a.athlete.jersey) jerseys[a.athlete.displayName] = { n: a.athlete.jersey, team: t.team?.abbreviation, pos: a.athlete.position?.abbreviation || '' };
+  return { id, teams, scoring, teamStats, leaders, fantasy, jerseys, venue: d.gameInfo?.venue?.fullName || '', week: d.header?.week ?? null, season: d.header?.season?.year ?? null, date: comp.date || null };
 }
