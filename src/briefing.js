@@ -5,8 +5,12 @@ const isLocal = (s) => s.location && ['confirmed', 'verified'].includes(s.locati
 const pub = (s) => Date.parse(s.publishedAt || s.discoveredAt);
 const SERIOUS_INC = new Set(['crash', 'fire', 'police', 'emergency', 'missing', 'weather', 'flooding', 'metra', 'outage', 'trees']);
 
+const ENT = { amp: '&', mdash: ' — ', ndash: ' – ', nbsp: ' ', quot: '"', apos: "'", rsquo: "'", lsquo: "'", rdquo: '"', ldquo: '"', hellip: '…', lt: '<', gt: '>' };
+const decode = (t) => String(t).replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => (e[0] === '#' ? String.fromCodePoint(parseInt(e[1].toLowerCase() === 'x' ? e.slice(2) : e.slice(1), e[1].toLowerCase() === 'x' ? 16 : 10)) : ENT[e.toLowerCase()] ?? m));
 export function speakable(text = '') {
-  return String(text)
+  return decode(text)
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/([a-z])\.([A-Z][a-z])/g, '$1. $2')
     .replace(/\s+-\s+[^-]{2,40}$/, '')
     .replace(/\s*\|\s*.*$/, '')
     .replace(/\bI-(\d+)/g, 'I $1')

@@ -592,3 +592,11 @@ body.tv-mode .tv-stage .ls-lion { width: min(70%, 520px); }
   body.tv-mode .tv-stage .ls-desk { bottom: calc(108px + env(safe-area-inset-bottom)); }
   body.tv-mode .tv-stage .tv-cc { bottom: calc(122px + env(safe-area-inset-bottom)); }
 }
+/* Live transcript: everything Smash says */
+.tv-transcript { max-height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; padding: 10px 12px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+.tv-transcript h6 { margin: 12px 0 6px; font-size: 10.5px; font-weight: 900; letter-spacing: .12em; color: var(--accent); }
+.tv-transcript h6:first-child { margin-top: 0; }
+.tv-transcript p { margin: 0 0 8px; padding: 6px 8px; border-radius: 10px; font-size: 14px; line-height: 1.45; color: var(--text-3); cursor: pointer; transition: background .2s, color .2s; }
+.tv-transcript p .tr-t { display: inline-block; min-width: 40px; font-size: 11px; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.tv-transcript p.on { color: var(--text); background: rgba(198,255,61,.09); box-shadow: inset 3px 0 0 var(--accent); }
+.tv-transcript p.on .tr-t { color: var(--accent); }

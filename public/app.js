@@ -490,6 +490,8 @@ const views = {
       <button class="chip" data-action="tv-mode">📺 TV mode</button>
     </div>
     <div class="ls-meta">Show from <b>${esc(clock(sh.startsAt || sh.createdAt))}</b> · ${Math.round((sh.totalSeconds || 0) / 60)} min · ${sh.segments.filter((g) => g.title).length} stories · ${esc(voiceLabel)} · brand-new show every 30 minutes</div>
+    <h3 class="sec-title">📝 What Smash is saying</h3>
+    <div class="tv-transcript" id="tvTranscript">${transcriptHtml(sh)}</div>
     <h3 class="sec-title">Rundown</h3>
     <div class="rows ls-list">${rundown(sh)}</div>`;
     setTimeout(() => initTv(sh), 0);
@@ -843,6 +845,16 @@ function rundown(sh) {
   });
   return out.join('');
 }
+function transcriptHtml(sh) {
+  return sh.segments.map((g, k) => `${k && g.section !== sh.segments[k - 1].section ? `<h6>${esc(g.section)}</h6>` : !k ? `<h6>${esc(g.section || 'SMASH NEWS')}</h6>` : ''}<p data-seg="${k}"><span class="tr-t">${mmss(g.start || 0)}</span>${esc(g.text)}</p>`).join('');
+}
+function markTranscript(k) {
+  const box = $('#tvTranscript'); if (!box) return;
+  box.querySelector('p.on')?.classList.remove('on');
+  const p = box.querySelector(`p[data-seg="${k}"]`); if (!p) return;
+  p.classList.add('on');
+  box.scrollTo({ top: p.offsetTop - box.offsetTop - 40, behavior: 'smooth' }); // scroll inside the box only
+}
 function livePos(sh) {
   const total = sh.totalSeconds || 1;
   const e = (Date.now() - Date.parse(sh.startsAt || sh.createdAt)) / 1000;
@@ -857,6 +869,7 @@ function showSegment(seg, k) {
   const cap = $('#lsCaption');
   if (!gfx || !cap || !seg) return;
   cap.textContent = seg.text;
+  markTranscript(k);
   const sec = $('#tvSec'); const head = $('#tvHead');
   if (sec) sec.textContent = `${seg.icon ? `${seg.icon} ` : ''}${seg.section || 'SMASH NEWS'}`;
   if (head) { head.textContent = seg.title || (seg.kind === 'intro' ? 'Smash the lion is on air' : seg.kind === 'outro' ? 'New show every 30 minutes' : seg.section || ''); head.classList.remove('in'); void head.offsetWidth; head.classList.add('in'); }
@@ -893,6 +906,7 @@ async function tvSwitch(nb) {
   app.show.load(nb);
   const tk = $('#tvTicker'); if (tk) tk.innerHTML = tickerHtml(nb);
   const rl = document.querySelector('.ls-list'); if (rl) rl.innerHTML = rundown(nb);
+  const tr = $('#tvTranscript'); if (tr) tr.innerHTML = transcriptHtml(nb);
   toast('🦁 New SMASH NEWS show is on air');
 }
 function initTv(sh) {
@@ -1133,7 +1147,7 @@ document.addEventListener('click', async (e) => {
   const t = e.target.closest('[data-save],[data-action],[data-story],[data-brand],[data-source],[data-del-source],[data-jump],[data-rmbrand],[data-cat],[data-post],[data-fmt],[data-seg],[data-game],[data-video],.src-link');
   if (!t) return;
   if (t.classList.contains('src-link')) return; // let links inside cards open normally
-  if (t.dataset.seg) { if (!app.show) return; app.tvStarted = true; setLive(false); app.show.stop(); app.show.play(Number(t.dataset.seg)); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  if (t.dataset.seg) { if (!app.show) return; app.tvStarted = true; setLive(false); app.show.stop(); app.show.play(Number(t.dataset.seg)); if (t.tagName !== 'P') window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   if (t.dataset.game) return openGame(t.dataset.game);
   if (t.dataset.video) return openVideo(t.dataset.video, t.dataset.vtitle || 'Highlights');
   if (t.dataset.post) { e.preventDefault(); e.stopPropagation(); return openPostStudio({ ids: [t.dataset.post] }); }
