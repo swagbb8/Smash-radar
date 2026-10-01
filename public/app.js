@@ -134,7 +134,7 @@ async function staticApi(path, opts) {
   if (method !== 'GET') throw new Error('Not available in the free hosted version — edit src/config.js in the repo instead');
   const d = await loadStatic();
   if (p === 'api/meta') return { ...d.meta, refreshing: false, mode: 'static' };
-  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos' || p === 'api/archive' || p === 'api/recaps') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
+  if (p === 'api/briefing' || p === 'api/nfl' || p === 'api/show' || p === 'api/videos' || p === 'api/archive' || p === 'api/recaps' || p === 'api/roadwatch') { const r = await fetch(`${p}.json?t=${Date.now()}`, { cache: 'no-store' }); if (!r.ok) throw new Error('Not ready yet — check back after the next update'); return r.json(); }
   if (p === 'api/dupage') return d.dupage;
   if (p === 'api/brands') return d.brands;
   if (p === 'api/sources') return d.sources;
@@ -555,6 +555,11 @@ const views = {
     if (p.type) list = list.filter((s) => incOf(s) === p.type);
     const link = (o) => `#/roads?${qs({ ...p, ...o })}`;
     let html = viewHead('Roads & Safety', 'Crashes, closures, construction, traffic, police and fire across Chicagoland. Every item is tied to a real county or town, never a highway name alone.');
+    let rw = null; try { rw = await api('/api/roadwatch'); } catch {}
+    app.rw = rw;
+    if (rw?.video) html += `<div class="rw-box"><div class="rw-head"><b>🗺️ Road Watch video</b><span class="muted">${rw.total} incidents · ${rw.stateCount} states · updated ${esc(clock(rw.videoAt || rw.createdAt))}</span></div>
+      <div class="video-wrap tall rw-vid"><video src="${esc(rw.video)}" controls playsinline muted loop preload="metadata" poster=""></video></div>
+      <div class="actions"><button class="btn primary" data-action="rw-save">⬇ Save video</button>${(rw.history || []).length > 1 ? `<span class="muted">New one every 10 minutes</span>` : ''}</div></div>`;
     html += `<div class="chips"><a class="chip ${!p.county ? 'on' : ''}" href="${link({ county: '' })}">All counties</a>${counties.map((c) => `<a class="chip ${p.county === c ? 'on' : ''}" href="${link({ county: c })}">${esc(c)} <span class="n">${data.stories.filter((s) => countyOf(s) === c).length}</span></a>`).join('')}</div>`;
     html += `<div class="chips">${types.map(([id, l]) => `<a class="chip ${(p.type || '') === id ? 'on' : ''}" href="${link({ type: id })}">${l}</a>`).join('')}</div>`;
     html += list.length ? `<div class="rows">${list.map(roadRow).join('')}</div>` : (noDataYet() || empty('🚦', 'All clear', 'No road or safety reports match right now. This page updates every 10 minutes.'));
@@ -1469,6 +1474,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'select-off') { app.selectMode = false; reelFab(); markPicked(); return; }
   if (a === 'reel-clear') { prefs.reel = []; saveReel(); return; }
   if (a === 'reel-add') { const s2 = app.stories.get(t.dataset.id); if (s2 && !prefs.reel.some((x) => x.id === s2.id)) { prefs.reel.push(s2); saveReel(); } toast(`Added to reel (${prefs.reel.length}) — open Reel Studio to make it`); return; }
+  if (a === 'rw-save') { if (app.rw?.video) saveFile(app.rw.video, `smash-road-watch-${(app.rw.videoAt || '').slice(0, 16).replace(/[:T]/g, '-')}.mp4`, 'video/mp4'); return; }
   if (a === 'fz-save') { const r = app.recaps?.find((x) => x.id === t.dataset.id); if (!r) return; return r.fantasyPage ? saveFile(r.fantasyPage, `smash-fantasy-${r.away.abbr}-at-${r.home.abbr}.mp4`.toLowerCase(), 'video/mp4') : window.open(r.fantasyVideo, '_blank'); }
   if (a === 'recap-play' || a === 'recap-save') {
     const r = app.recaps?.find((x) => x.id === t.dataset.id); if (!r) return;

@@ -99,6 +99,7 @@ write('briefing', buildBriefing(stories, Date.now(), { nfl }));
 }
 // NFL recap videos: a background worker makes one for every finished game (see scripts/recaps.py)
 await nflRecaps(nfl);
+await roadWatch(stories);
 write('dupage', await call('/api/dupage'));
 write('brands', await call('/api/brands'));
 write('sources', await call('/api/sources'));
@@ -152,4 +153,32 @@ async function nflRecaps(nflData) {
   const child = spawn('bash', ['-c', cmd], { cwd: ROOT, detached: true, stdio: ['ignore', fs.openSync(path.join(WORK, 'worker.log'), 'a'), fs.openSync(path.join(WORK, 'worker.log'), 'a')] });
   child.unref();
   console.log('recaps: worker started');
+}
+
+// Road Watch: map video of road incidents by state, re-made every update (rendered in the background, published next update)
+async function roadWatch(list) {
+  if (process.env.ROADWATCH === 'off') return;
+  const { buildRoadWatch } = await import('../src/roadwatch.js');
+  const { spawn } = await import('node:child_process');
+  const WORK = '/tmp/smash-roads';
+  fs.mkdirSync(WORK, { recursive: true });
+  const rw = buildRoadWatch(list, Date.now(), { hours: 12 });
+  const vids = fs.readdirSync(WORK).filter((f) => /^road-watch-\d+\.mp4$/.test(f)).sort().reverse();
+  for (const old of vids.slice(6)) fs.rmSync(path.join(WORK, old), { force: true });
+  fs.mkdirSync(path.join(OUT, 'roads'), { recursive: true });
+  const keep = vids.slice(0, 6);
+  for (const f of keep) fs.copyFileSync(path.join(WORK, f), path.join(OUT, 'roads', f));
+  if (keep[0]) { rw.video = `roads/${keep[0]}`; rw.videoAt = new Date(Number(keep[0].match(/\d+/)[0])).toISOString(); }
+  rw.history = keep.map((f) => ({ video: `roads/${f}`, at: new Date(Number(f.match(/\d+/)[0])).toISOString() }));
+  write('roadwatch', rw);
+  const lock = path.join(WORK, 'rendering.lock');
+  if (fs.existsSync(lock) && Date.now() - fs.statSync(lock).mtimeMs < 20 * 60e3) return;
+  if (!rw.states.length) return;
+  const stamp = Date.now();
+  fs.writeFileSync(path.join(WORK, 'in.json'), JSON.stringify(rw));
+  fs.writeFileSync(lock, String(stamp));
+  const out = path.join(WORK, `road-watch-${stamp}.mp4`);
+  const cmd = `(command -v ffmpeg >/dev/null || sudo apt-get install -y -qq ffmpeg >/dev/null 2>&1); (python3 -c 'import playwright, numpy' 2>/dev/null || pip install -q playwright numpy >/dev/null 2>&1); python3 scripts/road_video.py ${JSON.stringify(path.join(WORK, 'in.json'))} ${JSON.stringify(out)}; rm -f ${JSON.stringify(lock)}`;
+  spawn('bash', ['-c', cmd], { cwd: ROOT, detached: true, stdio: ['ignore', fs.openSync(path.join(WORK, 'worker.log'), 'a'), fs.openSync(path.join(WORK, 'worker.log'), 'a')] }).unref();
+  console.log(`road watch: ${rw.total} incidents in ${rw.stateCount} states, video rendering`);
 }

@@ -737,3 +737,6 @@ body.selecting .toast { bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 96px
 .rm-fz-p i { font-style: normal; font-size: 9px; font-weight: 900; color: var(--text-3); width: 22px; } .rm-fz-p span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; } .rm-fz-p em { font-style: normal; font-weight: 900; }
 .rm-fz-p.on { background: rgba(198,255,61,.18); } .rm-fz-p.on em { color: var(--accent); }
 .rm-note { padding: 8px 16px 16px; font-size: 11.5px; }
+.rw-box { margin: 4px 0 16px; padding: 12px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); }
+.rw-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; } .rw-head b { font-size: 16px; } .rw-head .muted { font-size: 12.5px; }
+.rw-vid { max-height: 62vh; border-radius: 14px; overflow: hidden; }
