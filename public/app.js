@@ -28,7 +28,7 @@ async function togglePick(id) {
   const i = prefs.reel.findIndex((x) => x.id === id);
   if (i >= 0) prefs.reel.splice(i, 1);
   else {
-    if (prefs.reel.length >= 8) return toast('Max 8 stories per reel');
+    if (prefs.reel.length >= 20) return toast('Max 20 picks');
     let s2 = app.stories.get(id) || prefs.saved[id];
     if (!s2) { try { s2 = await api(`/api/stories/${encodeURIComponent(id)}`); app.stories.set(id, s2); } catch { return toast('Couldn\'t add that one'); } }
     prefs.reel.push({ id, title: s2.title, imageUrl: s2.imageUrl, category: s2.category, sourceName: s2.sourceName, tags: s2.tags, status: s2.status, location: s2.location, region: s2.region });
@@ -51,8 +51,8 @@ function reelFab() {
   if (!f) { f = document.createElement('div'); f.id = 'reelFab'; document.body.append(f); }
   f.className = app.selectMode ? 'reel-fab on' : 'reel-fab';
   f.innerHTML = app.selectMode
-    ? `<span><b>${prefs.reel.length}</b> picked</span><button class="btn" data-action="select-off">Done</button><button class="btn primary" data-action="reel-make">🎬 Make reel</button>`
-    : `<button class="btn primary" data-action="select-on">🎬 Select for reel${prefs.reel.length ? ` (${prefs.reel.length})` : ''}</button>`;
+    ? `<span><b>${prefs.reel.length}</b> picked</span><button class="btn" data-action="select-off">Done</button><button class="btn" data-action="bulk-post">📸 Posts</button><button class="btn primary" data-action="reel-make">🎬 Reel</button>`
+    : `<button class="btn primary" data-action="select-on">✅ Select${prefs.reel.length ? ` (${prefs.reel.length})` : ''} · posts &amp; reels</button>`;
 }
 const saveReel = () => { markPicked(); LS.set('sr.reel', prefs.reel); const b = document.querySelector('#reelBar b'); if (b) b.textContent = prefs.reel.length; document.querySelectorAll('[data-reel]').forEach((e) => e.classList.toggle('on', prefs.reel.some((x) => x.id === e.dataset.reel))); };
 
@@ -518,7 +518,7 @@ const views = {
         <span class="rp-t"><small>${esc((CAT[x.category]?.[1] || x.category || '').toUpperCase())} · ${esc(x.sourceName || '')}</small>${esc(x.title)}</span><span class="rp-check">✓</span></button>`).join('') : empty('🎬', 'Nothing here yet', 'Try another tab.')}</div>
       ${await gameReelPicker()}
       ${recaps.length ? section('NFL recap videos (with voice-over)', '🎙️', null, `<div class="recaps">${recaps.slice(0, 30).map(recapCard).join('')}</div>`) : ''}
-      <div class="reel-bar" id="reelBar"><span><b>${prefs.reel.length}</b> picked</span><button class="btn" data-action="reel-clear">Clear</button><button class="btn primary" data-action="reel-make">🎬 Make reel</button></div>`;
+      <div class="reel-bar" id="reelBar"><span><b>${prefs.reel.length}</b> picked</span><button class="btn" data-action="reel-clear">Clear</button><button class="btn" data-action="bulk-post">📸 Posts</button><button class="btn primary" data-action="reel-make">🎬 Reel</button></div>`;
   },
 
   async nfl() {
@@ -775,9 +775,9 @@ async function openPostStudio({ ids = [], recap = false, weekly = false, format 
   postState = { ids, recap, weekly, format, files: [], caption: '' };
   const sheet = $('#sheet');
   sheet.innerHTML = `<div class="grab"></div><button class="close" data-action="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-    <div class="sheet-title">${recap ? (weekly ? 'Weekly Recap' : 'Daily Recap') : 'Make a Post'}</div>
+    <div class="sheet-title">${recap ? (weekly ? 'Weekly Recap' : 'Daily Recap') : ids.length > 1 ? `Bulk posts · ${ids.length}` : 'Make a Post'}</div>
     <div class="content" style="padding-top:0"><div class="chips" style="margin:0 0 12px">${Object.entries({ feed: 'Feed 4:5', story: 'Story 9:16' }).map(([k, l]) => `<button class="chip ${format === k ? 'on' : ''}" data-fmt="${k}">${l}</button>`).join('')}</div>
-    <div class="post-previews" id="postPreviews"><div class="skeleton" style="aspect-ratio:${format === 'feed' ? '4/5' : '9/16'};width:${recap ? '78%' : '100%'};max-width:420px"></div></div>
+    <div class="post-previews" id="postPreviews"><div class="skeleton" style="aspect-ratio:${format === 'feed' ? '4/5' : '9/16'};width:${recap || ids.length > 1 ? '78%' : '100%'};max-width:420px"></div></div>
     <div class="post-actions"><button class="btn primary" data-action="share-post" id="shareBtn" disabled>Rendering…</button><button class="btn" data-action="copy-caption">Copy caption</button></div>
     <p class="muted" style="font-size:12.5px;margin:6px 0 10px">Share opens the iPhone share sheet: pick <b>Instagram</b> (Feed/Stories) or <b>Save Image</b>. The caption is copied automatically, so just paste it. You can also press and hold an image to save it.</p>
     <textarea id="postCaption" class="caption" rows="9" spellcheck="false"></textarea></div>`;
@@ -794,6 +794,7 @@ async function openPostStudio({ ids = [], recap = false, weekly = false, format 
     } else {
       stories = await Promise.all(ids.map(async (id) => app.stories.get(id) || api(`/api/stories/${encodeURIComponent(id)}`)));
     }
+    if (!recap && stories.length > 1) $('#shareBtn').textContent = `Rendering ${stories.length} posts…`;
     const canvases = recap
       ? [await postMod.renderRecapCover(stories, format, weekly ? "THIS WEEK'S NEWS" : "TODAY'S NEWS", weekly ? postMod.weekRange() : null), ...(await Promise.all(stories.map((x, i) => postMod.renderStoryPost(x, format, { slide: `${i + 2}/${stories.length + 1}` }))))]
       : await Promise.all(stories.map((x) => postMod.renderStoryPost(x, format)));
@@ -801,12 +802,12 @@ async function openPostStudio({ ids = [], recap = false, weekly = false, format 
     if (postState.ids !== ids || postState.format !== format || postState.recap !== recap || postState.weekly !== weekly) return; // superseded
     const stamp = new Date().toISOString().slice(0, 10);
     postState.files = blobs.map((b, i) => new File([b], `smash-radar-${stamp}-${recap ? (weekly ? 'weekly' : 'recap') : (stories[0].id)}-${i + 1}.jpg`, { type: 'image/jpeg' }));
-    postState.caption = recap ? postMod.recapCaption(stories, weekly) : postMod.captionFor(stories[0]);
+    postState.caption = recap ? postMod.recapCaption(stories, weekly) : stories.length > 1 ? stories.map((x, i) => `— POST ${i + 1} —\n${postMod.captionFor(x)}`).join('\n\n') : postMod.captionFor(stories[0]);
     $('#postPreviews').innerHTML = postState.files.map((f) => `<img src="${URL.createObjectURL(f)}" alt="Post preview" class="${format}">`).join('');
     $('#postCaption').value = postState.caption;
     const btn = $('#shareBtn');
     btn.disabled = false;
-    btn.textContent = recap ? `Share ${postState.files.length} slides` : 'Share to Instagram';
+    btn.textContent = recap ? `Share ${postState.files.length} slides` : postState.files.length > 1 ? `Save / share all ${postState.files.length} posts` : 'Share to Instagram';
   } catch (err) {
     $('#postPreviews').innerHTML = `<div class="empty"><p>Couldn't render this post: ${esc(err.message)}</p></div>`;
   }
@@ -1503,6 +1504,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'close') return closeSheet();
   if (a === 'tv-start' || a === 'tv-live') return tvGoLive();
   if (a === 'reel-make') return runReel();
+  if (a === 'bulk-post') { if (!prefs.reel.length) return toast('Pick some stories first'); return openPostStudio({ ids: prefs.reel.map((x) => x.id) }); }
   if (a === 'game-reel') return runGameReel(t.dataset.id);
   if (a === 'hl-mode') return openHighlightMode(t.dataset.id);
   if (a === 'rm-mode') return openReelMode(t.dataset.id);
