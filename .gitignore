@@ -4,3 +4,4 @@ data/
 *.tmp
 .netlify/
 dist/
+scripts/__pycache__/

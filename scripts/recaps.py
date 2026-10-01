@@ -59,6 +59,29 @@ def main(nfl_json, done_json):
         print(f'recap done: {spec["title"]}')
 
 
+def make_3d(nfl_json, done_json, limit=1):
+    """3D cartoon replay (every scoring play acted out) — slow to render, so one game per run, newest first."""
+    try: recs = json.load(open(done_json))
+    except Exception: return
+    games = {str(g['id']): g for g in json.load(open(nfl_json)).get('games', [])}
+    n = 0
+    for rec in recs:
+        if n >= limit: break
+        g = games.get(str(rec['id']))
+        if rec.get('file3d') or not g or not g.get('plays'): continue
+        gid = str(rec['id']); out = os.path.join(WORK, 'out', f'{gid}-3d.mp4')
+        try: subprocess.run(['python3', 'scripts/game3d_video.py', nfl_json, gid, out], cwd=ROOT, check=True, timeout=2400)
+        except Exception as e: print(f'3d {gid} failed: {e}', file=sys.stderr); continue
+        url = None
+        if archive.TOKEN and archive.REPO:
+            try: url = archive.upload(release(), out, f"nfl-3d-week{rec.get('week') or ''}-{rec['away']['abbr']}-at-{rec['home']['abbr']}-{gid}.mp4".lower(), 'video/mp4')
+            except Exception as e: print(f'3d upload {gid}: {e}', file=sys.stderr)
+        with open(os.path.join(WORK, 'new.jsonl'), 'a') as f:
+            f.write(json.dumps(dict(rec, video3d=url, file3d=f'{gid}-3d.mp4')) + '\n')
+        n += 1
+        print(f'3d replay done: {rec.get("title")}')
+
+
 def backfill_fantasy(nfl_json, done_json, limit=6):
     """Fantasy showdown videos for games that were recapped before that video existed."""
     try: recs = json.load(open(done_json))
@@ -91,6 +114,7 @@ if __name__ == '__main__':
     try:
         main(sys.argv[1], sys.argv[2])
         backfill_fantasy(sys.argv[1], sys.argv[2])
+        make_3d(sys.argv[1], sys.argv[2])
     finally:
         try: os.remove(lock)
         except OSError: pass
