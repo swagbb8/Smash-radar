@@ -157,7 +157,7 @@ function nflSegments(nfl, now) {
   const say = (g, i) => {
     const [a, h] = [g.away, g.home];
     const lead = i === 0 ? `${pick(LEADS.nfl, g.id)} ` : '';
-    const leader = g.leaders?.[0] ? ` ${g.leaders[0].player} led the way with ${speakStat(g.leaders[0].value)}.` : '';
+    const leader = g.leaders?.[0] ? ` Top stat line: ${g.leaders[0].player}, with ${speakStat(g.leaders[0].value)}.` : '';
     if (g.state === 'in') return `${lead}Live right now: the ${a.name} have ${a.score} and the ${h.name} have ${h.score}, ${g.detail}.${leader}`;
     const w = Number(a.score) > Number(h.score) ? a : h;
     const l = w === a ? h : a;

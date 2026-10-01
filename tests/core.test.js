@@ -250,6 +250,7 @@ test('lion briefing: clean, funny on fun stuff, serious on emergencies, NFL stat
   assert.notEqual(drink.text, `${drink.text.split('.')[0]}.`);
   assert.match(game.text, /Bears beat the Packers, 27 to 20/);
   assert.match(game.text, /24 of 31, 288 yards, 2 touchdowns/);
+  assert.match(game.text, /Top stat line: QB One/);
   assert.doesNotMatch(b.script, /\b(damn|hell|crap|shit|fuck)\b/i);
   assert.equal(b.segments[0].kind, 'intro');
   assert.equal(b.segments.at(-1).kind, 'outro');
