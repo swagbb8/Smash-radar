@@ -12,8 +12,14 @@ RATE = os.environ.get('LION_RATE', '+4%')
 PITCH = os.environ.get('LION_PITCH', '+0Hz')  # no pitch shifting: it makes voices sound processed
 BITRATE = 48000  # edge-tts default output: 24 kHz, 48 kbit/s mono MP3
 
-def clip_name(text):
-    return hashlib.sha1(f"{VOICE}|{RATE}|{PITCH}|{text}".encode()).hexdigest()[:16] + '.mp3'
+# Emotion: the same voice speeds up and lifts when Smash is hyped, slows and lowers when it's serious.
+MOODS = {'hype': ('+13%', '+4Hz', '+10%'), 'normal': (RATE, PITCH, '+0%'), 'serious': ('-3%', '-3Hz', '-5%')}
+
+def prosody(seg):
+    return MOODS.get(seg.get('mood') or 'normal', MOODS['normal'])
+
+def clip_name(text, mood=('', '', '')):
+    return hashlib.sha1(f"{VOICE}|{RATE}|{PITCH}|{mood}|{text}".encode()).hexdigest()[:16] + '.mp3'
 
 async def voice(segments, label):
     import edge_tts
@@ -24,12 +30,13 @@ async def voice(segments, label):
     made = 0
     async def one(i, seg):
         nonlocal ok, made
-        name = clip_name(seg['text'])
+        mood = prosody(seg)
+        name = clip_name(seg['text'], mood)
         cached = os.path.join(CACHE, name)
         if not (os.path.exists(cached) and os.path.getsize(cached) > 1000):
             for attempt in range(3):
                 try:
-                    await edge_tts.Communicate(seg['text'], VOICE, rate=RATE, pitch=PITCH).save(cached + '.part')
+                    await edge_tts.Communicate(seg['text'], VOICE, rate=mood[0], pitch=mood[1], volume=mood[2]).save(cached + '.part')
                     if os.path.getsize(cached + '.part') > 1000:
                         os.replace(cached + '.part', cached); made += 1
                         break

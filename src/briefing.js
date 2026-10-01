@@ -98,6 +98,21 @@ const QUIPS = {
   opening: ['I will be there for the free samples. All of them.', 'New neighbor! I will bring a welcome roar.'],
   nfl: ["That's a game, folks!", 'Somebody give that player a snack. A big one.'],
 };
+// Grown-up humor: adult-life jokes (rent, taxes, coffee, back pain, group chats). Clean, no swearing, never about victims.
+const ADULT = {
+  product: ["My bank account just looked at me and said, absolutely not, sir.", "I don't need it. But I didn't need my last three impulse buys either, and look how happy I am. Kind of.", "Rent is due, but you know what? So is joy.", "This is how they get you. You go in for paper towels, you leave with this and a scented candle named after a feeling.", "Treat yourself. Your therapist said so. Probably."],
+  deal: ["Nothing makes me feel more like a grown up than getting excited about a sale on paper towels.", "That's not shopping, that's investing. That's what I tell my accountant, anyway. He doesn't laugh.", "Buy two, and you've basically made money. That's how math works now, right?", "Adulthood is just getting genuinely thrilled about a deal on a vacuum."],
+  food: ["Calories don't count if you eat it standing up over the sink at eleven at night. Science.", "My doctor says I need to eat more greens. Does a green wrapper count?", "This is a dinner for one and a nap for two.", "I'm not saying I'd drive forty minutes for it. I'm saying I already have my keys."],
+  energy: ["My blood type is now just cold brew.", "Drink one at nine A.M. and you'll reply to every email from 2019 by lunch."],
+  tech: ["Can't wait to buy it, never read the manual, and call my nephew to set it up.", "Another device that knows more about me than my family does. Love that for us.", "It's great until it asks you to update at the exact moment you need it."],
+  gaming: ["One more game, I said. At two in the morning. Like a responsible adult.", "My back hurts just thinking about a gaming marathon now. Getting older is wild."],
+  auto: ["I'd buy it, but my credit score just started laughing.", "Look at that car payment. Actually don't. Protect your peace."],
+  opening: ["A new place to go and spend money I was saving for, um, nothing important. Retirement.", "Finally, somewhere new to see everyone from high school and pretend I didn't."],
+  clothing: ["Nice shoes. Now I just need somewhere to go that isn't the grocery store.", "My closet is ninety percent hoodies and ten percent regret."],
+  nfl: ["My fantasy team saw that and filed for emotional damages.", "Somebody check on everybody's group chat after that one. It's chaos in there.", "That's the kind of game that makes grown adults yell at a TV in a basement. I'm grown adults."],
+  news: ["Just another normal day in America, where everything is happening all at once.", "Okay. Deep breath. Mane fluff. Moving on."],
+};
+const REACT = ["Oh, you're gonna love this one!", "Okay okay okay, I'm actually excited about this.", "Wait. Wait! Listen to this.", "Ooh, this one's fun!", "Alright, buckle up, buttercup.", "Oh, now we're talking!", "No way. Okay, check this out!", "You ready? Because I wasn't."];
 const OUTRO = [
   "That's your SMASH NEWS update! I'll be back in about ten minutes with more. Stay smashing, stay safe, and keep your mane fluffy.",
   "And that's the news! Smash the lion, signing off for now. Fresh update in about ten minutes. Rawr!",
@@ -255,7 +270,7 @@ export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes
   const segs = [];
   const time = new Date(now).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ });
   const day = new Date(now).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ });
-  segs.push({ kind: 'intro', section: 'SMASH NEWS', text: `${pick(INTRO, Math.floor(now / 18e5))} It's ${time} on ${day}, and this is your thirty minute SMASH NEWS show. We've got local news, roads, football, new stuff, deals, and news from all over the country. Let's go!` });
+  segs.push({ kind: 'intro', section: 'SMASH NEWS', mood: 'hype', text: `${pick(INTRO, Math.floor(now / 18e5))} It's ${time} on ${day}, and this is your thirty minute SMASH NEWS show. We've got local news, roads, football, new stuff, deals, and news from all over the country. Let's go!` });
   const nflSegs = nflSegments(nfl, now).map((x) => ({ ...x, section: 'NFL ZONE' }));
   const nflNews = (nfl?.news || []).slice(0, 4).map((n, k) => ({ kind: 'nfl', section: 'NFL ZONE', title: n.title, imageUrl: n.image, category: 'nfl', source: 'ESPN', text: `${k === 0 ? 'In other football news, ' : ''}${speakable(n.title)}. ${firstSentence(n.summary, n.title)}`.trim() }));
   let wordCount = words(segs[0].text);
@@ -264,7 +279,7 @@ export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes
   active.forEach(([key, list], idx) => {
     if (wordCount > budget) return;
     const sec = SECTION[key];
-    segs.push({ kind: 'bumper', section: sec.title, icon: sec.icon, text: pick(sec.bumper, now + idx) });
+    segs.push({ kind: 'bumper', section: sec.title, icon: sec.icon, mood: ['roads', 'recalls'].includes(key) ? 'normal' : 'hype', text: pick(sec.bumper, now + idx) });
     const items = key === 'nfl' ? [...nflSegs, ...nflNews] : list;
     for (const it of items) {
       if (wordCount > budget) break;
@@ -280,10 +295,14 @@ export function buildShow(stories, now = Date.now(), { nfl = null, targetMinutes
         const deep = ['top', 'dupage', 'us', 'local', 'roads', 'recalls', 'states'].includes(key);
         const extra = key === 'recalls' && it.recall?.action ? `${sentences(it.summary, it.title, 1)} ${speakable(it.recall.action)}.` : cap(sentences(it.summary, it.title, deep ? 3 : 2), deep ? 70 : 45);
         const quipList = serious ? null : (QUIPS[it.category] && key !== 'deals' ? QUIPS[it.category] : QUIPS[key === 'drops' ? 'product' : key === 'deals' ? 'deal' : key === 'openings' ? 'opening' : ''] );
-        const quip = quipList && Math.abs([...it.id].reduce((h, c) => h + c.charCodeAt(0), 0)) % 2 === 0 ? ` ${pick(quipList, it.id)}` : '';
-        seg = { kind: key, storyId: it.id, title: it.title, imageUrl: it.imageUrl || null, category: it.category, source: it.sourceName, place: where || null, serious, text: `${lead} ${speakable(it.title)}. ${extra}${quip}`.replace(/\s+/g, ' ').replace(/\.\./g, '.').trim() };
+        const h = Math.abs([...it.id].reduce((a, c) => a + c.charCodeAt(0), 0));
+        const adultList = ADULT[key === 'drops' ? 'product' : key === 'deals' ? 'deal' : key === 'openings' ? 'opening' : it.category] || null;
+        const quip = serious ? '' : h % 3 === 0 && adultList ? ` ${pick(adultList, it.id)}` : h % 3 === 1 && quipList ? ` ${pick(quipList, it.id)}` : '';
+        const react = !serious && ['drops', 'deals', 'food', 'games', 'cars', 'tech', 'openings'].includes(key) && h % 4 === 0 ? `${pick(REACT, it.id)} ` : '';
+        seg = { kind: key, storyId: it.id, title: it.title, imageUrl: it.imageUrl || null, category: it.category, source: it.sourceName, place: where || null, serious, mood: serious ? 'serious' : ['drops', 'deals', 'food', 'games', 'cars', 'openings'].includes(key) ? 'hype' : 'normal', text: `${react}${lead} ${speakable(it.title)}. ${extra}${quip}`.replace(/\s+/g, ' ').replace(/\.\./g, '.').trim() };
       }
       seg.section = sec.title;
+      if (!seg.mood) seg.mood = key === 'nfl' ? 'hype' : 'normal';
       segs.push(seg);
       wordCount += words(seg.text);
     }
