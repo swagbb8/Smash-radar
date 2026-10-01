@@ -59,10 +59,10 @@ def main(nfl_json, done_json):
         print(f'recap done: {spec["title"]}')
 
 
-V3D = 2  # bump to re-make every 3D replay after a big look change
+V3D = 3  # bump to re-make every 3D replay after a big look change
 
 
-def make_3d(nfl_json, done_json, budget=float(os.environ.get('G3D_BUDGET_MIN', '28')) * 60):
+def make_3d(nfl_json, done_json, budget=float(os.environ.get('G3D_BUDGET_MIN', '45')) * 60):
     """3D replay for every recapped game, new and old (newest first). Slow to render, so it keeps going
     until the time budget is used and picks up where it left off next run."""
     try: recs = json.load(open(done_json))
@@ -74,6 +74,8 @@ def make_3d(nfl_json, done_json, budget=float(os.environ.get('G3D_BUDGET_MIN', '
         if not rec.get('plays') and not rec.get('id'): continue
         gid = str(rec['id']); out = os.path.join(WORK, 'out', f'{gid}-3d.mp4')
         if os.path.exists(os.path.join(WORK, 'failed', f'{gid}-3d')): continue
+        try: os.utime(os.path.join(WORK, 'running.lock'))  # still working: keep the lock fresh
+        except OSError: pass
         try: subprocess.run(['python3', 'scripts/game3d_video.py', nfl_json, gid, out, done_json], cwd=ROOT, check=True, timeout=2400)
         except Exception as e:
             print(f'3d {gid} failed: {e}', file=sys.stderr); open(os.path.join(WORK, 'failed', f'{gid}-3d'), 'w').close(); continue

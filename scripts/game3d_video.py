@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import recap_video as rv
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-W, H, FPS = 720, 1280, 24
+W, H, FPS = 720, 1280, 20
 QN = ['', 'Q1', 'Q2', 'Q3', 'Q4', 'OT', '2OT']
 
 
