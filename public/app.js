@@ -389,9 +389,11 @@ const views = {
       built.push([id, ic, label, `<section class="section" id="sec-${id}"><div class="section-head"><h2><span class="ic">${ic}</span>${esc(label)}</h2><a href="${href}">See all →</a></div>${inner}</section>`]);
     }
     const nav = `<div class="catnav" id="catnav">${built.map(([id, ic, label]) => `<button class="chip" data-jump="sec-${id}">${ic} ${esc(label)}</button>`).join('')}</div>`;
-    const ready = pickReadyPosts(list);
+    let pool = list; try { pool = (await api(`/api/stories?${qs({ view: 'all', limit: 1500 })}`)).stories; } catch {}
+    pool.forEach((x) => app.stories.set(x.id, x));
+    const ready = pickReadyPosts(pool);
     app.readyIds = ready.map((x) => x.id);
-    const readyCard = ready.length ? `<button class="ready-card" data-action="ready-posts"><span class="rc-ic">📬</span><span><b>Today's ${ready.length} posts are ready</b><br><span class="muted">One tap: save them all + captions, then post in Instagram</span></span><span class="rc-go">GO</span></button>` : '';
+    const readyCard = ready.length ? `<button class="ready-card" data-action="ready-posts"><span class="rc-ic">📬</span><span><b>Today's ${ready.length} posts are ready</b><br><span class="muted">Every subject · ${new Set(ready.map(readyGroup)).size} topics · one tap saves them all + captions</span></span><span class="rc-go">GO</span></button>` : '';
     return readyCard + banner + top + hero(heroStory) + nav + built.map((b) => b[3]).join('');
   },
 
@@ -774,13 +776,16 @@ function pickRecap(all) {
   for (const x of src) { if (out.length >= 5) break; if (!out.includes(x)) out.push(x); }
   return out;
 }
-/** Best posts of the day: newest big stories with pictures, one per category, no repeats from what you already posted. */
-function pickReadyPosts(list) {
+/** Today's posts for EVERY subject: the top 2 new stories from each topic (news, DuPage, roads, deals, drops, recalls, tech, food, games, cars…), skipping ones already posted. */
+function readyGroup(x) { return x.tags?.includes('RECALL') ? 'recalls' : x.tags?.includes('DEAL') ? 'deals' : x.region?.roads ? 'roads' : (x.tags?.includes('LAUNCH') || x.tags?.includes('LIMITED')) && !['news', 'dupage'].includes(x.category) ? `drops-${x.category}` : x.category; }
+function pickReadyPosts(list, per = 2, max = 20) {
   const done = new Set(LS.get('sr.posted', []));
-  const fresh = list.filter((x) => !done.has(x.id) && Date.now() - Date.parse(x.publishedAt || x.discoveredAt) < 24 * 3600e3 && !x.tags?.includes('RUMOR'));
-  const out = []; const cats = new Set();
-  for (const x of fresh.filter((y) => y.imageUrl)) { if (out.length >= 6) break; if (!cats.has(x.category)) { out.push(x); cats.add(x.category); } }
-  for (const x of fresh) { if (out.length >= 6) break; if (!out.includes(x)) out.push(x); }
+  const fresh = list.filter((x) => !done.has(x.id) && Date.now() - Date.parse(x.publishedAt || x.discoveredAt) < 24 * 3600e3 && !x.tags?.includes('RUMOR') && !x.tags?.includes('LEAK'))
+    .sort((a, b) => (b.imageUrl ? 1 : 0) - (a.imageUrl ? 1 : 0) || (b.score || 0) - (a.score || 0));
+  const groups = new Map();
+  for (const x of fresh) { const g = readyGroup(x); if (!groups.has(g)) groups.set(g, []); if (groups.get(g).length < per) groups.get(g).push(x); }
+  const out = []; // round-robin so every subject gets in before any gets a second
+  for (let k = 0; k < per; k++) for (const arr of groups.values()) if (arr[k] && out.length < max) out.push(arr[k]);
   return out;
 }
 async function openPostStudio({ ids = [], recap = false, weekly = false, format = 'feed' }) {
