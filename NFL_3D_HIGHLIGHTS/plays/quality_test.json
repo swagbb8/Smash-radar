@@ -1,0 +1,19 @@
+{
+  "play_type": "deep_pass_touchdown",
+  "description": "QB drops back, a defender rushes, he rolls right and throws deep. The receiver catches it over the defender, breaks a tackle and scores.",
+  "yards": 45,
+  "teams": {
+    "HOME": {"name": "Sharks", "abbr": "SHK", "primary": "#0b6e7a", "secondary": "#ffb81c"},
+    "AWAY": {"name": "Wolves", "abbr": "WLV", "primary": "#8a1538", "secondary": "#c9ced6"}
+  },
+  "quarterback": {"team": "HOME", "number": 12, "scramble": true, "direction": "right"},
+  "receiver": {"team": "HOME", "number": 11, "route": "go", "side": "right"},
+  "defender": {"team": "AWAY", "number": 24, "coverage": "man"},
+  "catch": {"jump_ball": true},
+  "moves": ["broken_tackle"],
+  "result": "touchdown",
+  "scoreboard": {"quarter": "Q4", "clock": "2:11", "down": "3RD & 8", "home": 20, "away": 24},
+  "player_names": {"11": "D. Rivers", "12": "J. Cole", "24": "M. Kane"},
+  "lighting": "PRIMETIME",
+  "replay": true
+}

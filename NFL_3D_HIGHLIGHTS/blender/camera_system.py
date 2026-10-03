@@ -104,8 +104,8 @@ class CameraRig:
             q = P(F['qb']); pos, tgt = Vector((q.x + 4.6, q.y - 3.6, 1.5)), Vector((q.x, q.y, 1.45)); fstop = 2.8; focus_on = q + Vector((0, 0, 1.4)); fov = 30 if wide else 36
         elif typ == 'ball':                                      # telephoto-ish chase of the ball toward the target
             tg = ball_target or (b.x + 10, b.y, 1); dv = Vector((tg[0] - b.x, tg[1] - b.y, 0)); n = dv.length or 1
-            pos = Vector((b.x - dv.x / n * 5.5, b.y - dv.y / n * 5.5 + 0.8, max(1.9, b.z + 0.7))); tgt = Vector((lerp(b.x, tg[0], 0.3), lerp(b.y, tg[1], 0.3), lerp(b.z, tg[2] if len(tg) > 2 else 1.5, 0.3)))
-            fov = 30 if wide else 36; fstop = 3.2; focus_on = b
+            pos = Vector((b.x - dv.x / n * 6.5, b.y - dv.y / n * 6.5 + 0.9, max(2.2, b.z + 1.3))); tgt = Vector((lerp(b.x, tg[0], 0.72), lerp(b.y, tg[1], 0.72), lerp(b.z, 1.2, 0.72)))   # ball in the foreground, the receiver it is dropping to behind it
+            fov = 40 if wide else 46; fstop = 5.6; focus_on = b
         elif typ == 'catch':
             pt = shot.get('pt') or (sub.x, sub.y, 1.8); s2 = 1 if pt[1] >= 0 else -1; pos = Vector((pt[0] + 4.8, pt[1] - s2 * 5.0, 0.75)); away = clamp(((sub - Vector(pt)).xy.length - 1.5) / 2.5) if car is not None and not in_air(sim, t) else 0.0
             tgt = Vector((pt[0], pt[1], pt[2] - 0.6)).lerp(sub + Vector((0, 0, 1.2)), away); fov = 26 if wide else 32; fstop = 2.0; focus_on = Vector(pt).lerp(sub + Vector((0, 0, 1.2)), away)

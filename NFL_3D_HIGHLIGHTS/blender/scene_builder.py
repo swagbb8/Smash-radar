@@ -107,12 +107,10 @@ def build_scene(play, preset='PREVIEW', aspect='9:16', samples=None, fps=None, v
     venue = stadium.build(c_stad, off, dfn, play.get('field_style'), score=score0, quarter=sb['quarter'], clock=sb['clock'])
     lights = lighting.build(c_stad, venue['_dims'], play.get('lighting', 'PRIMETIME'))
     base = player_system.build_base(); rig = anim.Rig(base)
-    for o in (base['arm'], base['mesh']): o.hide_render = True; o.hide_viewport = True
+    names = play.get('names') or {}
     players = {}
     for p in sim.players:
-        team_key = off_key if p.team == 'O' else def_key; pl = player_system.spawn(base, c_play, f"{team_key}_{p.pos}_{p.num}", teams[team_key], team_key == 'HOME', p.num, p.pos, p.id)
-        for m in pl['body'].modifiers:
-            if m.type == 'SUBSURF': m.render_levels = rs['subdiv']
+        team_key = off_key if p.team == 'O' else def_key; pl = player_system.spawn(base, c_play, f"{team_key}_{p.pos}_{p.num}", teams[team_key], team_key == 'HOME', p.num, p.pos, p.id, player_name=names.get(str(p.num)) if p.team == sim.hero_team or True else None)
         anim.set_scale(p.id, pl['arm'].scale[0] * 100, pl['arm'].scale[2] * 100); pl['an'] = anim.PlayerAnimator(rig, p.id); players[p] = pl
     ball = football_system.build(c_fx); ball_an = football_system.BallAnimator(ball)
     fx_amount = float(play.get('effects', {}).get('amount', 1.0)); effects = Effects(c_fx, events, [off['primary'], dfn['primary'], off['secondary']], fx_amount)
