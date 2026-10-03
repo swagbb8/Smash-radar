@@ -79,20 +79,42 @@ def field_texture(home, away, cfg):
     im.save(path); return path
 
 
+def _grass(m):
+    """Real-turf look on top of the painted field: patchy colour, mowing sheen, blade-scale bump and roughness."""
+    nt = m.node_tree; p = nt.nodes['Principled BSDF']; img = next(n for n in nt.nodes if n.type == 'TEX_IMAGE'); tc = nt.nodes.new('ShaderNodeTexCoord')
+    def noise(scale, detail, rough=0.6):
+        n = nt.nodes.new('ShaderNodeTexNoise'); n.inputs['Scale'].default_value = scale; n.inputs['Detail'].default_value = detail; n.inputs['Roughness'].default_value = rough; nt.links.new(tc.outputs['Object'], n.inputs['Vector']); return n
+    patch, fine, blade = noise(0.12, 4.0), noise(6.0, 3.0), noise(160.0, 2.0)
+    def mul(col, fac_node, lo, hi):
+        r = nt.nodes.new('ShaderNodeMapRange'); r.inputs['To Min'].default_value = lo; r.inputs['To Max'].default_value = hi; nt.links.new(fac_node.outputs['Fac'], r.inputs['Value'])
+        mx = nt.nodes.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 1.0; nt.links.new(col, mx.inputs['A'])
+        c = nt.nodes.new('ShaderNodeCombineColor'); [nt.links.new(r.outputs['Result'], c.inputs[i]) for i in range(3)]; nt.links.new(c.outputs['Color'], mx.inputs['B']); return mx.outputs['Result']
+    col = mul(mul(mul(img.outputs['Color'], patch, 0.78, 1.08), fine, 0.86, 1.06), blade, 0.80, 1.10); nt.links.new(col, p.inputs['Base Color'])
+    b = nt.nodes.new('ShaderNodeBump'); b.inputs['Strength'].default_value = 0.55; b.inputs['Distance'].default_value = 0.02; nt.links.new(blade.outputs['Fac'], b.inputs['Height']); nt.links.new(b.outputs['Normal'], p.inputs['Normal'])
+    p.inputs['Roughness'].default_value = 0.78
+    if 'Sheen Weight' in p.inputs: p.inputs['Sheen Weight'].default_value = 0.08
+
+
 def crowd_texture(home, away, density):
-    from PIL import Image, ImageDraw
-    os.makedirs(CACHE, exist_ok=True); path = os.path.join(CACHE, f"crowd_{home['primary'][1:]}_{away['primary'][1:]}_{int(density * 100)}.png")
+    """Seated fans, row by row: muted clothing with team colours mixed in, varied skin and hair, dark gaps between rows."""
+    from PIL import Image, ImageDraw, ImageFilter
+    os.makedirs(CACHE, exist_ok=True); path = os.path.join(CACHE, f"crowd3_{home['primary'][1:]}_{away['primary'][1:]}_{int(density * 100)}.png")
     if os.path.exists(path): return path
-    W, H = 2048, 1024; im = Image.new('RGB', (W, H), '#161a22'); d = ImageDraw.Draw(im); rnd = random.Random(3)
-    pal = [home['primary']] * 5 + [home['secondary']] * 2 + [away['primary']] * 2 + ['#e8e8e8', '#30364a', '#ffffff', '#ffcf5a', '#22262e']; skins = ['#e0ac69', '#8d5524', '#c68642', '#f1c27d']
-    rows = 48; rh = H / rows
+    W, H = 4096, 2048; im = Image.new('RGB', (W, H), '#0d0f14'); d = ImageDraw.Draw(im); rnd = random.Random(3)
+    def shade(h, k): return tuple(int(min(255, c * 255 * k)) for c in hex_rgb(h))
+    neutral = ['#2a2f3a', '#3b4250', '#1c1f27', '#555c69', '#6d6a63', '#8a8780', '#c9c7c1', '#3a3026', '#27364a', '#4a2f2f']; skins = ['#d8a67c', '#7a4a2a', '#b8805a', '#e6bd98', '#5a3620', '#c79268']; hairs = ['#15110d', '#2a1c12', '#4a3423', '#8a7a66', '#1d1d20']
+    rows = 60; rh = H / rows; cols = 250; cw = W / cols
     for r in range(rows):
-        d.rectangle([0, r * rh + rh * 0.82, W, (r + 1) * rh], fill='#0c0e12')
-        for i in range(170):
+        d.rectangle([0, r * rh + rh * 0.86, W, (r + 1) * rh], fill='#07080b')
+        for i in range(cols):
             if rnd.random() > density: continue
-            x = i * (W / 170) + (r % 2) * 6 + rnd.random() * 3; y = r * rh; c = rnd.choice(pal)
-            d.rectangle([x, y + rh * 0.32, x + 8.5, y + rh * 0.86], fill=c); d.ellipse([x + 1.5, y + rh * 0.02, x + 7, y + rh * 0.36], fill=rnd.choice(skins))
-    im.save(path); return path
+            x = i * cw + (r % 2) * cw * 0.5 + rnd.uniform(-1.5, 1.5); y = r * rh + rnd.uniform(-1, 1); k = rnd.uniform(0.55, 1.0); u = rnd.random()
+            c = shade(home['primary'], k) if u < 0.34 else shade(home['secondary'], k * 0.9) if u < 0.42 else shade(away['primary'], k) if u < 0.5 else shade(rnd.choice(neutral), k + 0.15)
+            bw = cw * rnd.uniform(0.62, 0.8); d.rounded_rectangle([x, y + rh * 0.40, x + bw, y + rh * 0.9], radius=3, fill=c)
+            hw = bw * 0.46; hx = x + (bw - hw) / 2; sk = shade(rnd.choice(skins), rnd.uniform(0.8, 1.0)); d.ellipse([hx, y + rh * 0.10, hx + hw, y + rh * 0.44], fill=sk)
+            if rnd.random() < 0.75: d.pieslice([hx - 0.5, y + rh * 0.07, hx + hw + 0.5, y + rh * 0.40], 180, 360, fill=shade(rnd.choice(hairs + [home['primary']]), 0.9))
+            if rnd.random() < 0.12: d.line([x + bw * 0.5, y + rh * 0.45, x + bw * rnd.choice((0.0, 1.0)), y - rh * 0.1], fill=sk, width=3)      # arms up
+    im = im.filter(ImageFilter.GaussianBlur(0.6)); im.save(path); return path
 
 
 def board_texture(home, away, score, quarter, clock):
@@ -128,6 +150,7 @@ def build(coll, home, away, cfg=None, score=(0, 0), quarter='Q1', clock='8:47'):
     bm = bmesh.new(); uv = bm.loops.layers.uv.new('UVMap'); vs = [bm.verts.new((sx * Lm / 2, sy * Wm / 2, 0)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]; f = bm.faces.new(vs)
     for lp, u in zip(f.loops, ((0, 0), (1, 0), (1, 1), (0, 1))): lp[uv].uv = u
     objs['field'] = _obj('Field', bm, [_mat('field', rough=0.92, image=field_texture(home, away, cfg), bump=(2600, 0.12))], coll)
+    _grass(bpy.data.materials['field'])
     bm = bmesh.new(); A, Bv = Lm / 2 + 16, Wm / 2 + 13
     bm.faces.new([bm.verts.new((sx * A, sy * Bv, -0.02)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
     # white team-area boxes + benches on both sidelines, coach's box, pylons
@@ -153,7 +176,7 @@ def build(coll, home, away, cfg=None, score=(0, 0), quarter='Q1', clock='8:47'):
         for i, t in enumerate((home['name'].upper(), 'SMASH 3D', away['name'].upper(), 'SMASH 3D')):
             f = font('anton', 84); bx = d.textbbox((0, 0), t, font=f); d.text((i * 512 + (512 - (bx[2] - bx[0])) / 2 - bx[0], (128 - (bx[3] - bx[1])) / 2 - bx[1]), t, font=f, fill='#ffffff')
         im = im.transpose(Image.FLIP_LEFT_RIGHT); im.save(wp)
-    objs['bowl'] = _obj('Stadium', bm, [_mat('wall', rough=0.55, image=wp, emit=0.25), _mat('crowd', rough=0.9, image=crowd_texture(home, away, cfg['crowd_density']), emit=0.18), _mat('concrete', hex_linear(cfg['seats']), 0.8)], coll, smooth=True)
+    objs['bowl'] = _obj('Stadium', bm, [_mat('wall', rough=0.55, image=wp, emit=0.25), _mat('crowd', rough=0.9, image=crowd_texture(home, away, cfg['crowd_density']), emit=0.10), _mat('concrete', hex_linear(cfg['seats']), 0.8)], coll, smooth=True)
     # ---- light towers (the lamps themselves live in lighting.py), scoreboard, tunnel
     bm = bmesh.new()
     for sx in (-1, 1):

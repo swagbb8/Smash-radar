@@ -44,6 +44,8 @@ class Rig:
                 hip.append(arm.pose.bones[PRE + 'Hips'].location.copy())
             self.clips[name] = {'q': q, 'hip': hip, 'dur': (f1 - f0) / sc.render.fps}
         arm.animation_data_clear(); sc.frame_set(keep)
+        for name, c in self.clips.items():
+            if name != 'idle' and max(c['q']['LeftUpLeg'][0].rotation_difference(q).angle for q in c['q']['LeftUpLeg']) < 0.2: raise RuntimeError(f'clip "{name}" did not animate (rig not evaluated)')
         for pb in arm.pose.bones: pb.rotation_quaternion = (1, 0, 0, 0); pb.location = (0, 0, 0)
         if not {'idle', 'run'} <= set(self.clips): raise RuntimeError('the animation asset needs at least "idle" and "run" clips')
         self.clips.setdefault('walk', self.clips['run'])
@@ -114,7 +116,7 @@ class PlayerAnimator:
         aim = lambda n, d, w: ov[n].append(('aim', Vector(d).normalized(), clamp(w))) if w > 1e-3 else None
         rot = lambda n, axis, ang: ov[n].append(('rot', axis, ang)) if abs(ang) > 1e-4 else None
         # ---- whole-body pitch / lift: dives, falls, lying on the turf
-        pitch = run * 0.10 * (1 if back > 0 else -0.5); lift = 0.0
+        pitch = run * 0.17 * (1 if back > 0 else -0.4); lift = 0.0
         dive, fall, down, cel, kneel = A('dive'), A('fall'), A('down'), A('celebrate'), A('kneel')
         if dive: pitch = lerp(pitch, 1.38, smooth(clamp(dive['ph'] * 1.6))); lift = math.sin(math.pi * clamp(dive['ph'])) * 0.45
         if fall: pitch = lerp(pitch, -1.45 if fall.get('back') else 1.45, smooth(fall['ph'])); lift = math.sin(math.pi * fall['ph']) * 0.2

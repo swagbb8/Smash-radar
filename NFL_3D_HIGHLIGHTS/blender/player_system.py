@@ -180,9 +180,9 @@ def build_base():
             g = groups.get(b) or groups.setdefault(b, gear.vertex_groups.new(name=PRE + b)); g.add([i], x / tot, 'REPLACE')
     _bind(gear, arm)
     hidden = [arm, skin, gear] + [o for p in tmpl.values() for o in p.values()]
-    for o in hidden: o.hide_render = True; o.hide_viewport = True
+    for o in hidden: o.hide_render = True; o.hide_viewport = o is not arm      # the rig stays evaluated until its clips are sampled
     log(f'player: skin {len(skin.data.polygons)} faces, jersey {len(tmpl["big"]["jersey"].data.polygons)}, gear {len(me.polygons)}; stature {ref.stature:.1f} cm')
-    return {'arm': arm, 'mesh': skin, 'gear': gear, 'tmpl': tmpl, 'ref': ref, 'skin_ids': ids, 'actions': {a.name: a for a in bpy.data.actions}}
+    return {'arm': arm, 'mesh': skin, 'gear': gear, 'tmpl': tmpl, 'ref': ref, 'skin_ids': ids, 'hidden': hidden, 'actions': {a.name: a for a in bpy.data.actions}}
 
 
 def _bind(ob, arm, solid=0.0):

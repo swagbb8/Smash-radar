@@ -107,6 +107,7 @@ def build_scene(play, preset='PREVIEW', aspect='9:16', samples=None, fps=None, v
     venue = stadium.build(c_stad, off, dfn, play.get('field_style'), score=score0, quarter=sb['quarter'], clock=sb['clock'])
     lights = lighting.build(c_stad, venue['_dims'], play.get('lighting', 'PRIMETIME'))
     base = player_system.build_base(); rig = anim.Rig(base)
+    base['arm'].hide_viewport = True
     names = play.get('names') or {}
     players = {}
     for p in sim.players:
@@ -151,7 +152,7 @@ def build_scene(play, preset='PREVIEW', aspect='9:16', samples=None, fps=None, v
         if crowd_em is not None:
             exc = 0.0
             if score_ev and t >= score_ev['t']: exc = clamp((t - score_ev['t']) * 3) * (0.55 + 0.45 * math.sin(fr['wall'] * 11) ** 2)
-            crowd_em.default_value = 0.18 + 0.4 * exc; crowd_em.keyframe_insert('default_value', frame=frame)
+            crowd_em.default_value = 0.10 + 0.22 * exc; crowd_em.keyframe_insert('default_value', frame=frame)
         # ---- graphics + sound for this frame
         if fr['seg'] == 'main':
             for e in (x for x in events if prev_t < x['t'] <= t or (i == 0 and x['t'] <= t)):

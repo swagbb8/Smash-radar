@@ -83,7 +83,7 @@ class CameraRig:
     def __init__(self, coll, aspect, dof=True):
         cd = bpy.data.cameras.new('HighlightCam'); cd.sensor_fit = 'VERTICAL'; cd.sensor_height = 24.0; cd.clip_start = 0.1; cd.clip_end = 900; cd.dof.use_dof = dof
         self.ob = bpy.data.objects.new('HighlightCam', cd); coll.objects.link(self.ob); bpy.context.scene.camera = self.ob
-        self.aspect = aspect; self.key = None; self.p = Vector(); self.t = Vector(); self.fov = 40.0; self.focus = 20.0; self.orbit = 0.0; self.wall = 0.0
+        self.aspect = aspect; self.key = None; self.p = Vector(); self.t = Vector(); self.fov = 40.0; self.focus = 20.0; self.orbit = 0.0; self.wall = 0.0; self.alt = 0
 
     def update(self, sim, shot, players, ball, frame, dt, seg='main', intensity=1.0, ball_target=None):
         """players: {Player: (x, y, z, face, speed, ...)} in yards; ball: world position in yards. dt = wall seconds since last frame."""
@@ -105,10 +105,11 @@ class CameraRig:
         elif typ == 'ball':                                      # telephoto-ish chase of the ball toward the target
             tg = ball_target or (b.x + 10, b.y, 1); dv = Vector((tg[0] - b.x, tg[1] - b.y, 0)); n = dv.length or 1
             pos = Vector((b.x - dv.x / n * 6.5, b.y - dv.y / n * 6.5 + 0.9, max(2.2, b.z + 1.3))); tgt = Vector((lerp(b.x, tg[0], 0.72), lerp(b.y, tg[1], 0.72), lerp(b.z, 1.2, 0.72)))   # ball in the foreground, the receiver it is dropping to behind it
-            fov = 40 if wide else 46; fstop = 5.6; focus_on = b
+            fov = 32 if wide else 38; fstop = 5.6; focus_on = b
         elif typ == 'catch':
             pt = shot.get('pt') or (sub.x, sub.y, 1.8); s2 = 1 if pt[1] >= 0 else -1; pos = Vector((pt[0] + 4.8, pt[1] - s2 * 5.0, 0.75)); away = clamp(((sub - Vector(pt)).xy.length - 1.5) / 2.5) if car is not None and not in_air(sim, t) else 0.0
-            tgt = Vector((pt[0], pt[1], pt[2] - 0.6)).lerp(sub + Vector((0, 0, 1.2)), away); fov = 26 if wide else 32; fstop = 2.0; focus_on = Vector(pt).lerp(sub + Vector((0, 0, 1.2)), away)
+            pos.z = 1.25; who = F.get('target') or car; rc = P(who) + Vector((0, 0, 1.25)) if who is not None else Vector(pt)      # stay on the receiver; the ball drops into frame
+            tgt = rc.lerp(b, 0.3) if in_air(sim, t) else rc.lerp(sub + Vector((0, 0, 1.2)), away); fov = 30 if wide else 36; fstop = 2.2; focus_on = rc
         elif typ == 'track': pos, tgt = Vector((sub.x - 5.5 * d, sub.y - side * 8.6, 2.4)), Vector((sub.x + 3 * d, sub.y, 1.15)); fstop = 2.8; fov = 32 if wide else 38
         elif typ == 'sideline': pos, tgt = Vector((sub.x + 1.5 * d, -31, 3.2)), Vector((sub.x + 1.5 * d, sub.y, 1.2)); fov = 22 if wide else 30; fstop = 4
         elif typ == 'chase': pos, tgt = Vector((sub.x - 8.4 * d, sub.y + 0.6, 3.1)), Vector((sub.x + 9 * d, sub.y, 0.9)); fov = 42 if wide else 48; fstop = 4
@@ -128,8 +129,24 @@ class CameraRig:
         elif typ == 'posts': pos, tgt = Vector((67, 2.4, 2.0)), Vector((b.x, b.y, max(3, b.z))); fov = 42 if wide else 48; fstop = 5.6; focus_on = b
         elif typ == 'sky': pos, tgt = Vector((sub.x - 8.5, sub.y + 3.2, 1.3)), Vector((lerp(sub.x, b.x, 0.6), lerp(sub.y, b.y, 0.6), lerp(1.5, b.z, 0.6))); fov = 44 if wide else 50; fstop = 4
         else: pos, tgt = Vector((b.x - 15, 0, 10)), Vector((b.x + 6, 0, 0))
-        pos.x = clamp(pos.x, -74, 74); pos.y = clamp(pos.y, -40, 40); pos.z = max(0.3, pos.z)
         key = (id(shot), seg)
+        if key != self.key: self.alt = 0
+        if typ not in ('wide', 'sideline', 'sky', 'kick_behind', 'posts', 'ball'):          # never let another player stand between the lens and the subject
+            def blocked(q):
+                d = focus_on - q; L2 = d.length_squared or 1.0
+                for pl, st in players.items():
+                    if pl is car or pl is shot.get('who'): continue
+                    o = Vector((st[0], st[1], st[2] + 1.0)); k = (o - q).dot(d) / L2
+                    if 0.02 < k < 0.93 and (q + d * k - o).length < 0.85: return True
+                return False
+            def variant(i):
+                if i == 0: return pos
+                ang = math.radians((28, -28, 55, -55, 85, -85, 0)[(i - 1) % 7]); r = pos - focus_on; c, s_ = math.cos(ang), math.sin(ang)
+                return focus_on + Vector((r.x * c - r.y * s_, r.x * s_ + r.y * c, r.z + (1.6 if i == 7 else 0.25)))
+            if blocked(variant(self.alt)):
+                self.alt = next((i for i in range(8) if not blocked(variant(i))), 7)
+            pos = variant(self.alt)
+        pos.x = clamp(pos.x, -74, 74); pos.y = clamp(pos.y, -40, 40); pos.z = max(0.3, pos.z)
         if key != self.key:
             self.key = key; self.p, self.t, self.fov = pos.copy(), tgt.copy(), fov; self.focus = (focus_on - pos).length
             if typ not in ('celebrate', 'closeup'): self.orbit = 0.0
