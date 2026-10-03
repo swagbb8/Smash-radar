@@ -24,9 +24,13 @@ on:
       chunks:
         description: 'Parallel render jobs (1-20)'
         default: '12'
+      reuse_run:
+        description: 'Advanced: reuse frames from an earlier run id (skips rendering)'
+        default: ''
 
 permissions:
   contents: write
+  actions: read
 
 env:
   HL_TEXT: ${{ inputs.text }}
@@ -52,6 +56,7 @@ jobs:
 
   render:
     needs: plan
+    if: ${{ inputs.reuse_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
@@ -85,14 +90,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - run: pip install -q pillow numpy
+      - run: |
+          pip install -q pillow numpy
+          command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null)
       - uses: actions/download-artifact@v4
         with:
           pattern: frames-*
           merge-multiple: true
+          run-id: ${{ inputs.reuse_run || github.run_id }}
+          github-token: ${{ github.token }}
           path: NFL_3D_HIGHLIGHTS/renders/${{ needs.plan.outputs.name }}
       - name: Graphics, sound, encode
-        run: python NFL_3D_HIGHLIGHTS/blender/ci.py finish
+        run: |
+          python NFL_3D_HIGHLIGHTS/blender/ci.py finish 2>&1 | tee /tmp/finish.log || { echo "::error::$(tail -c 900 /tmp/finish.log | tr '\n' ' ')"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: highlight-${{ needs.plan.outputs.name }}
