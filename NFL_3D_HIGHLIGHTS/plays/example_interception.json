@@ -1,0 +1,17 @@
+{
+  "play_type": "pick_six",
+  "description": "The corner jumps the route, picks it off and returns it 60 yards for a touchdown.",
+  "yards": 60,
+  "return_yards": 60,
+  "teams": {
+    "HOME": {"name": "Sharks", "abbr": "SHK", "primary": "#0b6e7a", "secondary": "#ffb81c"},
+    "AWAY": {"name": "Wolves", "abbr": "WLV", "primary": "#8a1538", "secondary": "#c9ced6"}
+  },
+  "quarterback": {"team": "AWAY", "number": 9},
+  "receiver": {"team": "AWAY", "number": 80, "route": "out", "side": "left"},
+  "defender": {"team": "HOME", "number": 21, "coverage": "man"},
+  "result": "touchdown",
+  "scoreboard": {"quarter": "Q4", "clock": "2:11", "down": "3RD & 8", "home": 21, "away": 24},
+  "player_names": {"21": "M. Banks"},
+  "lighting": "NIGHT"
+}

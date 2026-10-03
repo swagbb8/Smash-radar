@@ -1,0 +1,15 @@
+{
+  "play_type": "long_run",
+  "description": "70-yard touchdown run: a stiff arm at the second level, a spin move in the open field, and he's gone.",
+  "yards": 70,
+  "teams": {
+    "HOME": {"name": "Sharks", "abbr": "SHK", "primary": "#0b6e7a", "secondary": "#ffb81c"},
+    "AWAY": {"name": "Wolves", "abbr": "WLV", "primary": "#8a1538", "secondary": "#c9ced6"}
+  },
+  "runner": {"team": "HOME", "number": 28, "direction": "right"},
+  "moves": ["stiff_arm", "spin"],
+  "result": "touchdown",
+  "scoreboard": {"quarter": "Q4", "clock": "6:02", "down": "1ST & 10", "home": 24, "away": 24},
+  "player_names": {"28": "K. Walker"},
+  "lighting": "CINEMATIC"
+}

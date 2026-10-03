@@ -1,0 +1,4 @@
+renders/*
+!renders/.gitkeep
+assets/*/cache/
+__pycache__/

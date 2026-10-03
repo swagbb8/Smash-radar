@@ -1,0 +1,105 @@
+name: 3D highlight (Blender)
+# Renders one football play as a cinematic 3D highlight with Blender (Cycles), split across parallel jobs.
+# Run it from the Actions tab: pick an example play file, or just describe the play in plain English.
+on:
+  workflow_dispatch:
+    inputs:
+      text:
+        description: 'Describe the play (e.g. "QB rolls left and throws a 35-yard touchdown on a post route")'
+        default: ''
+      play:
+        description: 'Or a play file from NFL_3D_HIGHLIGHTS/plays (e.g. example_touchdown.json)'
+        default: ''
+      preset:
+        type: choice
+        options: [DRAFT, PREVIEW, STANDARD, HIGH]
+        default: PREVIEW
+      aspect:
+        type: choice
+        options: ['9:16', '16:9', '1:1']
+        default: '9:16'
+      name:
+        description: 'Output name (optional)'
+        default: ''
+      chunks:
+        description: 'Parallel render jobs (1-20)'
+        default: '12'
+
+permissions:
+  contents: write
+
+env:
+  HL_TEXT: ${{ inputs.text }}
+  HL_PLAY: ${{ inputs.play }}
+  HL_PRESET: ${{ inputs.preset }}
+  HL_ASPECT: ${{ inputs.aspect }}
+  HL_NAME: ${{ inputs.name }}
+  HL_CHUNKS: ${{ inputs.chunks }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      name: ${{ steps.plan.outputs.name }}
+      frames: ${{ steps.plan.outputs.frames }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - id: plan
+        run: python NFL_3D_HIGHLIGHTS/blender/ci.py plan
+
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11', cache: pip, cache-dependency-path: NFL_3D_HIGHLIGHTS/requirements.txt }
+      - name: Blender + libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libsm6 libxkbcommon0 libegl1 >/dev/null
+          pip install -q -r NFL_3D_HIGHLIGHTS/requirements.txt
+      - name: Render frames ${{ matrix.range }}
+        env: { HL_RANGE: '${{ matrix.range }}' }
+        run: python NFL_3D_HIGHLIGHTS/blender/ci.py render
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frames-${{ matrix.chunk }}
+          path: |
+            NFL_3D_HIGHLIGHTS/renders/${{ needs.plan.outputs.name }}/frames
+            NFL_3D_HIGHLIGHTS/renders/${{ needs.plan.outputs.name }}/meta.json
+          retention-days: 2
+
+  finish:
+    needs: [plan, render]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -q pillow numpy
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: frames-*
+          merge-multiple: true
+          path: NFL_3D_HIGHLIGHTS/renders/${{ needs.plan.outputs.name }}
+      - name: Graphics, sound, encode
+        run: python NFL_3D_HIGHLIGHTS/blender/ci.py finish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: highlight-${{ needs.plan.outputs.name }}
+          path: NFL_3D_HIGHLIGHTS/renders/${{ needs.plan.outputs.name }}/*.mp4
+      - name: Keep it in the "highlights-3d" release
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          gh release view highlights-3d >/dev/null 2>&1 || gh release create highlights-3d --prerelease --title "SMASH 3D highlights" --notes "Blender-rendered 3D football highlights."
+          cp "NFL_3D_HIGHLIGHTS/renders/${{ needs.plan.outputs.name }}/${{ needs.plan.outputs.name }}.mp4" "/tmp/${{ needs.plan.outputs.name }}-${{ github.run_number }}.mp4"
+          gh release upload highlights-3d "/tmp/${{ needs.plan.outputs.name }}-${{ github.run_number }}.mp4" --clobber

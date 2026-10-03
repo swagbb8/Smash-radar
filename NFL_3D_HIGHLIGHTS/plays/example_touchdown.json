@@ -1,0 +1,19 @@
+{
+  "play_type": "deep_pass_touchdown",
+  "description": "QB drops back and launches a 50-yard bomb. The receiver beats his man on a post route, hauls it in and takes it to the house.",
+  "duration": 12,
+  "yards": 50,
+  "teams": {
+    "HOME": {"name": "Sharks", "abbr": "SHK", "primary": "#0b6e7a", "secondary": "#ffb81c"},
+    "AWAY": {"name": "Wolves", "abbr": "WLV", "primary": "#8a1538", "secondary": "#c9ced6"}
+  },
+  "quarterback": {"team": "HOME", "number": 12, "position": [0, -5, 0]},
+  "receiver": {"team": "HOME", "number": 11, "position": [-8, 0, 0], "route": "post"},
+  "defender": {"team": "AWAY", "number": 24, "position": [-9, 2, 0], "coverage": "man", "bites": true},
+  "ball": {"throw_time": 3.6, "catch_time": 5.8, "target": "receiver"},
+  "result": "touchdown",
+  "scoreboard": {"quarter": "Q3", "clock": "4:32", "down": "2ND & 7", "home": 17, "away": 20},
+  "player_names": {"11": "D. Rivers", "12": "J. Cole"},
+  "lighting": "PRIMETIME",
+  "replay": true
+}

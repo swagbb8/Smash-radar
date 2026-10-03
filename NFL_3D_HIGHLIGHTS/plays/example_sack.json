@@ -1,0 +1,15 @@
+{
+  "play_type": "sack_fumble",
+  "description": "Edge rusher beats the tackle, strip-sacks the quarterback and the defense recovers.",
+  "yards": 9,
+  "teams": {
+    "HOME": {"name": "Sharks", "abbr": "SHK", "primary": "#0b6e7a", "secondary": "#ffb81c"},
+    "AWAY": {"name": "Wolves", "abbr": "WLV", "primary": "#8a1538", "secondary": "#c9ced6"}
+  },
+  "quarterback": {"team": "AWAY", "number": 9},
+  "defender": {"team": "HOME", "number": 99},
+  "result": "fumble",
+  "scoreboard": {"quarter": "Q2", "clock": "0:48", "down": "3RD & 12", "home": 10, "away": 7},
+  "player_names": {"99": "T. Okafor"},
+  "lighting": "PRIMETIME"
+}
