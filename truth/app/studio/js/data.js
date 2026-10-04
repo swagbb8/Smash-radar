@@ -9,6 +9,7 @@ async function json(path, { fresh = false } = {}) {
 export const loadIndex = () => json('data/index.json', { fresh: true }).then((v) => v || { posts: [], counter: 0, updated: null });
 export const loadEngine = () => json('data/engine.json', { fresh: true }).then((v) => v || { runs: [], totals: {} });
 export const loadTopics = () => json('data/topics.json', { fresh: true }).then((v) => v || { used: {}, requests: [], ideas: [] });
+export const loadConfig = () => json('data/config.json', { fresh: true }).then((v) => v || {});
 export const loadPost = (id) => json(`data/posts/${id}.json`);
 export const loadTrace = (id) => json(`data/trace/${id}.json`);
 export const loadVersion = () => json('version.json', { fresh: true });

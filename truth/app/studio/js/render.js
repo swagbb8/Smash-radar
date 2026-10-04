@@ -15,15 +15,20 @@ function loadImage(src) {
   if (!imgCache.has(src)) imgCache.set(src, new Promise((resolve) => { const im = new Image(); im.decoding = 'async'; im.onload = () => resolve(im); im.onerror = () => resolve(null); im.src = src; }));
   return imgCache.get(src);
 }
-/** Pictures for a post: the engine's (by index) plus any Ash uploaded on this device (by slot name). */
+const uploads = new Map();
+/** Pictures for a post: the engine's (by index) plus any Ash added on this device (by slot name). */
 export async function imagesFor(post, loc = {}) {
   const out = {};
   await Promise.all((post.images || []).map(async (im, i) => { if (im?.file) out[i] = await loadImage(asset(im.file)); }));
-  for (const [slot, key] of Object.entries(loc.uploads || {})) { const blob = await db.get(key).catch(() => null); if (blob) { const url = URL.createObjectURL(blob); out['u:' + slot] = await loadImage(url); } }
+  for (const [slot, key] of Object.entries(loc.uploads || {})) {
+    if (!uploads.has(key)) uploads.set(key, db.get(key).then((blob) => (blob ? loadImage(URL.createObjectURL(blob)) : null)).catch(() => null));
+    const im = await uploads.get(key); if (im) out['u:' + slot] = im;
+  }
   return out;
 }
+export const forgetUpload = (key) => uploads.delete(key);
 export function deckOf(post, theme, loc = {}) {
-  const edits = { ...(loc.edits || {}), hook: loc.hook, hookText: loc.hookText, images: { ...(loc.edits?.images || {}) } };
+  const edits = { ...(loc.edits || {}), hook: loc.hook, hookText: String(loc.hookText || '').trim(), images: { ...(loc.edits?.images || {}) } };
   for (const slot of Object.keys(loc.uploads || {})) edits.images[slot] = 'u:' + slot;
   for (const slot of loc.noImage || []) edits.images[slot] = -1;
   return buildDeck(post, { ...theme, ...(loc.theme || {}) }, edits);
@@ -35,4 +40,19 @@ export function paint(canvas, deck, i, images) {
 export async function slideBlob(deck, i, images, type = 'image/png', quality = 0.92) {
   const c = env.createCanvas(SIZE.w, SIZE.h); paint(c, deck, i, images);
   return new Promise((resolve) => c.toBlob(resolve, type, quality));
+}
+
+/** Paint one slide of a post straight onto a canvas (cover by default). */
+export async function drawSlide(canvas, post, theme, loc = {}, i = 0) { const deck = deckOf(post, theme, loc); const images = await imagesFor(post, loc); paint(canvas, deck, i, images); return deck; }
+
+const thumbs = new Map();
+/** Small cover image for lists, drawn with this device's look and edits. → object URL */
+export async function thumbUrl(post, theme, loc = {}, key = '') {
+  const k = `${post.id}|${key}`; if (thumbs.has(k)) return thumbs.get(k);
+  const p = (async () => {
+    const full = env.createCanvas(SIZE.w, SIZE.h); await drawSlide(full, post, theme, loc, 0);
+    const small = env.createCanvas(432, 540); const x = small.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(full, 0, 0, 432, 540); full.width = full.height = 0;
+    const blob = await new Promise((r) => small.toBlob(r, 'image/jpeg', 0.84)); small.width = small.height = 0; return URL.createObjectURL(blob);
+  })();
+  thumbs.set(k, p); return p;
 }

@@ -24,12 +24,12 @@ export const PRESETS = {
 };
 
 export const DEFAULT_THEME = {
-  preset: 'dossier', accent: PALETTE.red, paper: PALETTE.paper, grain: 0.55, light: 0.6, photo: 0.62,   // photo = how dark photographs are graded (0 bright … 1 black)
+  preset: 'signal', accent: PALETTE.red, paper: PALETTE.paper, grain: 0.55, light: 0.6, photo: 0.62,   // photo = how dark photographs are graded (0 bright … 1 black)
   brand: 'The Truth', handle: '', site: '', swipeHint: true, evidenceTags: true, thread: true,
 };
 
 export function resolveTheme(t = {}) {
-  const th = { ...DEFAULT_THEME, ...t }; const p = PRESETS[th.preset] || PRESETS.dossier;
+  const th = { ...DEFAULT_THEME, ...t }; const p = PRESETS[th.preset] || PRESETS.signal;
   return { ...th, display: { scale: 1, ...p.display, ...(t.display || {}) }, colors: { ...PALETTE, red: th.accent, paper: th.paper } };
 }
 

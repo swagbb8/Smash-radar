@@ -1,20 +1,20 @@
 // The studio's working state: the engine's library (read-only) + this device's own notes on each file.
 import * as db from './db.js';
-import { loadIndex, loadEngine } from './data.js';
+import { loadIndex, loadEngine, loadConfig, loadVersion } from './data.js';
 import { ymd } from './ui.js';
 
-export const S = { index: { posts: [] }, engine: { runs: [] }, local: new Map(), settings: {}, ready: false };
+export const S = { index: { posts: [] }, engine: { runs: [] }, config: {}, version: {}, local: new Map(), settings: {}, ready: false };
 const listeners = new Set();
 export const subscribe = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
 const emit = () => listeners.forEach((fn) => fn());
 
-export const DEFAULT_SETTINGS = { theme: { preset: 'signal' }, handle: '', site: '', perDay: 1, intensity: 2, money: {}, followers: [], earnings: [] };
+export const DEFAULT_SETTINGS = { theme: {}, handle: '', site: '', perDay: 1, money: {}, followers: [], earnings: [] };
 
 export async function boot() {
-  const [index, engine, locals, settings] = await Promise.all([loadIndex(), loadEngine(), db.all('post:').catch(() => []), db.get('settings').catch(() => null)]);
-  S.index = index; S.engine = engine; S.local = new Map(locals.map(([k, v]) => [k.slice(5), v])); S.settings = { ...DEFAULT_SETTINGS, ...(settings || {}), theme: { ...DEFAULT_SETTINGS.theme, ...(settings?.theme || {}) } }; S.ready = true; emit();
+  const [index, engine, config, version, locals, settings] = await Promise.all([loadIndex(), loadEngine(), loadConfig(), loadVersion().catch(() => null), db.all('post:').catch(() => []), db.get('settings').catch(() => null)]);
+  S.index = index; S.engine = engine; S.config = config; S.version = version || {}; S.local = new Map(locals.map(([k, v]) => [k.slice(5), v])); S.settings = { ...DEFAULT_SETTINGS, ...(settings || {}), theme: { ...DEFAULT_SETTINGS.theme, ...(settings?.theme || {}) } }; S.ready = true; emit();
 }
-export async function refresh() { const [index, engine] = await Promise.all([loadIndex(), loadEngine()]); S.index = index; S.engine = engine; emit(); }
+export async function refresh() { const [index, engine, config] = await Promise.all([loadIndex(), loadEngine(), loadConfig()]); const changed = index.updated !== S.index.updated || engine.runs?.[0]?.at !== S.engine.runs?.[0]?.at; S.index = index; S.engine = engine; S.config = config; if (changed) emit(); return changed; }
 
 export const local = (id) => S.local.get(id) || { status: 'new' };
 export const statusOf = (id) => local(id).status || 'new';

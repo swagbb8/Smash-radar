@@ -115,21 +115,26 @@ export function question(ctx, env, theme, s, deck) {
 // ------------------------------------------------------------------------------------------------ sources (the receipts)
 export function sources(ctx, env, theme, s, deck) {
   backdrop(ctx, env, theme, { base: theme.colors.charcoal }); vignette(ctx, 0.5);
-  const P = theme.colors.paper; let y = 250;
-  ctx.font = '64px TTSerif500'; ctx.fillStyle = P; ctx.textBaseline = 'alphabetic'; ctx.fillText('Sources', M, y); y += 34;
-  ctx.fillStyle = theme.colors.graphite; ctx.fillRect(M, y, CW, 2); y += 54;
-  const items = s.items.slice(0, 5); const per = Math.min(168, (980 - y) / Math.max(1, items.length));
-  for (const it of items) {
-    label(ctx, 'TTSans600', smart(`${it.cite}${it.kind ? '   ' + it.kind : ''}`), M, y, 29, P, { maxW: CW });
-    const t = wrap(ctx, '31px TTSerif400', smart(it.title), CW, { balance: false }).slice(0, 2); ctx.font = '31px TTSerif400'; ctx.fillStyle = rgba(P, 0.8);
-    t.forEach((ln, i) => ctx.fillText(i === 1 && wrap(ctx, '31px TTSerif400', smart(it.title), CW, { balance: false }).length > 2 ? ln.replace(/\s+\S*$/, '') + '…' : ln, M, y + 40 + i * 38));
-    if (it.venue) label(ctx, 'TTSerif400i', smart(it.venue), M, y + 40 + t.length * 38 + 2, 27, theme.colors.ash, { maxW: CW });
-    y += per;
+  const P = theme.colors.paper; const d = theme.display; let y = 250;
+  const hd = fit(ctx, d.head, disp(theme, 'Sources'), { maxW: CW, maxH: 110, min: 56, max: 64 * d.scale, lh: 1, maxLines: 1, track: d.track });
+  drawLines(ctx, hd, M, y - hd.size * 0.82, P, { track: d.track }); y += 30;
+  ctx.fillStyle = theme.colors.graphite; ctx.fillRect(M, y, CW, 2); y += 56;
+  const cta = [theme.site ? theme.site.replace(/^https?:\/\//, '').replace(/\/$/, '') : '', theme.handle ? `@${theme.handle.replace(/^@/, '')}` : ''].filter(Boolean);
+  const bottom = (cta.length ? 1040 : 1120) - (s.credits ? 40 : 0);
+  // measure first, then choose the roomiest setting that fits: two title lines with the journal, down to one line without
+  const plan = (n, lines, venue) => { const rows = s.items.slice(0, n).map((it) => { const t = wrap(ctx, '31px TTSerif400', smart(it.title), CW, { balance: false }); const cut = t.slice(0, lines); if (t.length > lines) cut[lines - 1] = cut[lines - 1].replace(/[\s,;:]+\S*$/, '') + '…'; return { it, t: cut, h: 42 + cut.length * 38 + (venue && it.venue ? 34 : 0) }; }); return { rows, venue, total: rows.reduce((a, r) => a + r.h, 0), n }; };
+  let best = null; const count = Math.min(6, s.items.length);
+  for (const [n, lines, venue] of [[count, 2, true], [count, 2, false], [count, 1, true], [count, 1, false], [5, 1, false], [4, 1, false]]) { const pl = plan(Math.min(n, count), lines, venue); if (!best) best = pl; if (pl.total + (pl.rows.length - 1) * 18 <= bottom - y) { best = pl; break; } best = pl; }
+  const gap = Math.max(18, Math.min(44, (bottom - y - best.total) / Math.max(1, best.rows.length)));
+  for (const r of best.rows) {
+    label(ctx, 'TTSans600', smart(`${r.it.cite}${r.it.kind ? '   ' + r.it.kind : ''}`), M, y, 29, P, { maxW: CW });
+    ctx.font = '31px TTSerif400'; ctx.fillStyle = rgba(P, 0.8); r.t.forEach((ln, i) => ctx.fillText(ln, M, y + 40 + i * 38));
+    if (best.venue && r.it.venue) label(ctx, 'TTSerif400i', smart(r.it.venue), M, y + 40 + r.t.length * 38 + 2, 27, theme.colors.ash, { maxW: CW });
+    y += r.h + gap;
   }
-  if (s.more) { label(ctx, 'TTSerif400i', `and ${s.more} more in the full file`, M, y - 6, 28, theme.colors.ash); }
-  const cta = [theme.site ? `Full research file: ${theme.site}` : '', theme.handle ? `@${theme.handle.replace(/^@/, '')}` : ''].filter(Boolean);
-  if (cta.length) label(ctx, 'TTSans500', cta.join('     '), M, 1120, 30, P, { maxW: CW });
-  if (s.credits) { const c = wrap(ctx, '22px TTSans400', smart('Images: ' + s.credits), CW, { balance: false }).slice(0, 2); ctx.font = '22px TTSans400'; ctx.fillStyle = theme.colors.smoke; c.forEach((ln, i) => ctx.fillText(ln, M, 1152 + i * 28)); }
+  const more = s.items.length - best.rows.length; if (more > 0) label(ctx, 'TTSerif400i', `and ${more} more in the full file`, M, Math.min(y, bottom + 20), 28, theme.colors.ash);
+  if (cta.length) { label(ctx, 'TTSerif400i', 'Every claim, quote and study for this file:', M, 1086, 28, theme.colors.ash, { maxW: CW }); label(ctx, 'TTSans600', cta.join('     '), M, 1132, 34, P, { maxW: CW }); }
+  if (s.credits) { const c = wrap(ctx, '22px TTSans400', smart('Images: ' + s.credits), CW, { balance: false }).slice(0, 1); ctx.font = '22px TTSans400'; ctx.fillStyle = theme.colors.smoke; c.forEach((ln, i) => ctx.fillText(ln, M, 1168 + i * 28)); }
   finish(ctx, env, theme, s, deck, { to: W - M, pins: [W - M], foot: `File no. ${deck.fileNo}` });
 }
 

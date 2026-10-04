@@ -1,7 +1,7 @@
 // Text setting on a canvas: smart punctuation, wrapping, balancing, fitting to a box, tracked small caps.
 
 export function smart(s) {
-  return String(s ?? '').replace(/\s+/g, ' ').trim()
+  return String(s ?? '').replace(/[\u2010\u2011\u2012]/g, '-').replace(/\u00ad/g, '').replace(/[\u2009\u200a\u202f\u00a0]/g, ' ').replace(/[\u200b-\u200d\ufeff]/g, '').replace(/\s+/g, ' ').trim()
     .replace(/(^|[\s(\[{"“‘])'(?=\S)/g, '$1‘').replace(/'/g, '’')
     .replace(/(^|[\s(\[{‘])"(?=\S)/g, '$1“').replace(/"/g, '”')
     .replace(/\s--\s|\s-\s/g, ' — ').replace(/\.\.\./g, '…').replace(/(\d)\s?-\s?(\d)/g, '$1–$2').replace(/ (\S{1,3})$/, ' $1');

@@ -1,38 +1,53 @@
-# THE TRUTH engine — researches, fact-checks and writes new posts with a free open-source AI model (no key needed),
-# then publishes the studio, the site and the data.
+# THE TRUTH engine — researches, fact-checks and writes new files with a free open-source AI model (no key needed),
+# then publishes the studio and the data.
+#
+# It starts three ways:
+#   1. by itself, four times a day
+#   2. by hand: Actions → THE TRUTH engine → Run workflow
+#   3. from the studio: a request arrives as an issue titled "truth: …" opened by the owner of this repository
+#
+# The library of record is the branch `truth-data` (normal commits, full history). The website branch is rebuilt from
+# it on every run, so a bad build can never lose a file.
 name: THE TRUTH engine
 
 on:
   workflow_dispatch:
     inputs:
       count:
-        description: 'How many posts to make'
+        description: 'How many files to make (0 = only rebuild the app)'
         default: '3'
-      minutes:
-        description: 'Time budget in minutes (max 330)'
-        default: '200'
       subject:
         description: 'Only this subject (psychology, technology, brain, social, society, relationships, health, science, money, future, history)'
         default: ''
       topic:
-        description: 'Research this exact topic first (optional)'
+        description: 'Research this exact question first (optional)'
         default: ''
+  schedule:
+    - cron: '23 3,9,15,21 * * *'
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: truth-engine
   cancel-in-progress: false
 
 env:
-  DEPLOY_BRANCH: truth-site
+  DATA_BRANCH: truth-data
+  DEPLOY_BRANCH: gh-pages
   MODEL_REPO: google/gemma-4-12B-it-qat-q4_0-gguf
   MODEL_FILE: gemma-4-12b-it-qat-q4_0.gguf
   LLM_MODEL: gemma-4-12b
+  REPO: ${{ github.repository }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   run:
+    # requests are only accepted from the owner of the repository
+    if: github.event_name != 'issues' || (github.event.issue.user.login == github.repository_owner && startsWith(github.event.issue.title, 'truth:'))
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
@@ -48,38 +63,83 @@ jobs:
         run: cd truth && npm ci --no-audit --no-fund
 
       - name: Restore the library
+        shell: bash
         run: |
           mkdir -p store
-          if git fetch -q --depth 1 origin "$DEPLOY_BRANCH" 2>/dev/null; then
-            git archive FETCH_HEAD data 2>/dev/null | tar -x -C store && echo "library restored: $(ls store/data/posts 2>/dev/null | wc -l) post(s)" || echo "no library yet"
-          else echo "no published site yet"; fi
+          if git fetch -q --depth 1 origin "$DATA_BRANCH" 2>/dev/null; then
+            git archive FETCH_HEAD data | tar -x -C store
+            echo "library restored: $(ls store/data/posts 2>/dev/null | wc -l) file(s)"
+          elif git fetch -q --depth 1 origin truth-site 2>/dev/null; then
+            git archive FETCH_HEAD data | tar -x -C store
+            echo "library started from the staging copy: $(ls store/data/posts 2>/dev/null | wc -l) file(s)"
+          else
+            echo "starting an empty library"
+          fi
+          ls store/data/posts 2>/dev/null | wc -l > store/.before
+
+      - name: Read requests
+        id: plan
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          OWNER: ${{ github.repository_owner }}
+          INPUT_COUNT: ${{ inputs.count }}
+          INPUT_SUBJECT: ${{ inputs.subject }}
+          INPUT_TOPIC: ${{ inputs.topic }}
+        run: |
+          gh api "repos/$REPO/issues?state=open&creator=$OWNER&per_page=50" > issues.json || echo "[]" > issues.json
+          node truth/engine/cli.mjs plan --store store --issues issues.json
 
       - name: AI model cache
+        if: steps.plan.outputs.writer == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.truth-llm/models
           key: truth-model-${{ env.MODEL_FILE }}
 
       - name: Start the AI writer
+        if: steps.plan.outputs.writer == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash truth/engine/llm/serve.sh
 
       - name: Research, check and write
+        if: steps.plan.outputs.writer == 'true'
         env:
           LLM_BASE_URL: http://127.0.0.1:8080/v1
-          TRUTH_TOPIC: ${{ inputs.topic }}
-          COUNT: ${{ inputs.count || '3' }}
-          MINUTES: ${{ inputs.minutes || '200' }}
-          SUBJECT: ${{ inputs.subject }}
-        run: |
-          if [ -n "$TRUTH_TOPIC" ]; then node truth/engine/cli.mjs request --store store; fi
-          node truth/engine/cli.mjs run --store store --count "$COUNT" --minutes "$MINUTES" ${SUBJECT:+--subject "$SUBJECT"} || echo "::warning::engine run ended with an error"
+          COUNT: ${{ steps.plan.outputs.count }}
+          MINUTES: ${{ steps.plan.outputs.minutes }}
+          SUBJECT: ${{ steps.plan.outputs.subject }}
+        run: node truth/engine/cli.mjs run --store store --count "$COUNT" --minutes "$MINUTES" ${SUBJECT:+--subject "$SUBJECT"} || echo "::warning::engine run ended with an error"
 
-      - name: Build and publish
-        if: always()
+      - name: Build
+        run: node truth/engine/cli.mjs build --store store --out dist
+
+      - name: Save the library
+        shell: bash
         run: |
-          node truth/engine/cli.mjs build --store store --out dist
+          before=$(cat store/.before); after=$(ls store/data/posts 2>/dev/null | wc -l)
+          if [ "$after" -lt "$before" ]; then echo "::error::the library shrank ($before to $after files); nothing was published"; exit 1; fi
+          rm -rf lib && mkdir lib && cd lib && git init -q
+          git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          if git fetch -q --depth 1 origin "$DATA_BRANCH" 2>/dev/null; then git checkout -q -b "$DATA_BRANCH" FETCH_HEAD; else git checkout -q --orphan "$DATA_BRANCH"; fi
+          rm -rf data && cp -r ../store/data data
+          git add -A
+          if git diff --cached --quiet; then echo "library unchanged"; else git commit -qm "library: $after files ($(date -u +%FT%TZ))" && git push -q origin "$DATA_BRANCH" && echo "library saved: $after file(s)"; fi
+
+      - name: Publish
+        shell: bash
+        run: |
           cd dist && git init -q -b "$DEPLOY_BRANCH" && git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A && git commit -qm "THE TRUTH $(date -u +%FT%TZ)" && git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "$DEPLOY_BRANCH"
+          git add -A && git commit -qm "THE TRUTH $(date -u +%FT%TZ)" && git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$DEPLOY_BRANCH"
           echo "published to $DEPLOY_BRANCH"
+
+      - name: Answer requests
+        if: success() && steps.plan.outputs.answers != '0'
+        shell: bash
+        run: |
+          jq -c '.[]' store/answers.json | while read -r a; do
+            n=$(echo "$a" | jq -r .number); echo "$a" | jq -r .reply > reply.txt
+            gh issue comment "$n" --repo "$REPO" --body-file reply.txt && gh issue close "$n" --repo "$REPO" || echo "::warning::could not answer request $n"
+          done

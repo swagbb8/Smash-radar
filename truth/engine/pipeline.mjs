@@ -4,8 +4,8 @@
 // Nothing reaches a slide unless a quote for it was found in a real source.
 import { gather, digest, citeOf } from './sources/index.mjs';
 import { chat, active } from './llm/index.mjs';
-import { claimsPrompt, carouselPrompt, STYLES } from './prompts.mjs';
-import { checkClaim, sanitizeCarousel, lintCarousel, hardFix, soundsCausal } from './ground.mjs';
+import { claimsPrompt, carouselPrompt, STYLES, VOICE } from './prompts.mjs';
+import { checkClaim, sanitizeCarousel, lintCarousel, hardFix, soundsCausal, unsupportedNumbers } from './ground.mjs';
 import { slug, clean } from './lib/text.mjs';
 
 export const ENGINE_VERSION = '0.3';
@@ -91,4 +91,46 @@ export async function makePost(T) {
   };
   log(`  ✔ "${post.title}" — credibility ${cred.score}, ${post.engine.seconds}s`);
   return { ok: true, post, trace, ms: Date.now() - t0 };
+}
+
+const PURPOSE = { reveal: 'states the single most surprising verified fact, plainly', explain: 'explains in simple words what is going on, using only the facts', matters: 'says why this changes how the reader should see their own day, phrased as interpretation', example: 'shows one ordinary moment the reader will recognise from their own life, with no statistics in it', question: 'leaves the reader with one question about their own life; its body is empty or one short line' };
+const CLOCK = /\b\d{1,2}(?::\d{2})?\s?(?:a\.?m\.?|p\.?m\.?|o'clock)\b|\b\d{1,2}:\d{2}\b/gi;
+
+/** More ways to say one slide of an existing post, written from the same checked facts. A version that carries a number
+ *  the facts do not contain, or cause-and-effect wording the evidence cannot support, is thrown away. → { ok, added } */
+export async function alternates(post, role, { note = '', count = 3 } = {}) {
+  const cur = post.slides?.[role]; if (!cur || !PURPOSE[role]) return { ok: false, error: 'no such slide', added: 0 };
+  const evidence = (post.claims || []).map((c) => `${c.text} ${c.quote}`).join(' '); const linkOnly = (post.claims || []).length > 0 && (post.claims || []).every((c) => c.link);
+  const schema = { type: 'object', additionalProperties: false, required: ['versions'], properties: { versions: { type: 'array', minItems: count, maxItems: count, items: { type: 'object', additionalProperties: false, required: ['headline', 'body'], properties: { headline: { type: 'string' }, body: { type: 'string' } } } } } };
+  const user = `TOPIC: ${post.topic}
+WHAT THE EVIDENCE SHOWS: ${post.verdict || post.angle || ''}
+
+VERIFIED FACTS — the only source for anything factual:
+${(post.claims || []).map((c) => `- ${c.text}${c.link ? ' (shows a link only, so no cause-and-effect words)' : ''}`).join('\n')}
+
+${VOICE}
+
+One slide of this Instagram carousel ${PURPOSE[role]}.
+It currently reads:
+Headline: ${cur.headline}
+Text: ${cur.body || '(empty)'}
+${note ? `\nTHE EDITOR ASKED FOR THIS CHANGE: ${String(note).slice(0, 300)}\n` : ''}
+Write ${count} different new versions of this slide. Each must take a different approach from the current one and from each other.
+Never write a number that is not in the facts. Never invent a study, a name or a term.
+
+Return JSON only.`;
+  const r = await chat({ system: 'You are the head writer of THE TRUTH, an Instagram publication that exposes the hidden forces shaping people\'s minds, behaviour and society. Every factual statement you write must come from the VERIFIED FACTS you are given.', user, schema, schemaName: 'alternates', maxTokens: 520, temperature: 0.9 });
+  if (!r.ok) return { ok: false, error: r.error, added: 0 };
+  const have = [cur, ...(post.alts?.[role] || [])].map((v) => clean(v.headline).toLowerCase()); const kept = []; const dropped = [];
+  for (const v of r.json.versions || []) {
+    const c = sanitizeCarousel({ [role]: { headline: v.headline, body: v.body } })[role]; const text = `${c.headline} ${c.body}`; const probe = role === 'example' || role === 'question' ? text.replace(CLOCK, ' ') : text;
+    const bad = unsupportedNumbers(probe, evidence);
+    if (!c.headline || have.includes(c.headline.toLowerCase())) { dropped.push('duplicate'); continue; }
+    if (bad.length) { dropped.push(`unproven number ${bad.join(', ')}`); continue; }
+    if (linkOnly && (role === 'reveal' || role === 'explain') && soundsCausal(text)) { dropped.push('cause-and-effect wording'); continue; }
+    if (/!|[\u{1F300}-\u{1FAFF}]/u.test(text) || c.headline.split(/\s+/).length > 16 || c.body.split(/\s+/).length > 56) { dropped.push('style'); continue; }
+    have.push(c.headline.toLowerCase()); kept.push({ headline: c.headline, body: c.body });
+  }
+  post.alts = { ...(post.alts || {}), [role]: [...(post.alts?.[role] || []), ...kept].slice(-6) };
+  return { ok: true, added: kept.length, dropped, ms: r.ms };
 }

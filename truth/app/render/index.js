@@ -5,6 +5,8 @@
 import { resolveTheme, SIZE } from './theme.js';
 import { LAYOUTS } from './slides.js';
 export { SIZE, PRESETS, DEFAULT_THEME, FONT_FILES, EVIDENCE, PALETTE, resolveTheme } from './theme.js';
+/** Bump when slides look different, so the engine redraws the library covers. */
+export const RENDER_VERSION = '3';
 
 const SERIES = { uncomfortable: 'The uncomfortable truth', hijacked: 'Your brain is being hijacked', unseen: 'The world you don’t see', darkside: 'The dark side of modern life', reality: 'Reality check', future: 'The future is closer than you think', think: 'Think about this' };
 const KIND = { 'meta-analysis': 'meta-analysis', 'systematic-review': 'systematic review', rct: 'randomized trial', trial: 'clinical trial', experiment: 'experiment', review: 'review', observational: 'observational study', preprint: 'preprint', study: 'study', data: 'official data', report: 'report', news: 'news report', encyclopedia: 'background' };
@@ -35,12 +37,11 @@ export function buildDeck(post, themeIn = {}, edits = {}) {
     { role: 'sources', items: (post.sources || []).filter((s) => (post.claims || []).some((c) => c.source === s.id)).map((s) => ({ cite: citeOf(s), kind: KIND[s.type] || '', title: s.title, venue: s.venue })),
       credits: (post.images || []).filter((i) => i && i.credit).map((i) => i.credit).filter((v, i, a) => a.indexOf(v) === i).join('; ') },
   ].filter((s) => s.role === 'cover' || s.role === 'sources' || s.headline).map((s, index) => ({ ...s, index }));
-  const src = slides[slides.length - 1]; if (src.items.length > 5) src.more = src.items.length - 5;
   return { id: post.id, fileNo: String(post.n ?? 0).padStart(4, '0'), series: SERIES[post.style] || post.styleName || SERIES.uncomfortable, theme, slides };
 }
 
 export function renderSlide(ctx, env, deck, i) {
   const s = deck.slides[i]; if (!s) return false;
-  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, SIZE.w, SIZE.h);
+  ctx.save(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, SIZE.w, SIZE.h);   // the caller's transform is kept, so a scaled context gives a scaled slide
   LAYOUTS[s.role](ctx, env, deck.theme, s, deck); ctx.restore(); return true;
 }

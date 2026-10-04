@@ -13,6 +13,7 @@ export class Store {
     this.index = read(path.join(this.data, 'index.json'), { version: 1, counter: 0, updated: null, posts: [] });
     this.topics = read(path.join(this.data, 'topics.json'), { used: {}, requests: [], ideas: [] });
     this.engine = read(path.join(this.data, 'engine.json'), { runs: [], totals: { made: 0, failed: 0 } });
+    this.config = read(path.join(this.data, 'config.json'), {});     // Ash's public settings: names, money links, tone (never a key)
   }
   postPath(id) { return path.join(this.data, 'posts', id + '.json'); }
   post(id) { return read(this.postPath(id), null); }
@@ -29,7 +30,7 @@ export class Store {
     return full;
   }
   save() {
-    this.index.updated = new Date().toISOString(); write(path.join(this.data, 'index.json'), this.index); write(path.join(this.data, 'topics.json'), this.topics); write(path.join(this.data, 'engine.json'), this.engine);
+    this.index.updated = new Date().toISOString(); write(path.join(this.data, 'index.json'), this.index); write(path.join(this.data, 'topics.json'), this.topics); write(path.join(this.data, 'engine.json'), this.engine); write(path.join(this.data, 'config.json'), this.config);
   }
 }
 

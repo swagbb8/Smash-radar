@@ -5,7 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
-import { buildDeck, renderSlide, FONT_FILES, SIZE } from '../app/render/index.js';
+import { buildDeck, renderSlide, FONT_FILES, SIZE, RENDER_VERSION } from '../app/render/index.js';
+export { RENDER_VERSION };
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 let fontsReady = false;

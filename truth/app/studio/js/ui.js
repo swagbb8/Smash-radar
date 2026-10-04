@@ -29,3 +29,16 @@ export const STATUS = { new: 'New', draft: 'Draft', approved: 'Approved', schedu
 export const LEVELS = { established: { label: 'Established', dots: 3, note: 'Many studies combined, or official data' }, supported: { label: 'Supported', dots: 2, note: 'At least one solid peer-reviewed study' }, emerging: { label: 'Emerging', dots: 1, note: 'Early, small or not yet peer reviewed' }, interpretation: { label: 'Interpretation', dots: 0, note: 'Our reading of the evidence' } };
 export const dots = (n) => `<span class="dots" aria-hidden="true">${[0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
 export const stamp = (status) => `<span class="stamp ${esc(status)}">${esc(STATUS[status] || status)}</span>`;
+
+/** The engine's reasons, said the way a person would say them. */
+export function plain(reason) {
+  const r = String(reason || ''); let m;
+  if ((m = r.match(/only (\d+) relevant source/))) return `Only ${m[1] === '0' ? 'no' : m[1]} solid stud${m[1] === '1' ? 'y' : 'ies'} turned up. A file needs at least two.`.replace('Only no', 'No');
+  if ((m = r.match(/only (\d+) claim/))) return `Only ${m[1]} claim could be proven word for word. A file needs at least two.`.replace('Only 0 claim', 'No claim');
+  if (/search services unavailable/.test(r)) return 'The research databases did not answer. The topic stays in line.';
+  if (/evidence extraction failed|writing failed/.test(r)) return 'The writer did not finish. The topic will be tried again.';
+  if (/^unfixable/.test(r)) return 'The draft kept something that could not be proven, so it was thrown away.';
+  if (/^crash/.test(r)) return 'The engine hit an error on this one.';
+  return r ? r.charAt(0).toUpperCase() + r.slice(1) : '';
+}
+export const writerName = (m) => ({ 'gemma-4-12b': 'Gemma 4', 'gpt-oss-20b': 'gpt-oss 20B' }[m] || m || 'the AI writer');
