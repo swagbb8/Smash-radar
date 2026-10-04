@@ -1,0 +1,236 @@
+{
+ "id": "2026-10-04-phone-presence-and-focus",
+ "created": "2026-10-04T21:10:54.989Z",
+ "subject": "technology",
+ "style": "hijacked",
+ "topic": "Your phone weakens your thinking even when you are not using it",
+ "angle": "Some studies find that a smartphone’s mere presence can reduce working‑memory capacity or lower attention, but other large meta‑analyses find no significant effect, leaving the evidence mixed.",
+ "title": "phone presence and focus",
+ "hooks": [
+  {
+   "type": "question",
+   "text": "Do phones really pull your focus?"
+  },
+  {
+   "type": "contradiction",
+   "text": "Phones sit idle but may still cost your memory."
+  },
+  {
+   "type": "accusation",
+   "text": "You might be losing attention when your phone is near."
+  },
+  {
+   "type": "scene",
+   "text": "A charger on the table and a quiet kitchen."
+  },
+  {
+   "type": "statement",
+   "text": "Phones and attention: the evidence is mixed."
+  }
+ ],
+ "hook": 0,
+ "slides": {
+  "reveal": {
+   "headline": "A phone nearby can lower working memory",
+   "body": "The mere presence of a smartphone reduces available cognitive capacity.",
+   "facts": [
+    "F5"
+   ]
+  },
+  "explain": {
+   "headline": "What the evidence shows",
+   "body": "Some experiments report small negative impacts of a phone’s presence on cognition. Larger meta‑analyses find no reliable effect. The evidence is mixed.",
+   "facts": [
+    "F2",
+    "F4",
+    "F1"
+   ]
+  },
+  "matters": {
+   "headline": "Why you might notice",
+   "body": "That may be why you feel less focus when a phone sits nearby, even if you do not look at it.",
+   "facts": [
+    "F5"
+   ]
+  },
+  "example": {
+   "headline": "A quiet morning in the kitchen",
+   "body": "You are reading the news on your phone while a charger sits on the counter. The phone stays off, but you notice it more than the article."
+  },
+  "question": {
+   "headline": "Do you feel distracted by phones around you?",
+   "body": ""
+  }
+ },
+ "stat": {
+  "value": "no significant effect",
+  "label": "effect of phone presence on cognition",
+  "fact": "F1"
+ },
+ "claims": [
+  {
+   "id": "F1",
+   "text": "The mere presence of smartphone had no significant effect on cognitive outcomes.",
+   "source": "S3",
+   "quote": "It was found that the mere presence of smartphone had no significant effect on cognitive outcomes (d = −0. 02, SE = 0. 02, 95% CI [−0. 06, 0. 01], p = . 246).",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F2",
+   "text": "Working memory capacity was negatively impacted by the mere presence of a smartphone.",
+   "source": "S2",
+   "quote": "Working memory capacity was negatively impacted by the mere presence of a smartphone, while results for the remaining cognitive functions produced null summary effects.",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F3",
+   "text": "Participants with higher positive urgency presented increased cognitive interference in the \"silent-mode smartphone\" condition compared with participants in the \"turned-off smartphone\" condition.",
+   "source": "S4",
+   "quote": "participants with higher positive urgency presented increased cognitive interference (reflected by poorer task performance) in the \"silent-mode smartphone\" condition compared with participants in the \"turned-off smartphone\" condition.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F4",
+   "text": "The mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+   "source": "S5",
+   "quote": "The results of the conducted experiment imply that the mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F5",
+   "text": "The mere presence of one’s own smartphone reduces available cognitive capacity.",
+   "source": "S1",
+   "quote": "The mere presence of one’s own smartphone may occupy limited-capacity cognitive resources, thereby leaving fewer resources available for other tasks and undercutting cognitive performance.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F6",
+   "text": "The model further suggests a quantification of smartphone usage based on different quantitative parameters, such as usage time, usage frequency, used applications, and received notifications.",
+   "source": "S6",
+   "quote": "The model further suggests a quantification of smartphone usage based on different quantitative parameters, such as usage time, usage frequency, used applications, and received notifications.",
+   "level": "supported",
+   "link": false
+  }
+ ],
+ "sources": [
+  {
+   "id": "S1",
+   "title": "Brain Drain: The Mere Presence of One’s Own Smartphone Reduces Available Cognitive Capacity",
+   "authors": "Adrian F. Ward, Kristen E. Duke, Ayelet Gneezy et al.",
+   "cite": "Ward et al.",
+   "year": 2017,
+   "venue": "Journal of the Association for Consumer Research",
+   "type": "experiment",
+   "url": "https://doi.org/10.1086/691462",
+   "doi": "10.1086/691462",
+   "citedBy": 790,
+   "level": "supported"
+  },
+  {
+   "id": "S2",
+   "title": "Does the Mere Presence of a Smartphone Impact Cognitive Performance? A Meta-Analysis of the “Brain Drain Effect”",
+   "authors": "Douglas A. Parry",
+   "cite": "Parry",
+   "year": 2023,
+   "venue": "Media Psychology",
+   "type": "meta-analysis",
+   "url": "https://doi.org/10.1080/15213269.2023.2286647",
+   "doi": "10.1080/15213269.2023.2286647",
+   "citedBy": 14,
+   "level": "established"
+  },
+  {
+   "id": "S3",
+   "title": "The effect of mere presence of smartphone on cognitive functions: A four-level meta-analysis.",
+   "authors": "Andree Hartanto, Verity Y. Q. Lua, K. T. A. Sandeeshwara Kasturiratna et al.",
+   "cite": "Hartanto et al.",
+   "year": 2024,
+   "venue": "Technology Mind and Behavior",
+   "type": "meta-analysis",
+   "url": "https://doi.org/10.1037/tmb0000123",
+   "doi": "10.1037/tmb0000123",
+   "citedBy": 14,
+   "level": "established"
+  },
+  {
+   "id": "S4",
+   "title": "Emotion-related impulsivity moderates the cognitive interference effect of smartphone availability on working memory",
+   "authors": "Natale Canale, Alessio Vieno, Mattia Doro et al.",
+   "cite": "Canale et al.",
+   "year": 2019,
+   "venue": "Scientific Reports",
+   "type": "experiment",
+   "url": "https://doi.org/10.1038/s41598-019-54911-7",
+   "doi": "10.1038/s41598-019-54911-7",
+   "citedBy": 55,
+   "level": "supported"
+  },
+  {
+   "id": "S5",
+   "title": "The mere presence of a smartphone reduces basal attentional performance",
+   "authors": "Jeanette Skowronek, Andreas Seifert, Staffan I. Lindberg",
+   "cite": "Skowronek et al.",
+   "year": 2023,
+   "venue": "Scientific Reports",
+   "type": "experiment",
+   "url": "https://doi.org/10.1038/s41598-023-36256-4",
+   "doi": "10.1038/s41598-023-36256-4",
+   "citedBy": 82,
+   "level": "supported"
+  },
+  {
+   "id": "S6",
+   "title": "Smartphones and attention, curse or blessing? - A review on the effects of smartphone usage on attention, inhibition, and working memory",
+   "authors": "Magnus Liebherr, Patric Schubert, Stephanie Antons et al.",
+   "cite": "Liebherr et al.",
+   "year": 2020,
+   "venue": "Computers in Human Behavior Reports",
+   "type": "review",
+   "url": "https://doi.org/10.1016/j.chbr.2020.100005",
+   "doi": "10.1016/j.chbr.2020.100005",
+   "citedBy": 105,
+   "level": "supported"
+  }
+ ],
+ "also": [],
+ "verdict": "The evidence shows that the effect of a smartphone’s mere presence on cognition is inconsistent: a few experiments report small negative impacts, while larger meta‑analyses find no reliable effect.",
+ "caveat": "The conclusions are limited by methodological heterogeneity, small sample sizes in some experiments, and the fact that many studies rely on observational or short‑term laboratory tasks that may not reflect real‑world use.",
+ "supports": "partly",
+ "caption": "A phone near you can reduce working‑memory capacity, according to experiments. Larger meta‑analyses find no reliable effect. The evidence is mixed. Do you notice a difference when a phone sits in sight?",
+ "hashtags": [
+  "smartphone",
+  "attention",
+  "cognition",
+  "research",
+  "workingmemory",
+  "metaanalysis",
+  "experiment",
+  "mind",
+  "brain"
+ ],
+ "imageIdeas": [
+  "dark kitchen counter with charger",
+  "empty room with a phone on a table",
+  "silhouette of a hand holding a phone",
+  "shadow of a phone on a dark wall"
+ ],
+ "images": [],
+ "credibility": {
+  "score": 94,
+  "flags": [
+   "Evidence is mixed — the post says so"
+  ]
+ },
+ "intensity": 2,
+ "engine": {
+  "version": "0.3",
+  "writer": "local:gptoss-20b",
+  "seconds": 330,
+  "drafts": 1
+ }
+}

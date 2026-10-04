@@ -1,0 +1,223 @@
+{
+ "id": "2026-10-04-quitting-social-media-lowers-well-being",
+ "created": "2026-10-04T21:25:54.226Z",
+ "subject": "social",
+ "style": "reality",
+ "topic": "Does quitting social media actually make people happier?",
+ "angle": "The evidence shows that short or temporary breaks from social media rarely improve well‑being and may even worsen it, while longer‑term or moderate reductions might help with depression, but overall the results are inconsistent.",
+ "title": "quitting social media lowers well‑being",
+ "hooks": [
+  {
+   "type": "question",
+   "text": "do you think quitting social media will bring joy?"
+  },
+  {
+   "type": "contradiction",
+   "text": "you think you need a break, but studies show it may hurt well‑being."
+  },
+  {
+   "type": "accusation",
+   "text": "you scroll until the screen fades, then feel alone."
+  },
+  {
+   "type": "scene",
+   "text": "a dim kitchen table, a phone, a muted screen."
+  },
+  {
+   "type": "statement",
+   "text": "quitting social media may lower life satisfaction."
+  }
+ ],
+ "hook": 0,
+ "slides": {
+  "reveal": {
+   "headline": "quitting social media lowers life satisfaction",
+   "body": "abstaining reduces life satisfaction, raises negative affect, and increases loneliness.",
+   "facts": [
+    "F1"
+   ]
+  },
+  "explain": {
+   "headline": "what the evidence shows",
+   "body": "studies find that stopping social media use often makes people feel worse, not better. meta‑analyses show no positive affect, and some trials see more loneliness and lower daily well‑being.",
+   "facts": [
+    "F1",
+    "F2",
+    "F3"
+   ]
+  },
+  "matters": {
+   "headline": "why this matters",
+   "body": "that may be why you feel uneasy after a break; the evidence suggests you may not gain well‑being when you quit.",
+   "facts": [
+    "F1",
+    "F3"
+   ]
+  },
+  "example": {
+   "headline": "a typical moment",
+   "body": "you scroll through a feed in the kitchen, pause, and then feel more tired."
+  },
+  "question": {
+   "headline": "do you feel happier when you log off?",
+   "body": ""
+  }
+ },
+ "stat": {
+  "value": "increase in negative affect",
+  "label": "change in affect after quitting",
+  "fact": "F1"
+ },
+ "claims": [
+  {
+   "id": "F1",
+   "text": "Abstaining from social media use causes a decline in life satisfaction, an increase in negative affect, and an increase in loneliness.",
+   "source": "S1",
+   "quote": "Those who abstained from social media use, compared with those in the control group, evidenced a decline in life satisfaction, an increase in negative affect, and an increase in loneliness.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F2",
+   "text": "Social media abstinence interventions have no significant effects on positive affect, negative affect, or life satisfaction.",
+   "source": "S4",
+   "quote": "The analyses revealed no significant effects of social media abstinence interventions on positive affect, negative affect, or life satisfaction.",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F3",
+   "text": "Abstaining from social media has no measurable positive effect on daily well‑being and may reduce social relatedness and day satisfaction.",
+   "source": "S5",
+   "quote": "Results did not show that abstaining from social media has positive effects on daily well‑being… Evidence indicated that abstinence from social media had no measurable positive effect on well‑being, and some models showed significant deficits in social relatedness and satisfaction with one’s day.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F4",
+   "text": "Limiting social media use reduces depression symptoms, with an effect size twice that of abstinence interventions, but the difference is not significant.",
+   "source": "S2",
+   "quote": "Although interventions aimed at reducing use of social media had twice the depression effect size of interventions aimed at abstinence from social media, the difference was not significant.",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F5",
+   "text": "Social media use is associated with positive psychosocial outcomes in older adults, but longitudinal and randomized controlled trials report mixed findings.",
+   "source": "S6",
+   "quote": "While associations between social media use and positive psychosocial outcomes were generally reported in cross‑sectional studies, the impact of social media use over time from longitudinal studies was mixed and inconclusive.",
+   "level": "established",
+   "link": false
+  }
+ ],
+ "sources": [
+  {
+   "id": "S1",
+   "title": "Abstinence from social media use, subjective well‐being, stress, and loneliness",
+   "authors": "Zahir Vally, Caroline G. D'Souza",
+   "cite": "Vally & D'Souza",
+   "year": 2019,
+   "venue": "Perspectives In Psychiatric Care",
+   "type": "rct",
+   "url": "https://doi.org/10.1111/ppc.12431",
+   "doi": "10.1111/ppc.12431",
+   "citedBy": 87,
+   "level": "supported"
+  },
+  {
+   "id": "S2",
+   "title": "Reducing Social Media Use Decreases Depression Symptoms: A Meta-Analysis of Randomised Controlled Trials",
+   "authors": "Willem May, John M. Malouff, Jai Meynadier",
+   "cite": "May et al.",
+   "year": 2025,
+   "venue": "European Journal of Investigation in Health Psychology and Education",
+   "type": "meta-analysis",
+   "url": "https://doi.org/10.3390/ejihpe15110222",
+   "doi": "10.3390/ejihpe15110222",
+   "citedBy": 5,
+   "level": "established"
+  },
+  {
+   "id": "S4",
+   "title": "The effects of social media abstinence on affective well-being and life satisfaction: a systematic review and meta-analysis",
+   "authors": "Lemahieu L, Vander Zwalmen Y, Mennes M, Koster EHW, Vanden Abeele MMP, Poels K",
+   "cite": "Lemahieu et al.",
+   "year": 2025,
+   "venue": "Scientific reports",
+   "type": "meta-analysis",
+   "url": "https://doi.org/10.1038/s41598-025-90984-3",
+   "doi": "10.1038/s41598-025-90984-3",
+   "citedBy": 43,
+   "level": "established"
+  },
+  {
+   "id": "S5",
+   "title": "Does Taking a Short Break from Social Media Have a Positive Effect on Well-being? Evidence from Three Preregistered Field Experiments",
+   "authors": "Andrew K Przybylski, Thuy-vy Thi Nguyen, Wilbert Law et al.",
+   "cite": "Przybylski et al.",
+   "year": 2021,
+   "venue": "Journal of Technology in Behavioral Science",
+   "type": "experiment",
+   "url": "https://doi.org/10.1007/s41347-020-00189-w",
+   "doi": "10.1007/s41347-020-00189-w",
+   "citedBy": 94,
+   "level": "supported"
+  },
+  {
+   "id": "S6",
+   "title": "The relationship between social media use and psychosocial outcomes in older adults: A systematic review",
+   "authors": "Xiaojing Lei, Diana Matovic, Wing‐Yin Leung et al.",
+   "cite": "Lei et al.",
+   "year": 2024,
+   "venue": "International Psychogeriatrics",
+   "type": "systematic-review",
+   "url": "https://doi.org/10.1017/s1041610223004519",
+   "doi": "10.1017/s1041610223004519",
+   "citedBy": 46,
+   "level": "established"
+  }
+ ],
+ "also": [
+  {
+   "title": "The Impact of Social Media Use Interventions on Mental Well-Being: Systematic Review",
+   "cite": "Plackett et al.",
+   "year": 2023,
+   "url": "https://doi.org/10.2196/44922",
+   "type": "systematic-review"
+  }
+ ],
+ "verdict": "The studies collectively indicate that quitting or limiting social media use does not consistently make people happier; some experiments show declines in well‑being, while others find small or no benefits.",
+ "caveat": "Most studies use convenience samples or short durations, and many report mixed or non‑significant effects, so conclusions about long‑term benefits remain uncertain.",
+ "supports": "partly",
+ "caption": "quitting social media may lower life satisfaction and raise negative affect. evidence is mixed and often shows no benefit, especially short breaks. do you notice a drop in happiness when you log off?",
+ "hashtags": [
+  "socialmedia",
+  "wellbeing",
+  "research",
+  "science",
+  "mentalhealth",
+  "loneliness",
+  "depression",
+  "life"
+ ],
+ "imageIdeas": [
+  "dark kitchen table",
+  "silhouette of hands holding phone",
+  "empty living room with dim light",
+  "screen with no content"
+ ],
+ "images": [],
+ "credibility": {
+  "score": 94,
+  "flags": [
+   "Evidence is mixed — the post says so"
+  ]
+ },
+ "intensity": 2,
+ "engine": {
+  "version": "0.3",
+  "writer": "local:gptoss-20b",
+  "seconds": 290,
+  "drafts": 1
+ }
+}

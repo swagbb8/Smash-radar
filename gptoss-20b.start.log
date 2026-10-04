@@ -1,0 +1,14 @@
+4
+               total        used        free      shared  buff/cache   available
+Mem:              15           1          12           0           2          14
+/dev/root       145G   59G   87G  41% /
+::group::Install llama.cpp
+llama.cpp b11398 llama-b11398-bin-ubuntu-x64.tar.gz
+::endgroup::
+::group::Download unsloth/gpt-oss-20b-GGUF/gpt-oss-20b-Q4_K_M.gguf
+-rw-r--r-- 1 runner runner 11624759488 Oct  4 21:04 /home/runner/.truth-llm/models/gpt-oss-20b-Q4_K_M.gguf
+::endgroup::
+model ready after 30s: http://127.0.0.1:8080/v1
+               total        used        free      shared  buff/cache   available
+Mem:              15           8           0           0           7           6
+serve exit 0

@@ -1,0 +1,213 @@
+{
+ "id": "2026-10-04-the-dual-edge-of-sleep-loss",
+ "created": "2026-10-04T21:15:40.178Z",
+ "subject": "brain",
+ "style": "darkside",
+ "topic": "What one bad night of sleep does to your emotions",
+ "angle": "Sleep loss can make the emotional brain overreact, especially when REM sleep is missing, but evidence also shows that sleep deprivation can reduce emotional expressivity and impair emotion recognition, so the picture is mixed.",
+ "title": "the dual edge of sleep loss",
+ "hooks": [
+  {
+   "type": "question",
+   "text": "do you notice a shift after a poor sleep?"
+  },
+  {
+   "type": "contradiction",
+   "text": "you think sleep keeps you calm, yet it can make you overreact"
+  },
+  {
+   "type": "accusation",
+   "text": "you might blame the coffee, but the culprit is missing REM"
+  },
+  {
+   "type": "scene",
+   "text": "the night’s quiet room, the dim lamp, the lingering scent of coffee"
+  },
+  {
+   "type": "statement",
+   "text": "sleep loss is linked to both heightened and dampened emotions"
+  }
+ ],
+ "hook": 0,
+ "slides": {
+  "reveal": {
+   "headline": "sleep loss boosts emotional reactivity",
+   "body": "REM deprivation increases emotional response at behavior and neural levels",
+   "facts": [
+    "F1",
+    "F4"
+   ]
+  },
+  "explain": {
+   "headline": "but sleep loss also dampens expression",
+   "body": "sleep deprivation is linked to diminished emotional expressivity and impaired emotion recognition",
+   "facts": [
+    "F2"
+   ]
+  },
+  "matters": {
+   "headline": "why you feel off when you miss a night",
+   "body": "that may be why you react sharply yet struggle to read others' feelings after a bad night",
+   "facts": []
+  },
+  "example": {
+   "headline": "you stare at the coffee mug",
+   "body": "you notice the steam swirling, but the barista’s smile feels distant"
+  },
+  "question": {
+   "headline": "how did your last night shape your mood?",
+   "body": ""
+  }
+ },
+ "stat": {
+  "value": "rem deprivation",
+  "label": "enhanced emotional reactivity",
+  "fact": "F1"
+ },
+ "claims": [
+  {
+   "id": "F1",
+   "text": "Selective REM sleep deprivation causes enhanced emotional reactivity at behavioral and neural levels.",
+   "source": "S6",
+   "quote": "lack of REM sleep in humans is associated with enhanced emotional reactivity, both at behavioral and neural levels, and thus highlight the specific role of REM sleep in regulating the neural substrates for emotional responsiveness.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F2",
+   "text": "Sleep deprivation is linked to diminished emotional expressivity and impaired emotion recognition.",
+   "source": "S1",
+   "quote": "Sleep deprivation is associated with diminished emotional expressivity and impaired emotion recognition, and this has particular relevance for social interactions.",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F3",
+   "text": "Sleep disturbances are linked to altered amygdala and ACC volume and function in bipolar disorder.",
+   "source": "S4",
+   "quote": "Both amygdala and ACC volume and function are affected in bipolar disorder, with the ACC showing phase-dependent resting state activity differences.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F4",
+   "text": "Sleep deprivation is linked to increased emotional reactivity.",
+   "source": "S1",
+   "quote": "Sleep deprivation also increases emotional reactivity; results which are most apparent with neuro-imaging studies investigating amygdala activity and its prefrontal regulation.",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F5",
+   "text": "Sleep loss is linked to negative effects on exercise performance, especially with deprivation and late-restriction protocols.",
+   "source": "S5",
+   "quote": "a significant positive relationship was observed between time awake prior to the exercise task and % Δ in performance for both deprivation and late-restriction protocols (~ 0. 4% decrease for every hour awake prior to exercise).",
+   "level": "established",
+   "link": false
+  }
+ ],
+ "sources": [
+  {
+   "id": "S1",
+   "title": "Social interactions, emotion and sleep: A systematic review and research agenda",
+   "authors": "Louise Beattie, Simon David Kyle, Colin Alexander Espie et al.",
+   "cite": "Beattie et al.",
+   "year": 2014,
+   "venue": "Sleep Medicine Reviews",
+   "type": "systematic-review",
+   "url": "https://doi.org/10.1016/j.smrv.2014.12.005",
+   "doi": "10.1016/j.smrv.2014.12.005",
+   "citedBy": 255,
+   "level": "established"
+  },
+  {
+   "id": "S4",
+   "title": "The bidirectional relation between emotional reactivity and sleep: From disruption to recovery.",
+   "authors": "Ellemarije Altena, Jean‐Arthur Micoulaud‐Franchi, Pierre A. Geoffroy et al.",
+   "cite": "Altena et al.",
+   "year": 2016,
+   "venue": "Behavioral Neuroscience",
+   "type": "experiment",
+   "url": "https://doi.org/10.1037/bne0000128",
+   "doi": "10.1037/bne0000128",
+   "citedBy": 145,
+   "level": "supported"
+  },
+  {
+   "id": "S5",
+   "title": "Effects of Acute Sleep Loss on Physical Performance: A Systematic and Meta-Analytical Review",
+   "authors": "Jonathan Craven, Danielle McCartney, Ben Desbrow et al.",
+   "cite": "Craven et al.",
+   "year": 2022,
+   "venue": "Sports Medicine",
+   "type": "meta-analysis",
+   "url": "https://doi.org/10.1007/s40279-022-01706-y",
+   "doi": "10.1007/s40279-022-01706-y",
+   "citedBy": 140,
+   "level": "established"
+  },
+  {
+   "id": "S6",
+   "title": "Enhanced emotional reactivity after selective REM sleep deprivation in humans: an fMRI study",
+   "authors": "Alejandra Rosales-Lagarde, Jorge L. Armony, Yolanda del Río‐Portilla et al.",
+   "cite": "Rosales-Lagarde et al.",
+   "year": 2012,
+   "venue": "Frontiers in Behavioral Neuroscience",
+   "type": "experiment",
+   "url": "https://doi.org/10.3389/fnbeh.2012.00025",
+   "doi": "10.3389/fnbeh.2012.00025",
+   "citedBy": 143,
+   "level": "supported"
+  }
+ ],
+ "also": [
+  {
+   "title": "Emotion regulation difficulties and disordered eating in adolescents and young adults: a meta-analysis",
+   "cite": "Zhou et al.",
+   "year": 2025,
+   "url": "https://doi.org/10.1186/s40337-025-01197-y",
+   "type": "meta-analysis"
+  },
+  {
+   "title": "Integrating emotion regulation and emotional intelligence traditions: a meta-analysis",
+   "cite": "Sarrionandia et al.",
+   "year": 2015,
+   "url": "https://doi.org/10.3389/fpsyg.2015.00160",
+   "type": "meta-analysis"
+  }
+ ],
+ "verdict": "The evidence shows that sleep loss is associated with both heightened emotional reactivity and impaired emotional expressivity/recognition, indicating a complex relationship rather than a simple overreaction.",
+ "caveat": "Most studies are observational or correlational; experimental manipulation of sleep stages is limited, so causal conclusions should be drawn cautiously.",
+ "supports": "partly",
+ "caption": "sleep loss can make you overreact but also blur others’ feelings\n\nthe evidence is mixed and based on observational studies\n\nwhat did your last night do to your emotional map?",
+ "hashtags": [
+  "sleepdeprivation",
+  "emotions",
+  "rem",
+  "neuro",
+  "behavior",
+  "cognitive",
+  "psychology",
+  "health"
+ ],
+ "imageIdeas": [
+  "emptybedroom",
+  "dimlamp",
+  "coffee",
+  "handreadingnotes"
+ ],
+ "images": [],
+ "credibility": {
+  "score": 94,
+  "flags": [
+   "Evidence is mixed — the post says so"
+  ]
+ },
+ "intensity": 2,
+ "engine": {
+  "version": "0.3",
+  "writer": "local:gptoss-20b",
+  "seconds": 285,
+  "drafts": 1
+ }
+}

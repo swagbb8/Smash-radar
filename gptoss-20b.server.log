@@ -1,0 +1,27 @@
+l time =   63750.61 ms /   542 tokens (  117.84 ms per token,     8.49 tokens per second)
+19.01.526.565 I slot print_timing: id  0 | task 3471 |       total time =  173225.83 ms /  2369 tokens
+19.01.526.566 I slot print_timing: id  0 | task 3471 |    graphs reused =       3959
+19.01.531.914 I slot      release: id  0 | task 3471 | stop processing: n_tokens = 2368, truncated = 0
+19.01.560.437 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 1350549906
+19.01.582.336 I slot launch_slot_: id  0 | task 4017 | processing task, is_child = 0
+19.09.079.486 I slot print_timing: id  0 | task 4017 | prompt processing, n_tokens =    129, progress = 0.11, t =   7.50 s / 17.21 tokens per second
+19.38.753.625 I slot print_timing: id  0 | task 4017 | prompt processing, n_tokens =    634, progress = 0.55, t =  37.17 s / 17.06 tokens per second
+20.09.302.012 I slot print_timing: id  0 | task 4017 | prompt processing, n_tokens =   1146, progress = 1.00, t =  67.72 s / 16.92 tokens per second
+20.20.015.291 I slot print_timing: id  0 | task 4017 | n_gen =    100, tg =   9.52 t/s, tg_3s =   9.62 t/s
+20.23.093.846 I slot print_timing: id  0 | task 4017 | n_gen =    129, tg =   9.50 t/s, tg_3s =   9.42 t/s
+20.26.145.099 I slot print_timing: id  0 | task 4017 | n_gen =    156, tg =   9.38 t/s, tg_3s =   8.85 t/s
+20.29.223.201 I slot print_timing: id  0 | task 4017 | n_gen =    184, tg =   9.33 t/s, tg_3s =   9.10 t/s
+20.32.294.793 I slot print_timing: id  0 | task 4017 | n_gen =    212, tg =   9.30 t/s, tg_3s =   9.12 t/s
+20.35.353.304 I slot print_timing: id  0 | task 4017 | n_gen =    240, tg =   9.29 t/s, tg_3s =   9.15 t/s
+20.38.405.131 I slot print_timing: id  0 | task 4017 | n_gen =    268, tg =   9.28 t/s, tg_3s =   9.17 t/s
+20.41.506.609 I slot print_timing: id  0 | task 4017 | n_gen =    296, tg =   9.25 t/s, tg_3s =   9.03 t/s
+20.44.508.354 I slot print_timing: id  0 | task 4017 | n_gen =    323, tg =   9.23 t/s, tg_3s =   8.99 t/s
+20.47.613.754 I slot print_timing: id  0 | task 4017 | n_gen =    351, tg =   9.21 t/s, tg_3s =   9.02 t/s
+20.50.696.477 I slot print_timing: id  0 | task 4017 | n_gen =    379, tg =   9.20 t/s, tg_3s =   9.08 t/s
+20.53.710.298 I slot print_timing: id  0 | task 4017 | n_gen =    406, tg =   9.19 t/s, tg_3s =   8.96 t/s
+20.56.722.450 I slot print_timing: id  0 | task 4017 | n_gen =    433, tg =   9.17 t/s, tg_3s =   8.96 t/s
+20.57.056.909 I slot print_timing: id  0 | task 4017 | prompt eval time =   68036.08 ms /  1150 tokens (   59.16 ms per token,    16.90 tokens per second)
+20.57.056.921 I slot print_timing: id  0 | task 4017 |        eval time =   47438.45 ms /   436 tokens (  109.05 ms per token,     9.17 tokens per second)
+20.57.056.940 I slot print_timing: id  0 | task 4017 |       total time =  115474.53 ms /  1586 tokens
+20.57.056.944 I slot print_timing: id  0 | task 4017 |    graphs reused =       4391
+20.57.057.617 I slot      release: id  0 | task 4017 | stop processing: n_tokens = 1585, truncated = 0

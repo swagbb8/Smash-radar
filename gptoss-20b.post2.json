@@ -1,0 +1,227 @@
+{
+ "id": "2026-10-04-money-s-subtle-influence",
+ "created": "2026-10-04T21:21:04.108Z",
+ "subject": "money",
+ "style": "unseen",
+ "topic": "Being short of money changes how well you think",
+ "angle": "The sources show that financial scarcity can redirect attention and shift time orientation, potentially reducing self‑control for healthy choices, but experimental evidence on cognitive performance is mixed and does not consistently prove a causal impairment.",
+ "title": "money’s subtle influence",
+ "hooks": [
+  {
+   "type": "question",
+   "text": "how does money shape your choices?"
+  },
+  {
+   "type": "contradiction",
+   "text": "you think money controls your brain, but the evidence is mixed."
+  },
+  {
+   "type": "accusation",
+   "text": "stop guessing; notice when a paycheck feels too close."
+  },
+  {
+   "type": "scene",
+   "text": "a clock in a dim aisle, the hum of a scanner."
+  },
+  {
+   "type": "statement",
+   "text": "money can alter priorities."
+  }
+ ],
+ "hook": 0,
+ "slides": {
+  "reveal": {
+   "headline": "financial scarcity depletes mental bandwidth",
+   "body": "financial scarcity is linked to a present time orientation that shifts priorities and decreases motivation for healthy dietary behavior.",
+   "facts": [
+    "F6"
+   ]
+  },
+  "explain": {
+   "headline": "cognitive load consumes self‑control",
+   "body": "cognitive load could decrease self‑control capacity needed for healthy dietary behavior because it consumes mental bandwidth.",
+   "facts": [
+    "F3"
+   ]
+  },
+  "matters": {
+   "headline": "why this matters to you",
+   "body": "that may be why you feel less able to choose a salad instead of fries when money is tight.",
+   "facts": []
+  },
+  "example": {
+   "headline": "an ordinary moment",
+   "body": "you stand at a grocery checkout, eyes flicking between cheap chips and fresh fruit, and the clock on the wall seems to tick faster than usual."
+  },
+  "question": {
+   "headline": "do you notice the shift?",
+   "body": ""
+  }
+ },
+ "stat": {
+  "value": "present time orientation",
+  "label": "linked to a present time orientation",
+  "fact": "F6"
+ },
+ "claims": [
+  {
+   "id": "F1",
+   "text": "Experimental results do not find that mental and financial scarcities significantly impact test performance on problem‑solving tasks.",
+   "source": "S2",
+   "quote": "Experimental results do not find that mental and financial scarcities significantly impact test performance.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F2",
+   "text": "Evidence for the third proposition of scarcity theory (that poverty impairs decision quality) was not conclusive.",
+   "source": "S4",
+   "quote": "Evidence for the third proposition was not conclusive.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F3",
+   "text": "Cognitive load could decrease self‑control capacity needed for healthy dietary behavior because it consumes mental bandwidth.",
+   "source": "S1",
+   "quote": "Cognitive load could decrease self‑control capacity needed for healthy dietary behavior because it consumes mental bandwidth.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F4",
+   "text": "Before‑payday participants behave as if they are more present‑biased when making intertemporal choices about monetary rewards but not when making intertemporal choices about non‑monetary real‑effort tasks.",
+   "source": "S3",
+   "quote": "Before‑payday participants behave as if they are more present‑biased when making intertemporal choices about monetary rewards but not when making intertemporal choices about non‑monetary real‑effort tasks.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F5",
+   "text": "For children experiencing poverty, more price viewing predicted a decrease in executive function in the poverty group only.",
+   "source": "S6",
+   "quote": "In addition, more price viewing predicted a decrease in executive function in the poverty group only.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F6",
+   "text": "Financial scarcity is linked to a present time orientation that shifts priorities and decreases motivation for healthy dietary behavior.",
+   "source": "S1",
+   "quote": "Financial scarcity is related to a present time orientation, which affects dietary choices by shifting priorities and decreasing motivation for healthy dietary behavior.",
+   "level": "supported",
+   "link": false
+  }
+ ],
+ "sources": [
+  {
+   "id": "S1",
+   "title": "Tunneling, cognitive load and time orientation and their relations with dietary behavior of people experiencing financial scarcity – an AI-assisted scoping review elaborating on scarcity theory",
+   "authors": "Annemarieke van der Veer, Tamara Madern, Frank J. van Lenthe",
+   "cite": "Veer et al.",
+   "year": 2024,
+   "venue": "International Journal of Behavioral Nutrition and Physical Activity",
+   "type": "review",
+   "url": "https://doi.org/10.1186/s12966-024-01576-9",
+   "doi": "10.1186/s12966-024-01576-9",
+   "citedBy": 25,
+   "level": "supported"
+  },
+  {
+   "id": "S2",
+   "title": "Does Poverty Really Impede Cognitive Function? Experimental Evidence from Tanzanian Fishers",
+   "authors": "Virginia Graves",
+   "cite": "Graves",
+   "year": 2015,
+   "venue": "USF Scholarship Repository (University of San Francisco)",
+   "type": "experiment",
+   "url": "https://repository.usfca.edu/thes/129",
+   "doi": null,
+   "citedBy": 3,
+   "level": "supported"
+  },
+  {
+   "id": "S3",
+   "title": "Poverty and Economic Decision-Making: Evidence from Changes in Financial Resources at Payday",
+   "authors": "Carvalho LS, Meier S, Wang SW",
+   "cite": "Carvalho et al.",
+   "year": 2016,
+   "venue": "The American economic review",
+   "type": "experiment",
+   "url": "https://doi.org/10.1257/aer.20140481",
+   "doi": "10.1257/aer.20140481",
+   "citedBy": 518,
+   "level": "supported"
+  },
+  {
+   "id": "S4",
+   "title": "Poverty and economic decision making: a review of scarcity theory",
+   "authors": "Ernst-Jan de Bruijn, Gerrit Antonides",
+   "cite": "Bruijn & Antonides",
+   "year": 2021,
+   "venue": "Theory and Decision",
+   "type": "review",
+   "url": "https://doi.org/10.1007/s11238-021-09802-7",
+   "doi": "10.1007/s11238-021-09802-7",
+   "citedBy": 279,
+   "level": "supported"
+  },
+  {
+   "id": "S6",
+   "title": "Economic Scarcity Impedes Impoverished Children's Executive Function: The Role of Multiple Resources Examined Through Eye Tracking",
+   "authors": "Jiang Y, Zhang F, Ming H, Li H, Huang S",
+   "cite": "Jiang et al.",
+   "year": 2026,
+   "venue": "Developmental science",
+   "type": "experiment",
+   "url": "https://doi.org/10.1111/desc.70283",
+   "doi": "10.1111/desc.70283",
+   "citedBy": 0,
+   "level": "supported"
+  }
+ ],
+ "also": [
+  {
+   "title": "A Review of Consequences of Poverty on Economic Decision-Making: A Hypothesized Model of a Cognitive Mechanism",
+   "cite": "Adamkovic & Martončik",
+   "year": 2017,
+   "url": "https://doi.org/10.3389/fpsyg.2017.01784",
+   "type": "review"
+  }
+ ],
+ "verdict": "The evidence indicates that financial scarcity may consume mental bandwidth and alter priorities, yet it does not consistently show a direct, causal reduction in overall cognitive function or decision quality.",
+ "caveat": "The findings rely on observational or limited experimental designs, and many studies report only associations rather than definitive causal effects.",
+ "supports": "partly",
+ "caption": "financial scarcity may deplete mental bandwidth and shift priorities toward the present. the evidence is mixed and based on limited experimental designs. how do you feel when the clock ticks faster? \n\nshare your experience below.",
+ "hashtags": [
+  "financialscarcity",
+  "cognitivebias",
+  "presenttime",
+  "dietchoices",
+  "mindload",
+  "behaviorevidence",
+  "decisionquality",
+  "selfcontrol"
+ ],
+ "imageIdeas": [
+  "dark grocery aisle with dim lighting",
+  "empty checkout counter with a blinking scanner",
+  "hand turning a price tag",
+  "silhouette of a person standing alone in a shop"
+ ],
+ "images": [],
+ "credibility": {
+  "score": 86,
+  "flags": [
+   "No meta-analysis or systematic review among the sources",
+   "Evidence is mixed — the post says so"
+  ]
+ },
+ "intensity": 2,
+ "engine": {
+  "version": "0.3",
+  "writer": "local:gptoss-20b",
+  "seconds": 324,
+  "drafts": 1
+ }
+}

@@ -1,0 +1,1638 @@
+{
+ "name": "gptoss-20b",
+ "at": "2026-10-04T21:05:25.368Z",
+ "llm": {
+  "name": "local",
+  "ready": true,
+  "model": "gptoss-20b",
+  "free": true
+ },
+ "runs": [
+  {
+   "index": 0,
+   "ok": true,
+   "seconds": 330,
+   "post": {
+    "id": "2026-10-04-phone-presence-and-focus",
+    "created": "2026-10-04T21:10:54.989Z",
+    "subject": "technology",
+    "style": "hijacked",
+    "topic": "Your phone weakens your thinking even when you are not using it",
+    "angle": "Some studies find that a smartphone’s mere presence can reduce working‑memory capacity or lower attention, but other large meta‑analyses find no significant effect, leaving the evidence mixed.",
+    "title": "phone presence and focus",
+    "hooks": [
+     {
+      "type": "question",
+      "text": "Do phones really pull your focus?"
+     },
+     {
+      "type": "contradiction",
+      "text": "Phones sit idle but may still cost your memory."
+     },
+     {
+      "type": "accusation",
+      "text": "You might be losing attention when your phone is near."
+     },
+     {
+      "type": "scene",
+      "text": "A charger on the table and a quiet kitchen."
+     },
+     {
+      "type": "statement",
+      "text": "Phones and attention: the evidence is mixed."
+     }
+    ],
+    "hook": 0,
+    "slides": {
+     "reveal": {
+      "headline": "A phone nearby can lower working memory",
+      "body": "The mere presence of a smartphone reduces available cognitive capacity.",
+      "facts": [
+       "F5"
+      ]
+     },
+     "explain": {
+      "headline": "What the evidence shows",
+      "body": "Some experiments report small negative impacts of a phone’s presence on cognition. Larger meta‑analyses find no reliable effect. The evidence is mixed.",
+      "facts": [
+       "F2",
+       "F4",
+       "F1"
+      ]
+     },
+     "matters": {
+      "headline": "Why you might notice",
+      "body": "That may be why you feel less focus when a phone sits nearby, even if you do not look at it.",
+      "facts": [
+       "F5"
+      ]
+     },
+     "example": {
+      "headline": "A quiet morning in the kitchen",
+      "body": "You are reading the news on your phone while a charger sits on the counter. The phone stays off, but you notice it more than the article."
+     },
+     "question": {
+      "headline": "Do you feel distracted by phones around you?",
+      "body": ""
+     }
+    },
+    "stat": {
+     "value": "no significant effect",
+     "label": "effect of phone presence on cognition",
+     "fact": "F1"
+    },
+    "claims": [
+     {
+      "id": "F1",
+      "text": "The mere presence of smartphone had no significant effect on cognitive outcomes.",
+      "source": "S3",
+      "quote": "It was found that the mere presence of smartphone had no significant effect on cognitive outcomes (d = −0. 02, SE = 0. 02, 95% CI [−0. 06, 0. 01], p = . 246).",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F2",
+      "text": "Working memory capacity was negatively impacted by the mere presence of a smartphone.",
+      "source": "S2",
+      "quote": "Working memory capacity was negatively impacted by the mere presence of a smartphone, while results for the remaining cognitive functions produced null summary effects.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F3",
+      "text": "Participants with higher positive urgency presented increased cognitive interference in the \"silent-mode smartphone\" condition compared with participants in the \"turned-off smartphone\" condition.",
+      "source": "S4",
+      "quote": "participants with higher positive urgency presented increased cognitive interference (reflected by poorer task performance) in the \"silent-mode smartphone\" condition compared with participants in the \"turned-off smartphone\" condition.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F4",
+      "text": "The mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+      "source": "S5",
+      "quote": "The results of the conducted experiment imply that the mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F5",
+      "text": "The mere presence of one’s own smartphone reduces available cognitive capacity.",
+      "source": "S1",
+      "quote": "The mere presence of one’s own smartphone may occupy limited-capacity cognitive resources, thereby leaving fewer resources available for other tasks and undercutting cognitive performance.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F6",
+      "text": "The model further suggests a quantification of smartphone usage based on different quantitative parameters, such as usage time, usage frequency, used applications, and received notifications.",
+      "source": "S6",
+      "quote": "The model further suggests a quantification of smartphone usage based on different quantitative parameters, such as usage time, usage frequency, used applications, and received notifications.",
+      "level": "supported",
+      "link": false
+     }
+    ],
+    "sources": [
+     {
+      "id": "S1",
+      "title": "Brain Drain: The Mere Presence of One’s Own Smartphone Reduces Available Cognitive Capacity",
+      "authors": "Adrian F. Ward, Kristen E. Duke, Ayelet Gneezy et al.",
+      "cite": "Ward et al.",
+      "year": 2017,
+      "venue": "Journal of the Association for Consumer Research",
+      "type": "experiment",
+      "url": "https://doi.org/10.1086/691462",
+      "doi": "10.1086/691462",
+      "citedBy": 790,
+      "level": "supported"
+     },
+     {
+      "id": "S2",
+      "title": "Does the Mere Presence of a Smartphone Impact Cognitive Performance? A Meta-Analysis of the “Brain Drain Effect”",
+      "authors": "Douglas A. Parry",
+      "cite": "Parry",
+      "year": 2023,
+      "venue": "Media Psychology",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.1080/15213269.2023.2286647",
+      "doi": "10.1080/15213269.2023.2286647",
+      "citedBy": 14,
+      "level": "established"
+     },
+     {
+      "id": "S3",
+      "title": "The effect of mere presence of smartphone on cognitive functions: A four-level meta-analysis.",
+      "authors": "Andree Hartanto, Verity Y. Q. Lua, K. T. A. Sandeeshwara Kasturiratna et al.",
+      "cite": "Hartanto et al.",
+      "year": 2024,
+      "venue": "Technology Mind and Behavior",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.1037/tmb0000123",
+      "doi": "10.1037/tmb0000123",
+      "citedBy": 14,
+      "level": "established"
+     },
+     {
+      "id": "S4",
+      "title": "Emotion-related impulsivity moderates the cognitive interference effect of smartphone availability on working memory",
+      "authors": "Natale Canale, Alessio Vieno, Mattia Doro et al.",
+      "cite": "Canale et al.",
+      "year": 2019,
+      "venue": "Scientific Reports",
+      "type": "experiment",
+      "url": "https://doi.org/10.1038/s41598-019-54911-7",
+      "doi": "10.1038/s41598-019-54911-7",
+      "citedBy": 55,
+      "level": "supported"
+     },
+     {
+      "id": "S5",
+      "title": "The mere presence of a smartphone reduces basal attentional performance",
+      "authors": "Jeanette Skowronek, Andreas Seifert, Staffan I. Lindberg",
+      "cite": "Skowronek et al.",
+      "year": 2023,
+      "venue": "Scientific Reports",
+      "type": "experiment",
+      "url": "https://doi.org/10.1038/s41598-023-36256-4",
+      "doi": "10.1038/s41598-023-36256-4",
+      "citedBy": 82,
+      "level": "supported"
+     },
+     {
+      "id": "S6",
+      "title": "Smartphones and attention, curse or blessing? - A review on the effects of smartphone usage on attention, inhibition, and working memory",
+      "authors": "Magnus Liebherr, Patric Schubert, Stephanie Antons et al.",
+      "cite": "Liebherr et al.",
+      "year": 2020,
+      "venue": "Computers in Human Behavior Reports",
+      "type": "review",
+      "url": "https://doi.org/10.1016/j.chbr.2020.100005",
+      "doi": "10.1016/j.chbr.2020.100005",
+      "citedBy": 105,
+      "level": "supported"
+     }
+    ],
+    "also": [],
+    "verdict": "The evidence shows that the effect of a smartphone’s mere presence on cognition is inconsistent: a few experiments report small negative impacts, while larger meta‑analyses find no reliable effect.",
+    "caveat": "The conclusions are limited by methodological heterogeneity, small sample sizes in some experiments, and the fact that many studies rely on observational or short‑term laboratory tasks that may not reflect real‑world use.",
+    "supports": "partly",
+    "caption": "A phone near you can reduce working‑memory capacity, according to experiments. Larger meta‑analyses find no reliable effect. The evidence is mixed. Do you notice a difference when a phone sits in sight?",
+    "hashtags": [
+     "smartphone",
+     "attention",
+     "cognition",
+     "research",
+     "workingmemory",
+     "metaanalysis",
+     "experiment",
+     "mind",
+     "brain"
+    ],
+    "imageIdeas": [
+     "dark kitchen counter with charger",
+     "empty room with a phone on a table",
+     "silhouette of a hand holding a phone",
+     "shadow of a phone on a dark wall"
+    ],
+    "images": [],
+    "credibility": {
+     "score": 94,
+     "flags": [
+      "Evidence is mixed — the post says so"
+     ]
+    },
+    "intensity": 2,
+    "engine": {
+     "version": "0.3",
+     "writer": "local:gptoss-20b",
+     "seconds": 330,
+     "drafts": 1
+    }
+   },
+   "trace": {
+    "topic": "Your phone weakens your thinking even when you are not using it",
+    "research": {
+     "ok": true,
+     "search": {
+      "found": 77,
+      "relevant": 19,
+      "errors": []
+     },
+     "sources": [
+      {
+       "id": "S1",
+       "title": "Brain Drain: The Mere Presence of One’s Own Smartphone Reduces Available Cognitive Capacity",
+       "year": 2017,
+       "type": "experiment",
+       "citedBy": 790,
+       "level": "supported",
+       "rel": 1,
+       "url": "https://doi.org/10.1086/691462"
+      },
+      {
+       "id": "S2",
+       "title": "Does the Mere Presence of a Smartphone Impact Cognitive Performance? A Meta-Analysis of the “Brain Drain Effect”",
+       "year": 2023,
+       "type": "meta-analysis",
+       "citedBy": 14,
+       "level": "established",
+       "rel": 0.93,
+       "url": "https://doi.org/10.1080/15213269.2023.2286647"
+      },
+      {
+       "id": "S3",
+       "title": "The effect of mere presence of smartphone on cognitive functions: A four-level meta-analysis.",
+       "year": 2024,
+       "type": "meta-analysis",
+       "citedBy": 14,
+       "level": "established",
+       "rel": 0.76,
+       "url": "https://doi.org/10.1037/tmb0000123"
+      },
+      {
+       "id": "S4",
+       "title": "Emotion-related impulsivity moderates the cognitive interference effect of smartphone availability on working memory",
+       "year": 2019,
+       "type": "experiment",
+       "citedBy": 55,
+       "level": "supported",
+       "rel": 0.87,
+       "url": "https://doi.org/10.1038/s41598-019-54911-7"
+      },
+      {
+       "id": "S5",
+       "title": "The mere presence of a smartphone reduces basal attentional performance",
+       "year": 2023,
+       "type": "experiment",
+       "citedBy": 82,
+       "level": "supported",
+       "rel": 0.72,
+       "url": "https://doi.org/10.1038/s41598-023-36256-4"
+      },
+      {
+       "id": "S6",
+       "title": "Smartphones and attention, curse or blessing? - A review on the effects of smartphone usage on attention, inhibition, and working memory",
+       "year": 2020,
+       "type": "review",
+       "citedBy": 105,
+       "level": "supported",
+       "rel": 0.75,
+       "url": "https://doi.org/10.1016/j.chbr.2020.100005"
+      }
+     ],
+     "facts": [
+      {
+       "id": "F1",
+       "claim": "The mere presence of smartphone had no significant effect on cognitive outcomes.",
+       "source": "S3",
+       "quote": "It was found that the mere presence of smartphone had no significant effect on cognitive outcomes (d = −0. 02, SE = 0. 02, 95% CI [−0. 06, 0. 01], p = . 246).",
+       "surprise": 4,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": false
+      },
+      {
+       "id": "F2",
+       "claim": "Working memory capacity was negatively impacted by the mere presence of a smartphone.",
+       "source": "S2",
+       "quote": "Working memory capacity was negatively impacted by the mere presence of a smartphone, while results for the remaining cognitive functions produced null summary effects.",
+       "surprise": 3,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F3",
+       "claim": "Participants with higher positive urgency presented increased cognitive interference in the \"silent-mode smartphone\" condition compared with participants in the \"turned-off smartphone\" condition.",
+       "source": "S4",
+       "quote": "participants with higher positive urgency presented increased cognitive interference (reflected by poorer task performance) in the \"silent-mode smartphone\" condition compared with participants in the \"turned-off smartphone\" condition.",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F4",
+       "claim": "The mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+       "source": "S5",
+       "quote": "The results of the conducted experiment imply that the mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F5",
+       "claim": "The mere presence of one’s own smartphone reduces available cognitive capacity.",
+       "source": "S1",
+       "quote": "The mere presence of one’s own smartphone may occupy limited-capacity cognitive resources, thereby leaving fewer resources available for other tasks and undercutting cognitive performance.",
+       "surprise": 2,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F6",
+       "claim": "The model further suggests a quantification of smartphone usage based on different quantitative parameters, such as usage time, usage frequency, used applications, and received notifications.",
+       "source": "S6",
+       "quote": "The model further suggests a quantification of smartphone usage based on different quantitative parameters, such as usage time, usage frequency, used applications, and received notifications.",
+       "surprise": 1,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      }
+     ],
+     "rejected": [],
+     "supports": "partly",
+     "angle": "Some studies find that a smartphone’s mere presence can reduce working‑memory capacity or lower attention, but other large meta‑analyses find no significant effect, leaving the evidence mixed.",
+     "verdict": "The evidence shows that the effect of a smartphone’s mere presence on cognition is inconsistent: a few experiments report small negative impacts, while larger meta‑analyses find no reliable effect.",
+     "caveat": "The conclusions are limited by methodological heterogeneity, small sample sizes in some experiments, and the fact that many studies rely on observational or short‑term laboratory tasks that may not reflect real‑world use.",
+     "llm": {
+      "ms": 188199,
+      "timings": {
+       "first_s": 120.2,
+       "gen_s": 68,
+       "prompt_tps": 15.9,
+       "gen_tps": 8.2
+      },
+      "usage": {
+       "in": 1797,
+       "out": 611
+      },
+      "finish": "stop"
+     }
+    },
+    "write": {
+     "ok": true,
+     "reason": "",
+     "drafts": 1,
+     "fixes": [],
+     "issues": [],
+     "llm": {
+      "ms": 139356,
+      "timings": {
+       "first_s": 75.2,
+       "gen_s": 64.2,
+       "prompt_tps": 16.8,
+       "gen_tps": 8.96
+      },
+      "usage": {
+       "in": 1180,
+       "out": 618
+      }
+     }
+    }
+   }
+  },
+  {
+   "index": 1,
+   "ok": true,
+   "seconds": 285,
+   "post": {
+    "id": "2026-10-04-the-dual-edge-of-sleep-loss",
+    "created": "2026-10-04T21:15:40.178Z",
+    "subject": "brain",
+    "style": "darkside",
+    "topic": "What one bad night of sleep does to your emotions",
+    "angle": "Sleep loss can make the emotional brain overreact, especially when REM sleep is missing, but evidence also shows that sleep deprivation can reduce emotional expressivity and impair emotion recognition, so the picture is mixed.",
+    "title": "the dual edge of sleep loss",
+    "hooks": [
+     {
+      "type": "question",
+      "text": "do you notice a shift after a poor sleep?"
+     },
+     {
+      "type": "contradiction",
+      "text": "you think sleep keeps you calm, yet it can make you overreact"
+     },
+     {
+      "type": "accusation",
+      "text": "you might blame the coffee, but the culprit is missing REM"
+     },
+     {
+      "type": "scene",
+      "text": "the night’s quiet room, the dim lamp, the lingering scent of coffee"
+     },
+     {
+      "type": "statement",
+      "text": "sleep loss is linked to both heightened and dampened emotions"
+     }
+    ],
+    "hook": 0,
+    "slides": {
+     "reveal": {
+      "headline": "sleep loss boosts emotional reactivity",
+      "body": "REM deprivation increases emotional response at behavior and neural levels",
+      "facts": [
+       "F1",
+       "F4"
+      ]
+     },
+     "explain": {
+      "headline": "but sleep loss also dampens expression",
+      "body": "sleep deprivation is linked to diminished emotional expressivity and impaired emotion recognition",
+      "facts": [
+       "F2"
+      ]
+     },
+     "matters": {
+      "headline": "why you feel off when you miss a night",
+      "body": "that may be why you react sharply yet struggle to read others' feelings after a bad night",
+      "facts": []
+     },
+     "example": {
+      "headline": "you stare at the coffee mug",
+      "body": "you notice the steam swirling, but the barista’s smile feels distant"
+     },
+     "question": {
+      "headline": "how did your last night shape your mood?",
+      "body": ""
+     }
+    },
+    "stat": {
+     "value": "rem deprivation",
+     "label": "enhanced emotional reactivity",
+     "fact": "F1"
+    },
+    "claims": [
+     {
+      "id": "F1",
+      "text": "Selective REM sleep deprivation causes enhanced emotional reactivity at behavioral and neural levels.",
+      "source": "S6",
+      "quote": "lack of REM sleep in humans is associated with enhanced emotional reactivity, both at behavioral and neural levels, and thus highlight the specific role of REM sleep in regulating the neural substrates for emotional responsiveness.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F2",
+      "text": "Sleep deprivation is linked to diminished emotional expressivity and impaired emotion recognition.",
+      "source": "S1",
+      "quote": "Sleep deprivation is associated with diminished emotional expressivity and impaired emotion recognition, and this has particular relevance for social interactions.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F3",
+      "text": "Sleep disturbances are linked to altered amygdala and ACC volume and function in bipolar disorder.",
+      "source": "S4",
+      "quote": "Both amygdala and ACC volume and function are affected in bipolar disorder, with the ACC showing phase-dependent resting state activity differences.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F4",
+      "text": "Sleep deprivation is linked to increased emotional reactivity.",
+      "source": "S1",
+      "quote": "Sleep deprivation also increases emotional reactivity; results which are most apparent with neuro-imaging studies investigating amygdala activity and its prefrontal regulation.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F5",
+      "text": "Sleep loss is linked to negative effects on exercise performance, especially with deprivation and late-restriction protocols.",
+      "source": "S5",
+      "quote": "a significant positive relationship was observed between time awake prior to the exercise task and % Δ in performance for both deprivation and late-restriction protocols (~ 0. 4% decrease for every hour awake prior to exercise).",
+      "level": "established",
+      "link": false
+     }
+    ],
+    "sources": [
+     {
+      "id": "S1",
+      "title": "Social interactions, emotion and sleep: A systematic review and research agenda",
+      "authors": "Louise Beattie, Simon David Kyle, Colin Alexander Espie et al.",
+      "cite": "Beattie et al.",
+      "year": 2014,
+      "venue": "Sleep Medicine Reviews",
+      "type": "systematic-review",
+      "url": "https://doi.org/10.1016/j.smrv.2014.12.005",
+      "doi": "10.1016/j.smrv.2014.12.005",
+      "citedBy": 255,
+      "level": "established"
+     },
+     {
+      "id": "S4",
+      "title": "The bidirectional relation between emotional reactivity and sleep: From disruption to recovery.",
+      "authors": "Ellemarije Altena, Jean‐Arthur Micoulaud‐Franchi, Pierre A. Geoffroy et al.",
+      "cite": "Altena et al.",
+      "year": 2016,
+      "venue": "Behavioral Neuroscience",
+      "type": "experiment",
+      "url": "https://doi.org/10.1037/bne0000128",
+      "doi": "10.1037/bne0000128",
+      "citedBy": 145,
+      "level": "supported"
+     },
+     {
+      "id": "S5",
+      "title": "Effects of Acute Sleep Loss on Physical Performance: A Systematic and Meta-Analytical Review",
+      "authors": "Jonathan Craven, Danielle McCartney, Ben Desbrow et al.",
+      "cite": "Craven et al.",
+      "year": 2022,
+      "venue": "Sports Medicine",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.1007/s40279-022-01706-y",
+      "doi": "10.1007/s40279-022-01706-y",
+      "citedBy": 140,
+      "level": "established"
+     },
+     {
+      "id": "S6",
+      "title": "Enhanced emotional reactivity after selective REM sleep deprivation in humans: an fMRI study",
+      "authors": "Alejandra Rosales-Lagarde, Jorge L. Armony, Yolanda del Río‐Portilla et al.",
+      "cite": "Rosales-Lagarde et al.",
+      "year": 2012,
+      "venue": "Frontiers in Behavioral Neuroscience",
+      "type": "experiment",
+      "url": "https://doi.org/10.3389/fnbeh.2012.00025",
+      "doi": "10.3389/fnbeh.2012.00025",
+      "citedBy": 143,
+      "level": "supported"
+     }
+    ],
+    "also": [
+     {
+      "title": "Emotion regulation difficulties and disordered eating in adolescents and young adults: a meta-analysis",
+      "cite": "Zhou et al.",
+      "year": 2025,
+      "url": "https://doi.org/10.1186/s40337-025-01197-y",
+      "type": "meta-analysis"
+     },
+     {
+      "title": "Integrating emotion regulation and emotional intelligence traditions: a meta-analysis",
+      "cite": "Sarrionandia et al.",
+      "year": 2015,
+      "url": "https://doi.org/10.3389/fpsyg.2015.00160",
+      "type": "meta-analysis"
+     }
+    ],
+    "verdict": "The evidence shows that sleep loss is associated with both heightened emotional reactivity and impaired emotional expressivity/recognition, indicating a complex relationship rather than a simple overreaction.",
+    "caveat": "Most studies are observational or correlational; experimental manipulation of sleep stages is limited, so causal conclusions should be drawn cautiously.",
+    "supports": "partly",
+    "caption": "sleep loss can make you overreact but also blur others’ feelings\n\nthe evidence is mixed and based on observational studies\n\nwhat did your last night do to your emotional map?",
+    "hashtags": [
+     "sleepdeprivation",
+     "emotions",
+     "rem",
+     "neuro",
+     "behavior",
+     "cognitive",
+     "psychology",
+     "health"
+    ],
+    "imageIdeas": [
+     "emptybedroom",
+     "dimlamp",
+     "coffee",
+     "handreadingnotes"
+    ],
+    "images": [],
+    "credibility": {
+     "score": 94,
+     "flags": [
+      "Evidence is mixed — the post says so"
+     ]
+    },
+    "intensity": 2,
+    "engine": {
+     "version": "0.3",
+     "writer": "local:gptoss-20b",
+     "seconds": 285,
+     "drafts": 1
+    }
+   },
+   "trace": {
+    "topic": "What one bad night of sleep does to your emotions",
+    "research": {
+     "ok": true,
+     "search": {
+      "found": 78,
+      "relevant": 21,
+      "errors": []
+     },
+     "sources": [
+      {
+       "id": "S1",
+       "title": "Social interactions, emotion and sleep: A systematic review and research agenda",
+       "year": 2014,
+       "type": "systematic-review",
+       "citedBy": 255,
+       "level": "established",
+       "rel": 0.74,
+       "url": "https://doi.org/10.1016/j.smrv.2014.12.005"
+      },
+      {
+       "id": "S2",
+       "title": "Emotion regulation difficulties and disordered eating in adolescents and young adults: a meta-analysis",
+       "year": 2025,
+       "type": "meta-analysis",
+       "citedBy": 61,
+       "level": "established",
+       "rel": 0.77,
+       "url": "https://doi.org/10.1186/s40337-025-01197-y"
+      },
+      {
+       "id": "S3",
+       "title": "Integrating emotion regulation and emotional intelligence traditions: a meta-analysis",
+       "year": 2015,
+       "type": "meta-analysis",
+       "citedBy": 521,
+       "level": "established",
+       "rel": 0.58,
+       "url": "https://doi.org/10.3389/fpsyg.2015.00160"
+      },
+      {
+       "id": "S4",
+       "title": "The bidirectional relation between emotional reactivity and sleep: From disruption to recovery.",
+       "year": 2016,
+       "type": "experiment",
+       "citedBy": 145,
+       "level": "supported",
+       "rel": 0.86,
+       "url": "https://doi.org/10.1037/bne0000128"
+      },
+      {
+       "id": "S5",
+       "title": "Effects of Acute Sleep Loss on Physical Performance: A Systematic and Meta-Analytical Review",
+       "year": 2022,
+       "type": "meta-analysis",
+       "citedBy": 140,
+       "level": "established",
+       "rel": 0.59,
+       "url": "https://doi.org/10.1007/s40279-022-01706-y"
+      },
+      {
+       "id": "S6",
+       "title": "Enhanced emotional reactivity after selective REM sleep deprivation in humans: an fMRI study",
+       "year": 2012,
+       "type": "experiment",
+       "citedBy": 143,
+       "level": "supported",
+       "rel": 0.75,
+       "url": "https://doi.org/10.3389/fnbeh.2012.00025"
+      }
+     ],
+     "facts": [
+      {
+       "id": "F1",
+       "claim": "Selective REM sleep deprivation causes enhanced emotional reactivity at behavioral and neural levels.",
+       "source": "S6",
+       "quote": "lack of REM sleep in humans is associated with enhanced emotional reactivity, both at behavioral and neural levels, and thus highlight the specific role of REM sleep in regulating the neural substrates for emotional responsiveness.",
+       "surprise": 4,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F2",
+       "claim": "Sleep deprivation is linked to diminished emotional expressivity and impaired emotion recognition.",
+       "source": "S1",
+       "quote": "Sleep deprivation is associated with diminished emotional expressivity and impaired emotion recognition, and this has particular relevance for social interactions.",
+       "surprise": 3,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F3",
+       "claim": "Sleep disturbances are linked to altered amygdala and ACC volume and function in bipolar disorder.",
+       "source": "S4",
+       "quote": "Both amygdala and ACC volume and function are affected in bipolar disorder, with the ACC showing phase-dependent resting state activity differences.",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F4",
+       "claim": "Sleep deprivation is linked to increased emotional reactivity.",
+       "source": "S1",
+       "quote": "Sleep deprivation also increases emotional reactivity; results which are most apparent with neuro-imaging studies investigating amygdala activity and its prefrontal regulation.",
+       "surprise": 2,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F5",
+       "claim": "Sleep loss is linked to negative effects on exercise performance, especially with deprivation and late-restriction protocols.",
+       "source": "S5",
+       "quote": "a significant positive relationship was observed between time awake prior to the exercise task and % Δ in performance for both deprivation and late-restriction protocols (~ 0. 4% decrease for every hour awake prior to exercise).",
+       "surprise": 2,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": false
+      }
+     ],
+     "rejected": [],
+     "supports": "partly",
+     "angle": "Sleep loss can make the emotional brain overreact, especially when REM sleep is missing, but evidence also shows that sleep deprivation can reduce emotional expressivity and impair emotion recognition, so the picture is mixed.",
+     "verdict": "The evidence shows that sleep loss is associated with both heightened emotional reactivity and impaired emotional expressivity/recognition, indicating a complex relationship rather than a simple overreaction.",
+     "caveat": "Most studies are observational or correlational; experimental manipulation of sleep stages is limited, so causal conclusions should be drawn cautiously.",
+     "llm": {
+      "ms": 170824,
+      "timings": {
+       "first_s": 118.8,
+       "gen_s": 52,
+       "prompt_tps": 16.7,
+       "gen_tps": 8.28
+      },
+      "usage": {
+       "in": 1861,
+       "out": 488
+      },
+      "finish": "stop"
+     }
+    },
+    "write": {
+     "ok": true,
+     "reason": "",
+     "drafts": 1,
+     "fixes": [],
+     "issues": [],
+     "llm": {
+      "ms": 112663,
+      "timings": {
+       "first_s": 72.1,
+       "gen_s": 40.6,
+       "prompt_tps": 16.9,
+       "gen_tps": 9.19
+      },
+      "usage": {
+       "in": 1105,
+       "out": 434
+      }
+     }
+    }
+   }
+  },
+  {
+   "index": 2,
+   "ok": true,
+   "seconds": 324,
+   "post": {
+    "id": "2026-10-04-money-s-subtle-influence",
+    "created": "2026-10-04T21:21:04.108Z",
+    "subject": "money",
+    "style": "unseen",
+    "topic": "Being short of money changes how well you think",
+    "angle": "The sources show that financial scarcity can redirect attention and shift time orientation, potentially reducing self‑control for healthy choices, but experimental evidence on cognitive performance is mixed and does not consistently prove a causal impairment.",
+    "title": "money’s subtle influence",
+    "hooks": [
+     {
+      "type": "question",
+      "text": "how does money shape your choices?"
+     },
+     {
+      "type": "contradiction",
+      "text": "you think money controls your brain, but the evidence is mixed."
+     },
+     {
+      "type": "accusation",
+      "text": "stop guessing; notice when a paycheck feels too close."
+     },
+     {
+      "type": "scene",
+      "text": "a clock in a dim aisle, the hum of a scanner."
+     },
+     {
+      "type": "statement",
+      "text": "money can alter priorities."
+     }
+    ],
+    "hook": 0,
+    "slides": {
+     "reveal": {
+      "headline": "financial scarcity depletes mental bandwidth",
+      "body": "financial scarcity is linked to a present time orientation that shifts priorities and decreases motivation for healthy dietary behavior.",
+      "facts": [
+       "F6"
+      ]
+     },
+     "explain": {
+      "headline": "cognitive load consumes self‑control",
+      "body": "cognitive load could decrease self‑control capacity needed for healthy dietary behavior because it consumes mental bandwidth.",
+      "facts": [
+       "F3"
+      ]
+     },
+     "matters": {
+      "headline": "why this matters to you",
+      "body": "that may be why you feel less able to choose a salad instead of fries when money is tight.",
+      "facts": []
+     },
+     "example": {
+      "headline": "an ordinary moment",
+      "body": "you stand at a grocery checkout, eyes flicking between cheap chips and fresh fruit, and the clock on the wall seems to tick faster than usual."
+     },
+     "question": {
+      "headline": "do you notice the shift?",
+      "body": ""
+     }
+    },
+    "stat": {
+     "value": "present time orientation",
+     "label": "linked to a present time orientation",
+     "fact": "F6"
+    },
+    "claims": [
+     {
+      "id": "F1",
+      "text": "Experimental results do not find that mental and financial scarcities significantly impact test performance on problem‑solving tasks.",
+      "source": "S2",
+      "quote": "Experimental results do not find that mental and financial scarcities significantly impact test performance.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F2",
+      "text": "Evidence for the third proposition of scarcity theory (that poverty impairs decision quality) was not conclusive.",
+      "source": "S4",
+      "quote": "Evidence for the third proposition was not conclusive.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F3",
+      "text": "Cognitive load could decrease self‑control capacity needed for healthy dietary behavior because it consumes mental bandwidth.",
+      "source": "S1",
+      "quote": "Cognitive load could decrease self‑control capacity needed for healthy dietary behavior because it consumes mental bandwidth.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F4",
+      "text": "Before‑payday participants behave as if they are more present‑biased when making intertemporal choices about monetary rewards but not when making intertemporal choices about non‑monetary real‑effort tasks.",
+      "source": "S3",
+      "quote": "Before‑payday participants behave as if they are more present‑biased when making intertemporal choices about monetary rewards but not when making intertemporal choices about non‑monetary real‑effort tasks.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F5",
+      "text": "For children experiencing poverty, more price viewing predicted a decrease in executive function in the poverty group only.",
+      "source": "S6",
+      "quote": "In addition, more price viewing predicted a decrease in executive function in the poverty group only.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F6",
+      "text": "Financial scarcity is linked to a present time orientation that shifts priorities and decreases motivation for healthy dietary behavior.",
+      "source": "S1",
+      "quote": "Financial scarcity is related to a present time orientation, which affects dietary choices by shifting priorities and decreasing motivation for healthy dietary behavior.",
+      "level": "supported",
+      "link": false
+     }
+    ],
+    "sources": [
+     {
+      "id": "S1",
+      "title": "Tunneling, cognitive load and time orientation and their relations with dietary behavior of people experiencing financial scarcity – an AI-assisted scoping review elaborating on scarcity theory",
+      "authors": "Annemarieke van der Veer, Tamara Madern, Frank J. van Lenthe",
+      "cite": "Veer et al.",
+      "year": 2024,
+      "venue": "International Journal of Behavioral Nutrition and Physical Activity",
+      "type": "review",
+      "url": "https://doi.org/10.1186/s12966-024-01576-9",
+      "doi": "10.1186/s12966-024-01576-9",
+      "citedBy": 25,
+      "level": "supported"
+     },
+     {
+      "id": "S2",
+      "title": "Does Poverty Really Impede Cognitive Function? Experimental Evidence from Tanzanian Fishers",
+      "authors": "Virginia Graves",
+      "cite": "Graves",
+      "year": 2015,
+      "venue": "USF Scholarship Repository (University of San Francisco)",
+      "type": "experiment",
+      "url": "https://repository.usfca.edu/thes/129",
+      "doi": null,
+      "citedBy": 3,
+      "level": "supported"
+     },
+     {
+      "id": "S3",
+      "title": "Poverty and Economic Decision-Making: Evidence from Changes in Financial Resources at Payday",
+      "authors": "Carvalho LS, Meier S, Wang SW",
+      "cite": "Carvalho et al.",
+      "year": 2016,
+      "venue": "The American economic review",
+      "type": "experiment",
+      "url": "https://doi.org/10.1257/aer.20140481",
+      "doi": "10.1257/aer.20140481",
+      "citedBy": 518,
+      "level": "supported"
+     },
+     {
+      "id": "S4",
+      "title": "Poverty and economic decision making: a review of scarcity theory",
+      "authors": "Ernst-Jan de Bruijn, Gerrit Antonides",
+      "cite": "Bruijn & Antonides",
+      "year": 2021,
+      "venue": "Theory and Decision",
+      "type": "review",
+      "url": "https://doi.org/10.1007/s11238-021-09802-7",
+      "doi": "10.1007/s11238-021-09802-7",
+      "citedBy": 279,
+      "level": "supported"
+     },
+     {
+      "id": "S6",
+      "title": "Economic Scarcity Impedes Impoverished Children's Executive Function: The Role of Multiple Resources Examined Through Eye Tracking",
+      "authors": "Jiang Y, Zhang F, Ming H, Li H, Huang S",
+      "cite": "Jiang et al.",
+      "year": 2026,
+      "venue": "Developmental science",
+      "type": "experiment",
+      "url": "https://doi.org/10.1111/desc.70283",
+      "doi": "10.1111/desc.70283",
+      "citedBy": 0,
+      "level": "supported"
+     }
+    ],
+    "also": [
+     {
+      "title": "A Review of Consequences of Poverty on Economic Decision-Making: A Hypothesized Model of a Cognitive Mechanism",
+      "cite": "Adamkovic & Martončik",
+      "year": 2017,
+      "url": "https://doi.org/10.3389/fpsyg.2017.01784",
+      "type": "review"
+     }
+    ],
+    "verdict": "The evidence indicates that financial scarcity may consume mental bandwidth and alter priorities, yet it does not consistently show a direct, causal reduction in overall cognitive function or decision quality.",
+    "caveat": "The findings rely on observational or limited experimental designs, and many studies report only associations rather than definitive causal effects.",
+    "supports": "partly",
+    "caption": "financial scarcity may deplete mental bandwidth and shift priorities toward the present. the evidence is mixed and based on limited experimental designs. how do you feel when the clock ticks faster? \n\nshare your experience below.",
+    "hashtags": [
+     "financialscarcity",
+     "cognitivebias",
+     "presenttime",
+     "dietchoices",
+     "mindload",
+     "behaviorevidence",
+     "decisionquality",
+     "selfcontrol"
+    ],
+    "imageIdeas": [
+     "dark grocery aisle with dim lighting",
+     "empty checkout counter with a blinking scanner",
+     "hand turning a price tag",
+     "silhouette of a person standing alone in a shop"
+    ],
+    "images": [],
+    "credibility": {
+     "score": 86,
+     "flags": [
+      "No meta-analysis or systematic review among the sources",
+      "Evidence is mixed — the post says so"
+     ]
+    },
+    "intensity": 2,
+    "engine": {
+     "version": "0.3",
+     "writer": "local:gptoss-20b",
+     "seconds": 324,
+     "drafts": 1
+    }
+   },
+   "trace": {
+    "topic": "Being short of money changes how well you think",
+    "research": {
+     "ok": true,
+     "search": {
+      "found": 78,
+      "relevant": 14,
+      "errors": []
+     },
+     "sources": [
+      {
+       "id": "S1",
+       "title": "Tunneling, cognitive load and time orientation and their relations with dietary behavior of people experiencing financial scarcity – an AI-assisted scoping review elaborating on scarcity theory",
+       "year": 2024,
+       "type": "review",
+       "citedBy": 25,
+       "level": "supported",
+       "rel": 0.9,
+       "url": "https://doi.org/10.1186/s12966-024-01576-9"
+      },
+      {
+       "id": "S2",
+       "title": "Does Poverty Really Impede Cognitive Function? Experimental Evidence from Tanzanian Fishers",
+       "year": 2015,
+       "type": "experiment",
+       "citedBy": 3,
+       "level": "supported",
+       "rel": 0.94,
+       "url": "https://repository.usfca.edu/thes/129"
+      },
+      {
+       "id": "S3",
+       "title": "Poverty and Economic Decision-Making: Evidence from Changes in Financial Resources at Payday",
+       "year": 2016,
+       "type": "experiment",
+       "citedBy": 518,
+       "level": "supported",
+       "rel": 0.55,
+       "url": "https://doi.org/10.1257/aer.20140481"
+      },
+      {
+       "id": "S4",
+       "title": "Poverty and economic decision making: a review of scarcity theory",
+       "year": 2021,
+       "type": "review",
+       "citedBy": 279,
+       "level": "supported",
+       "rel": 0.61,
+       "url": "https://doi.org/10.1007/s11238-021-09802-7"
+      },
+      {
+       "id": "S5",
+       "title": "A Review of Consequences of Poverty on Economic Decision-Making: A Hypothesized Model of a Cognitive Mechanism",
+       "year": 2017,
+       "type": "review",
+       "citedBy": 105,
+       "level": "supported",
+       "rel": 0.68,
+       "url": "https://doi.org/10.3389/fpsyg.2017.01784"
+      },
+      {
+       "id": "S6",
+       "title": "Economic Scarcity Impedes Impoverished Children's Executive Function: The Role of Multiple Resources Examined Through Eye Tracking",
+       "year": 2026,
+       "type": "experiment",
+       "citedBy": 0,
+       "level": "supported",
+       "rel": 0.9,
+       "url": "https://doi.org/10.1111/desc.70283"
+      }
+     ],
+     "facts": [
+      {
+       "id": "F1",
+       "claim": "Experimental results do not find that mental and financial scarcities significantly impact test performance on problem‑solving tasks.",
+       "source": "S2",
+       "quote": "Experimental results do not find that mental and financial scarcities significantly impact test performance.",
+       "surprise": 4,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F2",
+       "claim": "Evidence for the third proposition of scarcity theory (that poverty impairs decision quality) was not conclusive.",
+       "source": "S4",
+       "quote": "Evidence for the third proposition was not conclusive.",
+       "surprise": 4,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F3",
+       "claim": "Cognitive load could decrease self‑control capacity needed for healthy dietary behavior because it consumes mental bandwidth.",
+       "source": "S1",
+       "quote": "Cognitive load could decrease self‑control capacity needed for healthy dietary behavior because it consumes mental bandwidth.",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F4",
+       "claim": "Before‑payday participants behave as if they are more present‑biased when making intertemporal choices about monetary rewards but not when making intertemporal choices about non‑monetary real‑effort tasks.",
+       "source": "S3",
+       "quote": "Before‑payday participants behave as if they are more present‑biased when making intertemporal choices about monetary rewards but not when making intertemporal choices about non‑monetary real‑effort tasks.",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F5",
+       "claim": "For children experiencing poverty, more price viewing predicted a decrease in executive function in the poverty group only.",
+       "source": "S6",
+       "quote": "In addition, more price viewing predicted a decrease in executive function in the poverty group only.",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F6",
+       "claim": "Financial scarcity is linked to a present time orientation that shifts priorities and decreases motivation for healthy dietary behavior.",
+       "source": "S1",
+       "quote": "Financial scarcity is related to a present time orientation, which affects dietary choices by shifting priorities and decreasing motivation for healthy dietary behavior.",
+       "surprise": 2,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      }
+     ],
+     "rejected": [],
+     "supports": "partly",
+     "angle": "The sources show that financial scarcity can redirect attention and shift time orientation, potentially reducing self‑control for healthy choices, but experimental evidence on cognitive performance is mixed and does not consistently prove a causal impairment.",
+     "verdict": "The evidence indicates that financial scarcity may consume mental bandwidth and alter priorities, yet it does not consistently show a direct, causal reduction in overall cognitive function or decision quality.",
+     "caveat": "The findings rely on observational or limited experimental designs, and many studies report only associations rather than definitive causal effects.",
+     "llm": {
+      "ms": 181692,
+      "timings": {
+       "first_s": 108.5,
+       "gen_s": 73.2,
+       "prompt_tps": 16.7,
+       "gen_tps": 8.5
+      },
+      "usage": {
+       "in": 1735,
+       "out": 660
+      },
+      "finish": "stop"
+     }
+    },
+    "write": {
+     "ok": true,
+     "reason": "",
+     "drafts": 1,
+     "fixes": [],
+     "issues": [],
+     "llm": {
+      "ms": 140212,
+      "timings": {
+       "first_s": 77.2,
+       "gen_s": 63,
+       "prompt_tps": 16.8,
+       "gen_tps": 9.02
+      },
+      "usage": {
+       "in": 1175,
+       "out": 636
+      }
+     }
+    }
+   }
+  },
+  {
+   "index": 3,
+   "ok": true,
+   "seconds": 290,
+   "post": {
+    "id": "2026-10-04-quitting-social-media-lowers-well-being",
+    "created": "2026-10-04T21:25:54.226Z",
+    "subject": "social",
+    "style": "reality",
+    "topic": "Does quitting social media actually make people happier?",
+    "angle": "The evidence shows that short or temporary breaks from social media rarely improve well‑being and may even worsen it, while longer‑term or moderate reductions might help with depression, but overall the results are inconsistent.",
+    "title": "quitting social media lowers well‑being",
+    "hooks": [
+     {
+      "type": "question",
+      "text": "do you think quitting social media will bring joy?"
+     },
+     {
+      "type": "contradiction",
+      "text": "you think you need a break, but studies show it may hurt well‑being."
+     },
+     {
+      "type": "accusation",
+      "text": "you scroll until the screen fades, then feel alone."
+     },
+     {
+      "type": "scene",
+      "text": "a dim kitchen table, a phone, a muted screen."
+     },
+     {
+      "type": "statement",
+      "text": "quitting social media may lower life satisfaction."
+     }
+    ],
+    "hook": 0,
+    "slides": {
+     "reveal": {
+      "headline": "quitting social media lowers life satisfaction",
+      "body": "abstaining reduces life satisfaction, raises negative affect, and increases loneliness.",
+      "facts": [
+       "F1"
+      ]
+     },
+     "explain": {
+      "headline": "what the evidence shows",
+      "body": "studies find that stopping social media use often makes people feel worse, not better. meta‑analyses show no positive affect, and some trials see more loneliness and lower daily well‑being.",
+      "facts": [
+       "F1",
+       "F2",
+       "F3"
+      ]
+     },
+     "matters": {
+      "headline": "why this matters",
+      "body": "that may be why you feel uneasy after a break; the evidence suggests you may not gain well‑being when you quit.",
+      "facts": [
+       "F1",
+       "F3"
+      ]
+     },
+     "example": {
+      "headline": "a typical moment",
+      "body": "you scroll through a feed in the kitchen, pause, and then feel more tired."
+     },
+     "question": {
+      "headline": "do you feel happier when you log off?",
+      "body": ""
+     }
+    },
+    "stat": {
+     "value": "increase in negative affect",
+     "label": "change in affect after quitting",
+     "fact": "F1"
+    },
+    "claims": [
+     {
+      "id": "F1",
+      "text": "Abstaining from social media use causes a decline in life satisfaction, an increase in negative affect, and an increase in loneliness.",
+      "source": "S1",
+      "quote": "Those who abstained from social media use, compared with those in the control group, evidenced a decline in life satisfaction, an increase in negative affect, and an increase in loneliness.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F2",
+      "text": "Social media abstinence interventions have no significant effects on positive affect, negative affect, or life satisfaction.",
+      "source": "S4",
+      "quote": "The analyses revealed no significant effects of social media abstinence interventions on positive affect, negative affect, or life satisfaction.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F3",
+      "text": "Abstaining from social media has no measurable positive effect on daily well‑being and may reduce social relatedness and day satisfaction.",
+      "source": "S5",
+      "quote": "Results did not show that abstaining from social media has positive effects on daily well‑being… Evidence indicated that abstinence from social media had no measurable positive effect on well‑being, and some models showed significant deficits in social relatedness and satisfaction with one’s day.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F4",
+      "text": "Limiting social media use reduces depression symptoms, with an effect size twice that of abstinence interventions, but the difference is not significant.",
+      "source": "S2",
+      "quote": "Although interventions aimed at reducing use of social media had twice the depression effect size of interventions aimed at abstinence from social media, the difference was not significant.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F5",
+      "text": "Social media use is associated with positive psychosocial outcomes in older adults, but longitudinal and randomized controlled trials report mixed findings.",
+      "source": "S6",
+      "quote": "While associations between social media use and positive psychosocial outcomes were generally reported in cross‑sectional studies, the impact of social media use over time from longitudinal studies was mixed and inconclusive.",
+      "level": "established",
+      "link": false
+     }
+    ],
+    "sources": [
+     {
+      "id": "S1",
+      "title": "Abstinence from social media use, subjective well‐being, stress, and loneliness",
+      "authors": "Zahir Vally, Caroline G. D'Souza",
+      "cite": "Vally & D'Souza",
+      "year": 2019,
+      "venue": "Perspectives In Psychiatric Care",
+      "type": "rct",
+      "url": "https://doi.org/10.1111/ppc.12431",
+      "doi": "10.1111/ppc.12431",
+      "citedBy": 87,
+      "level": "supported"
+     },
+     {
+      "id": "S2",
+      "title": "Reducing Social Media Use Decreases Depression Symptoms: A Meta-Analysis of Randomised Controlled Trials",
+      "authors": "Willem May, John M. Malouff, Jai Meynadier",
+      "cite": "May et al.",
+      "year": 2025,
+      "venue": "European Journal of Investigation in Health Psychology and Education",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.3390/ejihpe15110222",
+      "doi": "10.3390/ejihpe15110222",
+      "citedBy": 5,
+      "level": "established"
+     },
+     {
+      "id": "S4",
+      "title": "The effects of social media abstinence on affective well-being and life satisfaction: a systematic review and meta-analysis",
+      "authors": "Lemahieu L, Vander Zwalmen Y, Mennes M, Koster EHW, Vanden Abeele MMP, Poels K",
+      "cite": "Lemahieu et al.",
+      "year": 2025,
+      "venue": "Scientific reports",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.1038/s41598-025-90984-3",
+      "doi": "10.1038/s41598-025-90984-3",
+      "citedBy": 43,
+      "level": "established"
+     },
+     {
+      "id": "S5",
+      "title": "Does Taking a Short Break from Social Media Have a Positive Effect on Well-being? Evidence from Three Preregistered Field Experiments",
+      "authors": "Andrew K Przybylski, Thuy-vy Thi Nguyen, Wilbert Law et al.",
+      "cite": "Przybylski et al.",
+      "year": 2021,
+      "venue": "Journal of Technology in Behavioral Science",
+      "type": "experiment",
+      "url": "https://doi.org/10.1007/s41347-020-00189-w",
+      "doi": "10.1007/s41347-020-00189-w",
+      "citedBy": 94,
+      "level": "supported"
+     },
+     {
+      "id": "S6",
+      "title": "The relationship between social media use and psychosocial outcomes in older adults: A systematic review",
+      "authors": "Xiaojing Lei, Diana Matovic, Wing‐Yin Leung et al.",
+      "cite": "Lei et al.",
+      "year": 2024,
+      "venue": "International Psychogeriatrics",
+      "type": "systematic-review",
+      "url": "https://doi.org/10.1017/s1041610223004519",
+      "doi": "10.1017/s1041610223004519",
+      "citedBy": 46,
+      "level": "established"
+     }
+    ],
+    "also": [
+     {
+      "title": "The Impact of Social Media Use Interventions on Mental Well-Being: Systematic Review",
+      "cite": "Plackett et al.",
+      "year": 2023,
+      "url": "https://doi.org/10.2196/44922",
+      "type": "systematic-review"
+     }
+    ],
+    "verdict": "The studies collectively indicate that quitting or limiting social media use does not consistently make people happier; some experiments show declines in well‑being, while others find small or no benefits.",
+    "caveat": "Most studies use convenience samples or short durations, and many report mixed or non‑significant effects, so conclusions about long‑term benefits remain uncertain.",
+    "supports": "partly",
+    "caption": "quitting social media may lower life satisfaction and raise negative affect. evidence is mixed and often shows no benefit, especially short breaks. do you notice a drop in happiness when you log off?",
+    "hashtags": [
+     "socialmedia",
+     "wellbeing",
+     "research",
+     "science",
+     "mentalhealth",
+     "loneliness",
+     "depression",
+     "life"
+    ],
+    "imageIdeas": [
+     "dark kitchen table",
+     "silhouette of hands holding phone",
+     "empty living room with dim light",
+     "screen with no content"
+    ],
+    "images": [],
+    "credibility": {
+     "score": 94,
+     "flags": [
+      "Evidence is mixed — the post says so"
+     ]
+    },
+    "intensity": 2,
+    "engine": {
+     "version": "0.3",
+     "writer": "local:gptoss-20b",
+     "seconds": 290,
+     "drafts": 1
+    }
+   },
+   "trace": {
+    "topic": "Does quitting social media actually make people happier?",
+    "research": {
+     "ok": true,
+     "search": {
+      "found": 75,
+      "relevant": 21,
+      "errors": []
+     },
+     "sources": [
+      {
+       "id": "S1",
+       "title": "Abstinence from social media use, subjective well‐being, stress, and loneliness",
+       "year": 2019,
+       "type": "rct",
+       "citedBy": 87,
+       "level": "supported",
+       "rel": 0.89,
+       "url": "https://doi.org/10.1111/ppc.12431"
+      },
+      {
+       "id": "S2",
+       "title": "Reducing Social Media Use Decreases Depression Symptoms: A Meta-Analysis of Randomised Controlled Trials",
+       "year": 2025,
+       "type": "meta-analysis",
+       "citedBy": 5,
+       "level": "established",
+       "rel": 0.86,
+       "url": "https://doi.org/10.3390/ejihpe15110222"
+      },
+      {
+       "id": "S3",
+       "title": "The Impact of Social Media Use Interventions on Mental Well-Being: Systematic Review",
+       "year": 2023,
+       "type": "systematic-review",
+       "citedBy": 98,
+       "level": "established",
+       "rel": 0.71,
+       "url": "https://doi.org/10.2196/44922"
+      },
+      {
+       "id": "S4",
+       "title": "The effects of social media abstinence on affective well-being and life satisfaction: a systematic review and meta-analysis",
+       "year": 2025,
+       "type": "meta-analysis",
+       "citedBy": 43,
+       "level": "established",
+       "rel": 0.64,
+       "url": "https://doi.org/10.1038/s41598-025-90984-3"
+      },
+      {
+       "id": "S5",
+       "title": "Does Taking a Short Break from Social Media Have a Positive Effect on Well-being? Evidence from Three Preregistered Field Experiments",
+       "year": 2021,
+       "type": "experiment",
+       "citedBy": 94,
+       "level": "supported",
+       "rel": 0.76,
+       "url": "https://doi.org/10.1007/s41347-020-00189-w"
+      },
+      {
+       "id": "S6",
+       "title": "The relationship between social media use and psychosocial outcomes in older adults: A systematic review",
+       "year": 2024,
+       "type": "systematic-review",
+       "citedBy": 46,
+       "level": "established",
+       "rel": 0.66,
+       "url": "https://doi.org/10.1017/s1041610223004519"
+      }
+     ],
+     "facts": [
+      {
+       "id": "F1",
+       "claim": "Abstaining from social media use causes a decline in life satisfaction, an increase in negative affect, and an increase in loneliness.",
+       "source": "S1",
+       "quote": "Those who abstained from social media use, compared with those in the control group, evidenced a decline in life satisfaction, an increase in negative affect, and an increase in loneliness.",
+       "surprise": 4,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F2",
+       "claim": "Social media abstinence interventions have no significant effects on positive affect, negative affect, or life satisfaction.",
+       "source": "S4",
+       "quote": "The analyses revealed no significant effects of social media abstinence interventions on positive affect, negative affect, or life satisfaction.",
+       "surprise": 4,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F3",
+       "claim": "Abstaining from social media has no measurable positive effect on daily well‑being and may reduce social relatedness and day satisfaction.",
+       "source": "S5",
+       "quote": "Results did not show that abstaining from social media has positive effects on daily well‑being… Evidence indicated that abstinence from social media had no measurable positive effect on well‑being, and some models showed significant deficits in social relatedness and satisfaction with one’s day.",
+       "surprise": 4,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F4",
+       "claim": "Limiting social media use reduces depression symptoms, with an effect size twice that of abstinence interventions, but the difference is not significant.",
+       "source": "S2",
+       "quote": "Although interventions aimed at reducing use of social media had twice the depression effect size of interventions aimed at abstinence from social media, the difference was not significant.",
+       "surprise": 3,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F5",
+       "claim": "Social media use is associated with positive psychosocial outcomes in older adults, but longitudinal and randomized controlled trials report mixed findings.",
+       "source": "S6",
+       "quote": "While associations between social media use and positive psychosocial outcomes were generally reported in cross‑sectional studies, the impact of social media use over time from longitudinal studies was mixed and inconclusive.",
+       "surprise": 3,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      }
+     ],
+     "rejected": [],
+     "supports": "partly",
+     "angle": "The evidence shows that short or temporary breaks from social media rarely improve well‑being and may even worsen it, while longer‑term or moderate reductions might help with depression, but overall the results are inconsistent.",
+     "verdict": "The studies collectively indicate that quitting or limiting social media use does not consistently make people happier; some experiments show declines in well‑being, while others find small or no benefits.",
+     "caveat": "Most studies use convenience samples or short durations, and many report mixed or non‑significant effects, so conclusions about long‑term benefits remain uncertain.",
+     "llm": {
+      "ms": 173359,
+      "timings": {
+       "first_s": 114.2,
+       "gen_s": 59.1,
+       "prompt_tps": 16.7,
+       "gen_tps": 8.49
+      },
+      "usage": {
+       "in": 1827,
+       "out": 542
+      },
+      "finish": "stop"
+     }
+    },
+    "write": {
+     "ok": true,
+     "reason": "",
+     "drafts": 1,
+     "fixes": [],
+     "issues": [],
+     "llm": {
+      "ms": 115524,
+      "timings": {
+       "first_s": 69.7,
+       "gen_s": 45.8,
+       "prompt_tps": 16.9,
+       "gen_tps": 9.17
+      },
+      "usage": {
+       "in": 1150,
+       "out": 436
+      }
+     }
+    }
+   }
+  }
+ ],
+ "http": {
+  "requests": 40,
+  "cached": 0,
+  "failures": 0,
+  "byHost": {
+   "www.ebi.ac.uk": 24,
+   "api.openalex.org": 16
+  }
+ }
+}
