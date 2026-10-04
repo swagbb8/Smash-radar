@@ -1,0 +1,28 @@
+{
+  "id": "sample-brain-drain", "n": 1, "sample": true, "created": "2026-10-04T00:00:00Z", "subject": "technology", "style": "hijacked",
+  "title": "The phone on your desk",
+  "hooks": [
+    { "text": "Your phone doesn't have to ring to make you worse at thinking.", "type": "contradiction" },
+    { "text": "Why do you think more clearly when your phone is in another room?", "type": "question" },
+    { "text": "Two experiments. One silent phone. Less brain to think with.", "type": "number" },
+    { "text": "You put it face down and told yourself that was enough.", "type": "accusation" },
+    { "text": "The phone is silent. It is face down. It is still working on you.", "type": "scene" }
+  ],
+  "hook": 0,
+  "slides": {
+    "reveal": { "headline": "A silent phone on the desk still costs you brain power.", "body": "In two experiments, the mere presence of people's own smartphones reduced their available cognitive capacity — even when they never touched them.", "facts": ["F1"] },
+    "explain": { "headline": "Ignoring it is the work.", "body": "Part of your attention stays on duty, keeping you from reaching for it. That effort uses the same limited capacity you need for the task in front of you.", "facts": ["F1"] },
+    "matters": { "headline": "You never feel the cost.", "body": "People in the study managed to keep their attention on the task. The loss showed up anyway. That may be why it is so easy to believe your phone isn't affecting you.", "facts": [] },
+    "example": { "headline": "It's on the table at dinner.", "body": "Screen down. Sound off. Nobody touches it. A small part of everyone at the table is still waiting for it to light up.", "facts": [] },
+    "question": { "headline": "How much of you is in the room right now?", "body": "" }
+  },
+  "stat": { "value": "2 experiments", "label": "found the same cost from a phone that was never used", "fact": "F1" },
+  "claims": [
+    { "id": "F1", "text": "In two experiments, the mere presence of people's own smartphones reduced their available cognitive capacity.", "source": "S1", "quote": "the mere presence of these devices reduces available cognitive capacity", "level": "supported" },
+    { "id": "F2", "text": "The cognitive cost was highest for the people who depend on their smartphones the most.", "source": "S1", "quote": "these cognitive costs are highest for those highest in smartphone dependence", "level": "supported" }
+  ],
+  "sources": [
+    { "id": "S1", "title": "Brain Drain: The Mere Presence of One's Own Smartphone Reduces Available Cognitive Capacity", "authors": "Ward AF, Duke K, Gneezy A, Bos MW", "cite": "Ward et al.", "year": 2017, "venue": "Journal of the Association for Consumer Research", "type": "experiment", "url": "https://doi.org/10.1086/691462", "doi": "10.1086/691462" }
+  ],
+  "caption": "", "hashtags": [], "images": []
+}

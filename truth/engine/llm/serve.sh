@@ -10,17 +10,20 @@ PORT=${LLM_PORT:-8080}; CTX=${LLM_CTX:-8192}; HOME_DIR=${LLM_HOME:-$HOME/.truth-
 if [ ! -x "$HOME_DIR/bin/llama-server" ]; then
   echo "::group::Install llama.cpp"
   api="https://api.github.com/repos/ggml-org/llama.cpp/releases/${LLAMA_TAG:+tags/}${LLAMA_TAG:-latest}"
-  url=$(curl -fsSL ${GITHUB_TOKEN:+-H "Authorization: Bearer $GITHUB_TOKEN"} "$api" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const a=(j.assets||[]).filter(a=>/ubuntu-x64/.test(a.name)&&!/vulkan|cuda|rocm|sycl|arm|s390|riscv|openvino/i.test(a.name));if(!a.length){console.error("no ubuntu x64 asset in",j.tag_name);process.exit(1)}console.error("llama.cpp",j.tag_name,a[0].name);console.log(a[0].browser_download_url)})')
+  curl -sSL -H "Accept: application/vnd.github+json" ${GITHUB_TOKEN:+-H "Authorization: Bearer $GITHUB_TOKEN"} "$api" -o /tmp/llama-release.json || { echo "release lookup failed"; exit 1; }
+  url=$(node -e 'const j=JSON.parse(require("fs").readFileSync("/tmp/llama-release.json","utf8"));const names=(j.assets||[]).map(a=>a.name);const pick=(j.assets||[]).filter(a=>/(ubuntu|linux).*(x64|x86_64|amd64)/i.test(a.name)&&!/vulkan|cuda|rocm|sycl|arm|aarch|s390|riscv|openvino|hip|opencl/i.test(a.name));if(!pick.length){console.error("no linux x64 CPU asset in",j.tag_name||j.message,"assets:",names.join(", "));process.exit(1)}console.error("llama.cpp",j.tag_name,pick[0].name);console.log(pick[0].browser_download_url)')
   curl -fsSL "$url" -o /tmp/llama.pkg
-  rm -rf /tmp/llama && mkdir -p /tmp/llama && (unzip -q /tmp/llama.pkg -d /tmp/llama 2>/dev/null || tar xzf /tmp/llama.pkg -C /tmp/llama)
-  src=$(dirname "$(find /tmp/llama -type f -name llama-server | head -1)"); cp -a "$src"/. "$HOME_DIR/bin/"; chmod +x "$HOME_DIR/bin/llama-server"
+  rm -rf /tmp/llama && mkdir -p /tmp/llama && (unzip -q /tmp/llama.pkg -d /tmp/llama 2>/dev/null || tar xf /tmp/llama.pkg -C /tmp/llama)
+  srv=$(find /tmp/llama -type f -name llama-server | head -1); [ -n "$srv" ] || { echo "llama-server not found in package:"; find /tmp/llama -maxdepth 3 | head -30; exit 1; }
+  src=$(dirname "$srv"); cp -a "$src"/. "$HOME_DIR/bin/"; chmod +x "$HOME_DIR/bin/llama-server"
   echo "::endgroup::"
 fi
 
 MODEL="$HOME_DIR/models/$MODEL_FILE"
 if [ ! -s "$MODEL" ]; then
   echo "::group::Download $MODEL_REPO/$MODEL_FILE"
-  curl -fL --retry 4 --retry-delay 5 -o "$MODEL.part" "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE" 2>&1 | tail -2
+  code=$(curl -sL --retry 4 --retry-delay 5 -o "$MODEL.part" -w '%{http_code}' "https://huggingface.co/$MODEL_REPO/resolve/main/$MODEL_FILE" || true)
+  [ "$code" = "200" ] || { echo "model download failed: HTTP $code for $MODEL_REPO/$MODEL_FILE"; head -c 300 "$MODEL.part" 2>/dev/null; exit 1; }
   mv "$MODEL.part" "$MODEL"; ls -la "$MODEL"
   echo "::endgroup::"
 fi

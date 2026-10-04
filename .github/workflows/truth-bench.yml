@@ -39,10 +39,11 @@ jobs:
           MODEL_REPO: ${{ matrix.m.repo }}
           MODEL_FILE: ${{ matrix.m.file }}
           LLM_ARGS: ${{ matrix.m.args }}
+        shell: bash
         run: |
-          nproc; free -g | head -2; df -h / | tail -1
-          bash truth/engine/llm/serve.sh
-          free -g | head -2
+          mkdir -p bench-out
+          { nproc; free -g | head -2; df -h / | tail -1; bash truth/engine/llm/serve.sh; rc=$?; free -g | head -2; echo "serve exit $rc"; } 2>&1 | tee bench-out/${{ matrix.m.name }}.start.log
+          grep -q "serve exit 0" bench-out/${{ matrix.m.name }}.start.log || { echo "::error::$(tail -c 600 bench-out/${{ matrix.m.name }}.start.log | tr '\n' ' ')"; exit 1; }
       - name: Benchmark
         if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
         env:
