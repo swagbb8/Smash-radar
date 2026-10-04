@@ -1,0 +1,839 @@
+{
+ "at": "2026-10-04T23:34:44.608Z",
+ "sources": {
+  "europepmc": [
+   {
+    "q": "financial scarcity cognitive load decision making",
+    "ok": true,
+    "total": 1333,
+    "ms": 1071,
+    "items": [
+     {
+      "title": "From financial scarcity to risk and time preferences: the role of executive functions",
+      "year": 2026,
+      "type": "observational",
+      "citedBy": 0,
+      "venue": "Frontiers in psychology",
+      "abstract": 2088,
+      "doi": "10.3389/fpsyg.2026.1782444"
+     },
+     {
+      "title": "Present-Biased Preferences Associated with Socioeconomic Status in Intertemporal Decision-Making: Evidence fro",
+      "year": 2026,
+      "type": "experiment",
+      "citedBy": 0,
+      "venue": "Brain sciences",
+      "abstract": 2443,
+      "doi": "10.3390/brainsci16080879"
+     },
+     {
+      "title": "Economic Scarcity Impedes Impoverished Children's Executive Function: The Role of Multiple Resources Examined ",
+      "year": 2026,
+      "type": "experiment",
+      "citedBy": 0,
+      "venue": "Developmental science",
+      "abstract": 1783,
+      "doi": "10.1111/desc.70283"
+     },
+     {
+      "title": "SNAP disruption during a government shutdown and implications for chronic disease self-management: a qualitati",
+      "year": 2026,
+      "type": "observational",
+      "citedBy": 0,
+      "venue": "Health affairs scholar",
+      "abstract": 1671,
+      "doi": "10.1093/haschl/qxag194"
+     },
+     {
+      "title": "Impact of perceived scarcity on intertemporal choice: the mediating role of sense of control",
+      "year": 2026,
+      "type": "observational",
+      "citedBy": 0,
+      "venue": "BMC psychology",
+      "abstract": 958,
+      "doi": "10.1186/s40359-026-04600-8"
+     }
+    ]
+   },
+   {
+    "q": "anchoring effect meta-analysis",
+    "ok": true,
+    "total": 9180,
+    "ms": 390,
+    "items": [
+     {
+      "title": "The debiasing paradox: cognitive biases in judicial adjudication of valuation adjustment mechanisms across Chi",
+      "year": 2026,
+      "type": "observational",
+      "citedBy": 0,
+      "venue": "Frontiers in psychology",
+      "abstract": 2241,
+      "doi": "10.3389/fpsyg.2026.1870936"
+     },
+     {
+      "title": "The denominator chooses the estimand: A target-population true-score framework for standardized mean differenc",
+      "year": 2026,
+      "type": "study",
+      "citedBy": 0,
+      "venue": "Psychological methods",
+      "abstract": 1822,
+      "doi": "10.1037/met0000875"
+     },
+     {
+      "title": "Mindfulness- and acceptance-based interventions for music performance anxiety: a three-level meta-analysis of ",
+      "year": 2026,
+      "type": "systematic-review",
+      "citedBy": 2,
+      "venue": "Frontiers in psychology",
+      "abstract": 2371,
+      "doi": "10.3389/fpsyg.2026.1851221"
+     },
+     {
+      "title": "Heteroatom Effects on Quantum Interference in Molecular Junctions: Exploring Perturbation through Multiple Cro",
+      "year": 2026,
+      "type": "experiment",
+      "citedBy": 0,
+      "venue": "The journal of physical chemistry. C, Nanomaterial",
+      "abstract": 1516,
+      "doi": "10.1021/acs.jpcc.5c08386"
+     },
+     {
+      "title": "Reframing the starting point of shared decision-making under algorithmic short-form video exposure: bone tumor",
+      "year": 2026,
+      "type": "observational",
+      "citedBy": 0,
+      "venue": "Frontiers in public health",
+      "abstract": 1810,
+      "doi": "10.3389/fpubh.2026.1829734"
+     }
+    ]
+   },
+   {
+    "q": "Flynn effect IQ scores decline",
+    "ok": true,
+    "total": 264,
+    "ms": 382,
+    "items": [
+     {
+      "title": "Family-level intelligence and maternal health: A cross-cohort, cross-generational longitudinal study using the",
+      "year": 2025,
+      "type": "observational",
+      "citedBy": 0,
+      "venue": "Intelligence",
+      "abstract": 1664,
+      "doi": "10.1016/j.intell.2025.101966"
+     },
+     {
+      "title": "Reframing air pollution as a cognitive and socioeconomic risk",
+      "year": 2026,
+      "type": "review",
+      "citedBy": 0,
+      "venue": "NPJ clean air",
+      "abstract": 558,
+      "doi": "10.1038/s44407-026-00059-4"
+     },
+     {
+      "title": "Generational IQ test score changes and the positive manifold of intelligence: evidence from Austrian Air Force",
+      "year": 2025,
+      "type": "study",
+      "citedBy": 0,
+      "venue": "Frontiers in psychology",
+      "abstract": 1013,
+      "doi": "10.3389/fpsyg.2025.1547520"
+     },
+     {
+      "title": "Cognitive Aging Revisited: A Cross-Sectional Analysis of the WAIS-5",
+      "year": 2025,
+      "type": "observational",
+      "citedBy": 1,
+      "venue": "Journal of Intelligence",
+      "abstract": 1567,
+      "doi": "10.3390/jintelligence13070085"
+     },
+     {
+      "title": "Wait, Where's the Flynn Effect on the WAIS-5?",
+      "year": 2024,
+      "type": "study",
+      "citedBy": 1,
+      "venue": "Journal of Intelligence",
+      "abstract": 1407,
+      "doi": "10.3390/jintelligence12110118"
+     }
+    ]
+   },
+   {
+    "q": "placebo effect open-label",
+    "ok": true,
+    "total": 84464,
+    "ms": 427,
+    "items": [
+     {
+      "title": "Informing the patient of the placebo option: an ethical necessity likely to reduce inappropriate psychotropic ",
+      "year": 2026,
+      "type": "review",
+      "citedBy": 0,
+      "venue": "Therapeutic advances in psychopharmacology",
+      "abstract": 2025,
+      "doi": "10.1177/20451253261436150"
+     },
+     {
+      "title": "Dispositional optimism and open-label placebo responses in hair cortisol concentrations and psychological dist",
+      "year": 2026,
+      "type": "rct",
+      "citedBy": 1,
+      "venue": "Applied psychology. Health and well-being",
+      "abstract": 1477,
+      "doi": "10.1111/aphw.70217"
+     },
+     {
+      "title": "Improvements in Patient-Reported Outcome Measures Through 64 Weeks' Rimegepant Treatment for Migraine: Analysi",
+      "year": 2026,
+      "type": "rct",
+      "citedBy": 0,
+      "venue": "Journal of pain research",
+      "abstract": 2125,
+      "doi": "10.2147/jpr.s612330"
+     },
+     {
+      "title": "Phase III trial of sodium dichloroacetate for pyruvate dehydrogenase complex deficiency in children",
+      "year": 2026,
+      "type": "rct",
+      "citedBy": 0,
+      "venue": "JCI insight",
+      "abstract": 1642,
+      "doi": "10.1172/jci.insight.200149"
+     },
+     {
+      "title": "Mechanisms of open and hidden placebo in stroke recovery: targeting neuroplasticity insights of the placebo ef",
+      "year": 2026,
+      "type": "trial",
+      "citedBy": 0,
+      "venue": "BMJ open",
+      "abstract": 2419,
+      "doi": "10.1136/bmjopen-2025-113119"
+     }
+    ]
+   }
+  ],
+  "openalex": [
+   {
+    "q": "financial scarcity cognitive load decision making",
+    "ok": true,
+    "total": 10046,
+    "ms": 523,
+    "items": [
+     {
+      "title": "Tunneling, cognitive load and time orientation and their relations with dietary behavior of people experiencin",
+      "year": 2024,
+      "type": "review",
+      "citedBy": 25,
+      "venue": "International Journal of Behavioral Nutrition and ",
+      "abstract": 2403,
+      "doi": "10.1186/s12966-024-01576-9"
+     },
+     {
+      "title": "Poverty and economic decision making: a review of scarcity theory",
+      "year": 2021,
+      "type": "review",
+      "citedBy": 279,
+      "venue": "Theory and Decision",
+      "abstract": 1298,
+      "doi": "10.1007/s11238-021-09802-7"
+     },
+     {
+      "title": "Financial scarcity and cognitive performance: A meta-analysis",
+      "year": 2024,
+      "type": "meta-analysis",
+      "citedBy": 24,
+      "venue": "Journal of Economic Psychology",
+      "abstract": 1675,
+      "doi": "10.1016/j.joep.2024.102702"
+     },
+     {
+      "title": "The role of poverty on economic decision-making: a model of cognitive function and heuristic use",
+      "year": 2019,
+      "type": "preprint",
+      "citedBy": 0,
+      "venue": "RePEc: Research Papers in Economics",
+      "abstract": 1635,
+      "doi": null
+     },
+     {
+      "title": "A Review of Consequences of Poverty on Economic Decision-Making: A Hypothesized Model of a Cognitive Mechanism",
+      "year": 2017,
+      "type": "review",
+      "citedBy": 105,
+      "venue": "Frontiers in Psychology",
+      "abstract": 862,
+      "doi": "10.3389/fpsyg.2017.01784"
+     }
+    ]
+   },
+   {
+    "q": "anchoring effect meta-analysis",
+    "ok": true,
+    "total": 160360,
+    "ms": 416,
+    "items": [
+     {
+      "title": "Anchoring effect in legal decision-making: A meta-analysis.",
+      "year": 2021,
+      "type": "meta-analysis",
+      "citedBy": 97,
+      "venue": "Law and Human Behavior",
+      "abstract": 298,
+      "doi": "10.1037/lhb0000438"
+     },
+     {
+      "title": "Treatment effect of bone-anchored maxillary protraction in growing patients compared to controls: a systematic",
+      "year": 2020,
+      "type": "meta-analysis",
+      "citedBy": 47,
+      "venue": "European Journal of Orthodontics",
+      "abstract": 2323,
+      "doi": "10.1093/ejo/cjaa016"
+     },
+     {
+      "title": "Fifty Years of Anchoring Effects: A Theoretical Reintegration and Meta-Analysis",
+      "year": 2026,
+      "type": "meta-analysis",
+      "citedBy": 0,
+      "venue": "Management Science",
+      "abstract": 1446,
+      "doi": "10.1287/mnsc.2023.03238"
+     },
+     {
+      "title": "Hanging the Anchor Off a New Ship: A Meta-Analysis of Anchoring Effects",
+      "year": 2022,
+      "type": "preprint",
+      "citedBy": 12,
+      "venue": "",
+      "abstract": 1650,
+      "doi": "10.31234/osf.io/wf2tn"
+     },
+     {
+      "title": "Chasing the Anchor: A Systematic Review and Meta-Analysis of Perceptual Anchoring Deficits in Developmental Dy",
+      "year": 2021,
+      "type": "meta-analysis",
+      "citedBy": 11,
+      "venue": "Journal of Speech Language and Hearing Research",
+      "abstract": 1638,
+      "doi": "10.1044/2021_jslhr-20-00533"
+     }
+    ]
+   },
+   {
+    "q": "Flynn effect IQ scores decline",
+    "ok": true,
+    "total": 1630,
+    "ms": 305,
+    "items": [
+     {
+      "title": "The 'Flynn Effect': How Applicable is it to Longitudinal IQ Assessment of American",
+      "year": 1999,
+      "type": "observational",
+      "citedBy": 3,
+      "venue": "Mankind Quarterly",
+      "abstract": 3976,
+      "doi": "10.46469/mq.1999.39.4.1"
+     },
+     {
+      "title": "High Stakes IQ Testing: The Flynn Effect and its Clinical Implications",
+      "year": 2017,
+      "type": "study",
+      "citedBy": 1,
+      "venue": "Australasian Journal of Paramedicine",
+      "abstract": 1852,
+      "doi": null
+     },
+     {
+      "title": "The Impact of the Flynn Effect on LD Diagnoses in Special Education",
+      "year": 2010,
+      "type": "observational",
+      "citedBy": 19,
+      "venue": "Journal of Learning Disabilities",
+      "abstract": 933,
+      "doi": "10.1177/0022219410392044"
+     },
+     {
+      "title": "The Flynn Effect in Russia",
+      "year": 2019,
+      "type": "study",
+      "citedBy": 2,
+      "venue": "Experimental Psychology (Russia)",
+      "abstract": 1666,
+      "doi": "10.17759/exppsy.2019120404"
+     },
+     {
+      "title": "Age-related change in Wechsler IQ norms after adjustment for the Flynn effect: Estimates from three computatio",
+      "year": 2013,
+      "type": "study",
+      "citedBy": 5,
+      "venue": "Journal of Clinical and Experimental Neuropsycholo",
+      "abstract": 676,
+      "doi": "10.1080/13803395.2013.806650"
+     }
+    ]
+   },
+   {
+    "q": "placebo effect open-label",
+    "ok": true,
+    "total": 210854,
+    "ms": 323,
+    "items": [
+     {
+      "title": "Why do open-label placebos work? A randomized controlled trial of an open-label placebo induction with and wit",
+      "year": 2018,
+      "type": "rct",
+      "citedBy": 126,
+      "venue": "PLoS ONE",
+      "abstract": 1490,
+      "doi": "10.1371/journal.pone.0192758"
+     },
+     {
+      "title": "Effect of Open-label Placebo on Children and Adolescents With Functional Abdominal Pain or Irritable Bowel Syn",
+      "year": 2022,
+      "type": "rct",
+      "citedBy": 63,
+      "venue": "Archives of Pediatrics and Adolescent Medicine",
+      "abstract": 2654,
+      "doi": "10.1001/jamapediatrics.2021.5750"
+     },
+     {
+      "title": "The effect of open-label placebo on anxiety, cortisol, and pain levels in children with procedural pain",
+      "year": 2026,
+      "type": "rct",
+      "citedBy": 0,
+      "venue": "Frontiers in Pediatrics",
+      "abstract": 1785,
+      "doi": "10.3389/fped.2026.1720751"
+     },
+     {
+      "title": "The Role of Expectations and Tailored Feedback on the Open-Label Placebo Effect",
+      "year": 2024,
+      "type": "preprint",
+      "citedBy": 0,
+      "venue": "",
+      "abstract": 1143,
+      "doi": "10.31234/osf.io/nvsyq"
+     },
+     {
+      "title": "The effect of open‐label placebo on allergic rhinitis symptoms: A systematic review and meta‐analysis of rando",
+      "year": 2024,
+      "type": "systematic-review",
+      "citedBy": 0,
+      "venue": "International Forum of Allergy & Rhinology",
+      "abstract": 433,
+      "doi": "10.1002/alr.23444"
+     }
+    ]
+   }
+  ],
+  "crossref": [
+   {
+    "q": "financial scarcity cognitive load decision making",
+    "ok": true,
+    "total": 682806,
+    "ms": 452,
+    "items": [
+     {
+      "title": "Enhancing Consumer Decision-Making Under Information Overload: A Cognitive Load–Adaptive Approach",
+      "year": 2026,
+      "type": "experiment",
+      "citedBy": 0,
+      "venue": "Journal of Economics, Finance And Management Studi",
+      "abstract": 1653,
+      "doi": "10.47191/jefms/v9-i5-58"
+     },
+     {
+      "title": "Neurological and Behavioural Correlates of Construal in Economic Decision-Making Under Cognitive Load.",
+      "year": 2024,
+      "type": "preprint",
+      "citedBy": 0,
+      "venue": "",
+      "abstract": 1395,
+      "doi": "10.31234/osf.io/rmsu3"
+     },
+     {
+      "title": "Cognitive Driven Biases, Investment Decision Making: The Moderating Role of Financial Literacy",
+      "year": 2020,
+      "type": "preprint",
+      "citedBy": 13,
+      "venue": "",
+      "abstract": 2052,
+      "doi": "10.2139/ssrn.3514086"
+     },
+     {
+      "title": "Roles of cognitive load and self‐relevance during emotional information searching on decision‐making",
+      "year": 2020,
+      "type": "study",
+      "citedBy": 8,
+      "venue": "Journal of Behavioral Decision Making",
+      "abstract": 1788,
+      "doi": "10.1002/bdm.2169"
+     },
+     {
+      "title": "The Effect of Cognitive Load and Default Nudges on Decision‐Making: Experimental Evidence From a Behavioral St",
+      "year": 2026,
+      "type": "experiment",
+      "citedBy": 0,
+      "venue": "Journal of Behavioral Decision Making",
+      "abstract": 1114,
+      "doi": "10.1002/bdm.70081"
+     }
+    ]
+   },
+   {
+    "q": "anchoring effect meta-analysis",
+    "ok": true,
+    "total": 2796710,
+    "ms": 393,
+    "items": [
+     {
+      "title": "50 Years of Anchoring Effects: A Theoretical Re-Integration and Meta-Analysis",
+      "year": 2023,
+      "type": "preprint",
+      "citedBy": 4,
+      "venue": "",
+      "abstract": 1096,
+      "doi": "10.2139/ssrn.4605057"
+     },
+     {
+      "title": "50 Years of Anchoring Effects: A Theoretical Re-Integration and Meta-Analysis",
+      "year": 2025,
+      "type": "preprint",
+      "citedBy": 0,
+      "venue": "",
+      "abstract": 1147,
+      "doi": "10.31234/osf.io/teq7k_v2"
+     },
+     {
+      "title": "50 Years of Anchoring Effects: A Theoretical Re-Integration and Meta-Analysis",
+      "year": 2025,
+      "type": "preprint",
+      "citedBy": 0,
+      "venue": "",
+      "abstract": 1161,
+      "doi": "10.2139/ssrn.5893864"
+     },
+     {
+      "title": "50 Years of Anchoring Effects: A Theoretical Re-Integration and Meta-Analysis",
+      "year": 2023,
+      "type": "preprint",
+      "citedBy": 1,
+      "venue": "",
+      "abstract": 1147,
+      "doi": "10.31234/osf.io/teq7k"
+     },
+     {
+      "title": "Hanging the Anchor Off a New Ship: A Meta-Analysis of Anchoring Effects",
+      "year": 2022,
+      "type": "preprint",
+      "citedBy": 8,
+      "venue": "",
+      "abstract": 1650,
+      "doi": "10.31234/osf.io/wf2tn"
+     }
+    ]
+   },
+   {
+    "q": "Flynn effect IQ scores decline",
+    "ok": true,
+    "total": 932948,
+    "ms": 550,
+    "items": [
+     {
+      "title": "Increasing IQ Test Scores and Decreasing g: The Flynn Effect and Decreasing Positive Manifold Strengths in Aus",
+      "year": 2024,
+      "type": "study",
+      "citedBy": 4,
+      "venue": "Journal of Intelligence",
+      "abstract": 1113,
+      "doi": "10.3390/jintelligence12120130"
+     },
+     {
+      "title": "Rising IQ Scores: Implications for the Elderly",
+      "year": 1998,
+      "type": "study",
+      "citedBy": 0,
+      "venue": "Australasian Journal on Ageing",
+      "abstract": 345,
+      "doi": "10.1111/j.1741-6612.1998.tb00047.x"
+     },
+     {
+      "title": "IQ Scores Should Not Be Adjusted for the Flynn Effect in Capital Punishment Cases",
+      "year": 2010,
+      "type": "study",
+      "citedBy": 7,
+      "venue": "Journal of Psychoeducational Assessment",
+      "abstract": 781,
+      "doi": "10.1177/0734282910373343"
+     },
+     {
+      "title": "IQ Scores Should Be Corrected for the Flynn Effect in High-Stakes Decisions",
+      "year": 2010,
+      "type": "study",
+      "citedBy": 14,
+      "venue": "Journal of Psychoeducational Assessment",
+      "abstract": 1072,
+      "doi": "10.1177/0734282910373341"
+     },
+     {
+      "title": "Flynn effect: Generation growth of IQ",
+      "year": 2020,
+      "type": "study",
+      "citedBy": 0,
+      "venue": "Биомедицинска истраживања",
+      "abstract": 1046,
+      "doi": "10.5937/bii2001071v"
+     }
+    ]
+   },
+   {
+    "q": "placebo effect open-label",
+    "ok": true,
+    "total": 1416708,
+    "ms": 391,
+    "items": [
+     {
+      "title": "The Role of Expectations and Tailored Feedback on the Open-Label Placebo Effect",
+      "year": 2024,
+      "type": "preprint",
+      "citedBy": 0,
+      "venue": "",
+      "abstract": 1143,
+      "doi": "10.31234/osf.io/nvsyq"
+     },
+     {
+      "title": "Can Observational Learning Reinforce Open-label Placebo Hypoalgesia?",
+      "year": 2023,
+      "type": "preprint",
+      "citedBy": 0,
+      "venue": "",
+      "abstract": 1603,
+      "doi": "10.31219/osf.io/4czdn"
+     },
+     {
+      "title": "Why psychotherapy is an open-label placebo and open-label placebos are psychotherapy",
+      "year": 2023,
+      "type": "study",
+      "citedBy": 1,
+      "venue": "Placebo Effects Through the Lens of Translational ",
+      "abstract": 1063,
+      "doi": "10.1093/med/9780197645444.003.0018"
+     },
+     {
+      "title": "Choice over placebo administration enhances open-label placebo hypoalgesia",
+      "year": 2023,
+      "type": "study",
+      "citedBy": 3,
+      "venue": "Pain",
+      "abstract": 1647,
+      "doi": "10.1097/j.pain.0000000000003108"
+     },
+     {
+      "title": "The role of expectations and tailored feedback on the open-label Placebo effect",
+      "year": 2026,
+      "type": "study",
+      "citedBy": 1,
+      "venue": "Journal of Health Psychology",
+      "abstract": 1139,
+      "doi": "10.1177/13591053251414005"
+     }
+    ]
+   }
+  ]
+ },
+ "gather": {
+  "financial scarcity cognitive load decision making": {
+   "stats": {
+    "found": 44,
+    "relevant": 9,
+    "errors": []
+   },
+   "sources": [
+    {
+     "provider": "openalex",
+     "title": "Tunneling, cognitive load and time orientation and their relations with dietary behavior of people e",
+     "year": 2024,
+     "type": "review",
+     "citedBy": 25,
+     "rel": 0.9,
+     "score": 6.4
+    },
+    {
+     "provider": "openalex",
+     "title": "Poverty and economic decision making: a review of scarcity theory",
+     "year": 2021,
+     "type": "review",
+     "citedBy": 279,
+     "rel": 0.62,
+     "score": 5.97
+    },
+    {
+     "provider": "openalex",
+     "title": "A Review of Consequences of Poverty on Economic Decision-Making: A Hypothesized Model of a Cognitive",
+     "year": 2017,
+     "type": "review",
+     "citedBy": 105,
+     "rel": 0.68,
+     "score": 5.92
+    },
+    {
+     "provider": "openalex",
+     "title": "Financial scarcity increases discounting of gains and losses: Experimental evidence from a household",
+     "year": 2022,
+     "type": "experiment",
+     "citedBy": 51,
+     "rel": 0.57,
+     "score": 5.65
+    },
+    {
+     "provider": "openalex",
+     "title": "Neurological and behavioural correlates of construal in economic decision-making under cognitive loa",
+     "year": 2025,
+     "type": "experiment",
+     "citedBy": 1,
+     "rel": 0.74,
+     "score": 5.31
+    },
+    {
+     "provider": "europepmc",
+     "title": "From financial scarcity to risk and time preferences: the role of executive functions",
+     "year": 2026,
+     "type": "observational",
+     "citedBy": 0,
+     "rel": 0.66,
+     "score": 4.1
+    }
+   ]
+  },
+  "anchoring effect meta-analysis": {
+   "stats": {
+    "found": 42,
+    "relevant": 20,
+    "errors": []
+   },
+   "sources": [
+    {
+     "provider": "openalex",
+     "title": "Anchoring effect in legal decision-making: A meta-analysis.",
+     "year": 2021,
+     "type": "meta-analysis",
+     "citedBy": 97,
+     "rel": 1,
+     "score": 8.39
+    },
+    {
+     "provider": "openalex",
+     "title": "Chasing the Anchor: A Systematic Review and Meta-Analysis of Perceptual Anchoring Deficits in Develo",
+     "year": 2021,
+     "type": "meta-analysis",
+     "citedBy": 11,
+     "rel": 0.91,
+     "score": 7.4
+    },
+    {
+     "provider": "openalex",
+     "title": "The Gamification of Learning: a Meta-analysis",
+     "year": 2019,
+     "type": "meta-analysis",
+     "citedBy": 1458,
+     "rel": 0.56,
+     "score": 7.34
+    },
+    {
+     "provider": "openalex",
+     "title": "Fifty Years of Anchoring Effects: A Theoretical Reintegration and Meta-Analysis",
+     "year": 2026,
+     "type": "meta-analysis",
+     "citedBy": 0,
+     "rel": 1,
+     "score": 7
+    },
+    {
+     "provider": "openalex",
+     "title": "Treatment effect of bone-anchored maxillary protraction in growing patients compared to controls: a ",
+     "year": 2020,
+     "type": "meta-analysis",
+     "citedBy": 47,
+     "rel": 0.65,
+     "score": 6.76
+    },
+    {
+     "provider": "europepmc",
+     "title": "Mindfulness- and acceptance-based interventions for music performance anxiety: a three-level meta-an",
+     "year": 2026,
+     "type": "systematic-review",
+     "citedBy": 2,
+     "rel": 0.89,
+     "score": 6.67
+    }
+   ]
+  }
+ },
+ "extra": {
+  "arxiv": {
+   "status": 200,
+   "ms": 454,
+   "type": "application/atom+xml; charset=utf-8",
+   "bytes": 8577,
+   "sample": "<?xml version='1.0' encoding='UTF-8'?>\n<feed xmlns:opensearch=\"http://a9.com/-/spec/opensearch/1.1/\" xmlns:arxiv=\"http://arxiv.org/schemas/atom\" xmlns=\"http://www.w3.org/2005/Atom\">\n  <id>https://arxiv.org/api/4+D4uRoNghHRCYsC/GBHEmJbanU</id>\n  <title>arXiv Query: search_query=all:\"large language models\" AND all:deception&amp;id_list=&amp;start=0&amp;max_results=3</title>\n  <updated>2026-10-04T23:34:52Z</updated>\n  <link href=\"https://arxiv.org/api/query?search_query=all:%22large+language+models%22+AND+all:deception&amp;start=0&amp;max_results=3&amp;id_list=\" type=\"application/atom+xml\"/>\n  <opensearch:itemsPerPage>3</opensearch:itemsPerPage>\n  <opensearch:totalResults>405</opensearch:totalR"
+  },
+  "doaj": {
+   "status": 403,
+   "ms": 193,
+   "type": "text/html",
+   "bytes": 439,
+   "sample": "<html>\r\n<head><title>403 Forbidden</title></head>\r\n<body><a href=\"https://doaj.org/cdn-cgi/content?id=MJRniZAkn4Map1oklz14PA1gZO53qOCEcJiu9r2Lv6M-1791156892.2751303-1.2.1.1-RVeFHeFAvOCxpZiC82yOu7WbMraeSqP1Kt_Uwv4rO61d3xT60kHPnXkk9.uvFHoz\" aria-hidden=\"true\" rel=\"nofollow noopener\" style=\"display: none !important; visibility: hidden !important\"></a>\r\n<center><h1>403 Forbidden</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+  },
+  "openaire": {
+   "status": 598,
+   "ms": 25001,
+   "type": "",
+   "bytes": 0,
+   "sample": "",
+   "error": "The operation was aborted due to timeout"
+  },
+  "eric": {
+   "status": 200,
+   "ms": 683,
+   "type": "text/plain;charset=utf-8",
+   "bytes": 6495,
+   "sample": "{\n  \"response\":{\"numFound\":691060,\"start\":0,\"numFoundExact\":true,\"docs\":[\n      {\n        \"id\":\"EJ1374060\",\n        \"title\":\"Prevalent Beliefs in Learning Styles Myths: Indonesian Research Trends on Learning Styles\",\n        \"author\":[\"Fauziah, Humairah\",\n          \"Cahyono, Bambang Yudi\"],\n        \"description\":\"This study investigates Indonesian research trends on learning styles and searches for evidence verifying or refuting the learning styles matching hypothesis. This hypothesis, considered a myth in learning styles theory by some scholars, claims that a learner will learn better when taught according to his or her learning style, but there has been no strong empirical evidence to supp"
+  },
+  "wikipedia_top": {
+   "status": 200,
+   "ms": 86,
+   "type": "application/json; charset=utf-8",
+   "bytes": 56153,
+   "sample": "{\"items\":[{\"project\":\"en.wikipedia\",\"access\":\"all-access\",\"year\":\"2026\",\"month\":\"10\",\"day\":\"02\",\"articles\":[{\"article\":\"Main_Page\",\"views\":7362810,\"rank\":1},{\"article\":\"Christa_Pike\",\"views\":1708406,\"rank\":2},{\"article\":\"Special:Search\",\"views\":854412,\"rank\":3},{\"article\":\"Wikipedia:Featured_pictures\",\"views\":576675,\"rank\":4},{\"article\":\"2026_Asian_Games_medal_table\",\"views\":558673,\"rank\":5},{\"article\":\"Gypsy-Rose_Blanchard\",\"views\":466589,\"rank\":6},{\"article\":\"India_at_the_2026_Asian_Games\",\"views\":432879,\"rank\":7},{\"article\":\"2026_Asian_Games\",\"views\":328740,\"rank\":8},{\"article\":\"Digger_(2026_film)\",\"views\":238832,\"rank\":9},{\"article\":\"Drishyam:_The_Conclusion\",\"views\":235494,\"rank\":10},{\""
+  },
+  "google_news_science": {
+   "status": 200,
+   "ms": 359,
+   "type": "application/xml; charset=utf-8",
+   "bytes": 58744,
+   "sample": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><rss version=\"2.0\" xmlns:media=\"http://search.yahoo.com/mrss/\"><channel><generator>NFE/5.0</generator><title>\"study finds psychology OR neuroscience when:7d\" - Google News</title><link>https://news.google.com/search?q=study+finds+psychology+OR+neuroscience+when:7d&amp;hl=en-US&amp;gl=US&amp;ceid=US:en</link><language>en-US</language><webMaster>news-webmaster@google.com</webMaster><copyright>Copyright © 2026 Google. All rights reserved. This XML feed is made available solely for the purpose of rendering Google News results within a personal feed reader for personal, non-commercial use. Any other use of the feed is expressly prohibited. By"
+  }
+ },
+ "http": {
+  "requests": 28,
+  "cached": 0,
+  "failures": 1,
+  "byHost": {
+   "www.ebi.ac.uk": 10,
+   "api.openalex.org": 8,
+   "api.crossref.org": 4,
+   "export.arxiv.org": 1,
+   "doaj.org": 1,
+   "api.openaire.eu": 1,
+   "api.ies.ed.gov": 1,
+   "wikimedia.org": 1,
+   "news.google.com": 1
+  },
+  "failedByHost": {
+   "api.openaire.eu": 1
+  }
+ }
+}
