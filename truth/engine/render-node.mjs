@@ -36,6 +36,13 @@ export async function renderPost(post, { outDir, theme = {}, imageDir = '.', for
   return files;
 }
 
+/** Cover only, as a small JPEG (library grid, link previews). */
+export async function renderThumb(post, file, { theme = {}, imageDir = '.', scale = 0.5, quality = 84 } = {}) {
+  registerFonts(); const env = { createCanvas: (w, h) => createCanvas(w, h), images: await loadImages(post, imageDir) };
+  const deck = buildDeck(post, theme); const cv = createCanvas(SIZE.w * scale, SIZE.h * scale); const ctx = cv.getContext('2d'); ctx.scale(scale, scale); renderSlide(ctx, env, deck, 0);
+  fs.mkdirSync(path.dirname(file), { recursive: true }); const buf = cv.toBuffer('image/jpeg', quality); fs.writeFileSync(file, buf); return buf.length;
+}
+
 /** One image with every slide side by side (for review). */
 export async function contactSheet(post, file, { theme = {}, imageDir = '.', cols = 4, scale = 0.5, edits = {} } = {}) {
   registerFonts(); const env = { createCanvas: (w, h) => createCanvas(w, h), images: await loadImages(post, imageDir) };

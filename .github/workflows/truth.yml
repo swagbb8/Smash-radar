@@ -1,0 +1,85 @@
+# THE TRUTH engine — researches, fact-checks and writes new posts with a free open-source AI model (no key needed),
+# then publishes the studio, the site and the data.
+name: THE TRUTH engine
+
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'How many posts to make'
+        default: '3'
+      minutes:
+        description: 'Time budget in minutes (max 330)'
+        default: '200'
+      subject:
+        description: 'Only this subject (psychology, technology, brain, social, society, relationships, health, science, money, future, history)'
+        default: ''
+      topic:
+        description: 'Research this exact topic first (optional)'
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: truth-engine
+  cancel-in-progress: false
+
+env:
+  DEPLOY_BRANCH: truth-site
+  MODEL_REPO: google/gemma-4-12B-it-qat-q4_0-gguf
+  MODEL_FILE: gemma-4-12b-it-qat-q4_0.gguf
+  LLM_MODEL: gemma-4-12b
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: truth/package-lock.json
+
+      - name: Install
+        run: cd truth && npm ci --no-audit --no-fund
+
+      - name: Restore the library
+        run: |
+          mkdir -p store
+          if git fetch -q --depth 1 origin "$DEPLOY_BRANCH" 2>/dev/null; then
+            git archive FETCH_HEAD data 2>/dev/null | tar -x -C store && echo "library restored: $(ls store/data/posts 2>/dev/null | wc -l) post(s)" || echo "no library yet"
+          else echo "no published site yet"; fi
+
+      - name: AI model cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.truth-llm/models
+          key: truth-model-${{ env.MODEL_FILE }}
+
+      - name: Start the AI writer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash truth/engine/llm/serve.sh
+
+      - name: Research, check and write
+        env:
+          LLM_BASE_URL: http://127.0.0.1:8080/v1
+          TRUTH_TOPIC: ${{ inputs.topic }}
+          COUNT: ${{ inputs.count || '3' }}
+          MINUTES: ${{ inputs.minutes || '200' }}
+          SUBJECT: ${{ inputs.subject }}
+        run: |
+          if [ -n "$TRUTH_TOPIC" ]; then node truth/engine/cli.mjs request --store store; fi
+          node truth/engine/cli.mjs run --store store --count "$COUNT" --minutes "$MINUTES" ${SUBJECT:+--subject "$SUBJECT"} || echo "::warning::engine run ended with an error"
+
+      - name: Build and publish
+        if: always()
+        run: |
+          node truth/engine/cli.mjs build --store store --out dist
+          cd dist && git init -q -b "$DEPLOY_BRANCH" && git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "THE TRUTH $(date -u +%FT%TZ)" && git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "$DEPLOY_BRANCH"
+          echo "published to $DEPLOY_BRANCH"
