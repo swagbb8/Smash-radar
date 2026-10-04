@@ -19,4 +19,4 @@ Keys, if any are ever added, live in GitHub secrets only.
 Build notes for whoever continues the work: `truth/NOTES.md`.
 
 `NFL_3D_HIGHLIGHTS/` is a separate, paused project (3D football highlight recreation in Blender).
-The news app that used to live here is preserved at the tag `smash-news-final`.
+The news app that used to live here is preserved on the branch `smash-news-final`.

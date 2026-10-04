@@ -51,7 +51,7 @@ Owner: Ash (non-technical, iPhone, wants short answers). Repo: `swagbb8/Smash-ra
   (history kept; refuses to publish if the library shrank) → force-push `gh-pages` → comment + close the issues.
 - `truth-probe.yml` (input `models`: `debug` | `hf` | `images` | blank) → branch `truth-probe`.
 - `truth-bench.yml` (inputs `only`, `topics`, `pick`) → branches `truth-bench-<name>`.
-- News app removed Oct 4 2026 (tag `smash-news-final`). `highlight.yml` (3D football) untouched.
+- News app removed Oct 4 2026 (kept on branch `smash-news-final`; tags cannot be pushed from this sandbox). `highlight.yml` (3D football) untouched.
 
 ## Studio (truth/app/studio)
 - No build step: ES modules. `js/main.js` router (#/today | files | post/<id>/<tab> | research[/<id>] | plan | money | settings); every view
