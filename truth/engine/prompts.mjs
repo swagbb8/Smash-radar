@@ -15,7 +15,7 @@ export const STYLES = {
 
 const TYPE_LABEL = { 'meta-analysis': 'META-ANALYSIS (many studies combined)', 'systematic-review': 'SYSTEMATIC REVIEW', rct: 'RANDOMIZED CONTROLLED TRIAL', trial: 'CLINICAL TRIAL', experiment: 'EXPERIMENT', review: 'REVIEW ARTICLE', observational: 'OBSERVATIONAL STUDY (shows association, not cause)', preprint: 'PREPRINT (not yet peer reviewed)', study: 'STUDY', data: 'OFFICIAL DATA', encyclopedia: 'BACKGROUND (encyclopedia)', news: 'NEWS REPORT' };
 
-export function sourceBlock(sources, { maxChars = 1500 } = {}) {
+export function sourceBlock(sources, { maxChars = 1100 } = {}) {
   return sources.map((s, i) => `[S${i + 1}] ${TYPE_LABEL[s.type] || 'STUDY'} · ${s.year || 'n.d.'} · ${s.venue || s.provider}${s.citedBy ? ` · cited by ${s.citedBy} papers` : ''}\nTitle: ${s.title}\nText: ${truncate(s.abstract || s.text || '', maxChars)}`).join('\n\n');
 }
 

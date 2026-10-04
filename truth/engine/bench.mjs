@@ -24,7 +24,7 @@ for (const T of TOPICS.slice(0, Number(process.env.BENCH_TOPICS || 2))) {
   if (!sources.length) { rec.error = 'no sources'; out.topics.push(rec); continue; }
 
   const p1 = claimsPrompt({ topic: T.topic, angle: T.angle, sources });
-  const r1 = await chat({ ...p1, maxTokens: 1100, temperature: 0.3 });
+  const r1 = await chat({ ...p1, maxTokens: 900, temperature: 0.3 });
   rec.claims = { ok: r1.ok, error: r1.error, ms: r1.ms, timings: r1.timings, usage: r1.usage, finish: r1.finish, raw: r1.ok ? undefined : (r1.text || '').slice(0, 1500), promptChars: p1.user.length };
   const claims = (r1.json?.claims || []).map((c) => { const idx = Number(String(c.source).replace(/\D/g, '')) - 1; const src = sources[idx]; return { ...c, check: checkClaim(c, src) }; });
   rec.claims.items = claims; rec.claims.verdict = r1.json?.verdict; rec.claims.caveat = r1.json?.caveat; rec.claims.passed = claims.filter((c) => c.check.ok).length;
@@ -33,7 +33,7 @@ for (const T of TOPICS.slice(0, Number(process.env.BENCH_TOPICS || 2))) {
   if (good.length >= 2) {
     const facts = good.map((c) => { const s = sources[Number(String(c.source).replace(/\D/g, '')) - 1]; return { claim: c.claim, label: `${s.type}, ${s.year}, ${c.strength} evidence` }; });
     const p2 = carouselPrompt({ topic: T.topic, angle: T.angle, style: T.style, facts, verdict: r1.json.verdict, caveat: r1.json.caveat, intensity: 2 });
-    const r2 = await chat({ ...p2, maxTokens: 1300, temperature: 0.75 });
+    const r2 = await chat({ ...p2, maxTokens: 1100, temperature: 0.75 });
     rec.carousel = { ok: r2.ok, error: r2.error, ms: r2.ms, timings: r2.timings, usage: r2.usage, finish: r2.finish, json: r2.json, raw: r2.ok ? undefined : (r2.text || '').slice(0, 1500), promptChars: p2.user.length };
   } else rec.carousel = { skipped: 'fewer than 2 grounded claims' };
   out.topics.push(rec);

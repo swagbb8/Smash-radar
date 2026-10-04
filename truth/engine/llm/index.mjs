@@ -35,27 +35,52 @@ export function active() {
   return null;
 }
 
+/** Local models answer slowly (minutes on a CPU). Streaming keeps the connection alive and lets us time the tokens. */
+async function streamLocal(url, body, timeout) {
+  const t0 = Date.now(); let first = 0, text = '', reasoning = '', finish = null, timings = null, usage = null, n = 0;
+  const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, stream: true, stream_options: { include_usage: true } }), signal: AbortSignal.timeout(timeout) });
+  if (!r.ok) return { ok: false, error: `HTTP ${r.status} ${(await r.text()).slice(0, 300)}` };
+  const dec = new TextDecoder(); let buf = '';
+  for await (const chunk of r.body) {
+    buf += dec.decode(chunk, { stream: true }); let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith('data:')) continue; const data = line.slice(5).trim(); if (data === '[DONE]') continue;
+      let j; try { j = JSON.parse(data); } catch { continue; }
+      const d = j.choices?.[0]?.delta || {};
+      if (d.content) { if (!first) first = Date.now(); text += d.content; n++; }
+      if (d.reasoning_content) reasoning += d.reasoning_content;
+      if (j.choices?.[0]?.finish_reason) finish = j.choices[0].finish_reason;
+      if (j.timings) timings = j.timings; if (j.usage) usage = j.usage;
+    }
+  }
+  const gen = first ? (Date.now() - first) / 1000 : 0;
+  return { ok: true, text, reasoning: reasoning || null, finish, usage: { in: usage?.prompt_tokens ?? timings?.prompt_n, out: usage?.completion_tokens ?? timings?.predicted_n ?? n },
+    timings: { first_s: first ? +((first - t0) / 1000).toFixed(1) : null, gen_s: +gen.toFixed(1), prompt_tps: timings?.prompt_per_second ? +timings.prompt_per_second.toFixed(1) : null, gen_tps: timings?.predicted_per_second ? +timings.predicted_per_second.toFixed(2) : gen ? +(n / gen).toFixed(2) : null } };
+}
+
 async function openaiCompat({ base, key, model, system, user, schema, schemaName, maxTokens, temperature, timeout, local, extra }) {
   const body = { model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: user }], max_tokens: maxTokens, temperature, ...(extra || {}) };
   if (schema && local && !process.env.LLM_NO_SCHEMA) body.response_format = { type: 'json_schema', json_schema: { name: schemaName || 'out', strict: true, schema } };
   else if (schema && !process.env.LLM_NO_SCHEMA) body.response_format = { type: 'json_object' };
-  if (local) body.cache_prompt = true;
-  const r = await http(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}) }, body: JSON.stringify(body) }, { timeout, retries: local ? 0 : 2, cache: false });
+  const url = base.replace(/\/$/, '') + '/chat/completions';
+  if (local) { body.cache_prompt = true; try { return await streamLocal(url, body, timeout); } catch (e) { return { ok: false, error: String(e.cause?.code || e.message || e) }; } }
+  const r = await http(url, { method: 'POST', headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}) }, body: JSON.stringify(body) }, { timeout: Math.min(timeout, 280000), retries: 2, cache: false });
   if (!r.ok) return { ok: false, error: `HTTP ${r.status} ${r.error || r.text.slice(0, 300)}` };
   let j; try { j = JSON.parse(r.text); } catch { return { ok: false, error: 'bad JSON from model server: ' + r.text.slice(0, 200) }; }
-  const msg = j.choices?.[0]?.message || {}; const text = msg.content || '';
-  return { ok: true, text, reasoning: msg.reasoning_content || null, finish: j.choices?.[0]?.finish_reason, usage: { in: j.usage?.prompt_tokens, out: j.usage?.completion_tokens }, timings: j.timings ? { prompt_tps: j.timings.prompt_per_second, gen_tps: j.timings.predicted_per_second, prompt_n: j.timings.prompt_n, gen_n: j.timings.predicted_n } : undefined };
+  const msg = j.choices?.[0]?.message || {};
+  return { ok: true, text: msg.content || '', reasoning: msg.reasoning_content || null, finish: j.choices?.[0]?.finish_reason, usage: { in: j.usage?.prompt_tokens, out: j.usage?.completion_tokens } };
 }
 
 async function anthropic({ model, system, user, schema, maxTokens, temperature, timeout }) {
   const r = await http('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': env('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model, max_tokens: maxTokens, temperature, ...(system ? { system } : {}), messages: [{ role: 'user', content: user + (schema ? '\n\nReturn only the JSON object.' : '') }] }) }, { timeout, retries: 2, cache: false });
+    body: JSON.stringify({ model, max_tokens: maxTokens, temperature, ...(system ? { system } : {}), messages: [{ role: 'user', content: user + (schema ? '\n\nReturn only the JSON object.' : '') }] }) }, { timeout: Math.min(timeout, 280000), retries: 2, cache: false });
   if (!r.ok) return { ok: false, error: `HTTP ${r.status} ${r.error || r.text.slice(0, 300)}` };
   let j; try { j = JSON.parse(r.text); } catch { return { ok: false, error: 'bad JSON from Anthropic' }; }
   return { ok: true, text: (j.content || []).map((c) => c.text || '').join(''), finish: j.stop_reason, usage: { in: j.usage?.input_tokens, out: j.usage?.output_tokens } };
 }
 
-export async function chat({ system = '', user, schema = null, schemaName = 'out', maxTokens = 1400, temperature = 0.6, timeout = 900000, provider = null, extra = null }) {
+export async function chat({ system = '', user, schema = null, schemaName = 'out', maxTokens = 1400, temperature = 0.6, timeout = 1500000, provider = null, extra = null }) {
   const act = provider ? { name: provider, ...providers()[provider] } : active();
   if (!act || !act.ready) return { ok: false, error: 'no AI writer is configured', provider: act?.name || null };
   const t0 = Date.now(); let res;
