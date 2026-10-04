@@ -6,14 +6,17 @@ on:
         description: 'run only this model name (blank = all)'
         default: ''
       topics:
-        description: 'number of topics (1-2)'
+        description: 'number of topics (1-4)'
         default: '2'
+      pick:
+        description: 'or exact topic indexes, e.g. 0,2'
+        default: ''
 permissions:
   contents: write
 jobs:
   bench:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -22,18 +25,18 @@ jobs:
           - { name: qwen35-9b,      repo: unsloth/Qwen3.5-9B-GGUF,                      file: Qwen3.5-9B-Q5_K_M.gguf }
           - { name: ministral3-14b, repo: mistralai/Ministral-3-14B-Instruct-2512-GGUF, file: Ministral-3-14B-Instruct-2512-Q4_K_M.gguf }
           - { name: granite42-8b,   repo: ibm-granite/granite-4.2-8b-GGUF,              file: granite-4.2-8b-Q5_K_M.gguf }
-          - { name: gptoss-20b,     repo: unsloth/gpt-oss-20b-GGUF,                     file: gpt-oss-20b-Q4_K_M.gguf, args: '--reasoning-budget -1' }
+          - { name: gptoss-20b,     repo: unsloth/gpt-oss-20b-GGUF,                     file: gpt-oss-20b-Q4_K_M.gguf, args: '--reasoning-budget -1', reasoning: low }
           - { name: phi4-14b,       repo: unsloth/phi-4-GGUF,                           file: phi-4-Q4_K_M.gguf }
           - { name: qwen3-14b,      repo: Qwen/Qwen3-14B-GGUF,                          file: Qwen3-14B-Q4_K_M.gguf }
           - { name: lfm25-8b,       repo: LiquidAI/LFM2.5-8B-A1B-GGUF,                  file: LFM2.5-8B-A1B-Q5_K_M.gguf }
     steps:
       - uses: actions/checkout@v4
-        if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
+        if: ${{ inputs.only == '' || contains(format(',{0},', inputs.only), format(',{0},', matrix.m.name)) }}
       - uses: actions/setup-node@v4
-        if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
+        if: ${{ inputs.only == '' || contains(format(',{0},', inputs.only), format(',{0},', matrix.m.name)) }}
         with: { node-version: 22 }
       - name: Start the model
-        if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
+        if: ${{ inputs.only == '' || contains(format(',{0},', inputs.only), format(',{0},', matrix.m.name)) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MODEL_REPO: ${{ matrix.m.repo }}
@@ -45,19 +48,21 @@ jobs:
           { nproc; free -g | head -2; df -h / | tail -1; bash truth/engine/llm/serve.sh; rc=$?; free -g | head -2; echo "serve exit $rc"; } 2>&1 | tee bench-out/${{ matrix.m.name }}.start.log
           grep -q "serve exit 0" bench-out/${{ matrix.m.name }}.start.log || { echo "::error::$(tail -c 600 bench-out/${{ matrix.m.name }}.start.log | tr '\n' ' ')"; exit 1; }
       - name: Benchmark
-        if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
+        if: ${{ inputs.only == '' || contains(format(',{0},', inputs.only), format(',{0},', matrix.m.name)) }}
         env:
           LLM_BASE_URL: http://127.0.0.1:8080/v1
           LLM_MODEL: ${{ matrix.m.name }}
           BENCH_NAME: ${{ matrix.m.name }}
           BENCH_TOPICS: ${{ inputs.topics }}
+          BENCH_PICK: ${{ inputs.pick }}
+          LLM_REASONING: ${{ matrix.m.reasoning }}
           TRUTH_HTTP_MODE: record
           TRUTH_HTTP_CACHE: bench-out/http-cache
         run: |
           node truth/engine/bench.mjs || echo "bench failed"
           tail -c 3000 ~/.truth-llm/server.log > bench-out/${{ matrix.m.name }}.server.log || true
       - name: Save results
-        if: ${{ always() && (inputs.only == '' || inputs.only == matrix.m.name) }}
+        if: ${{ always() && (inputs.only == '' || contains(format(',{0},', inputs.only), format(',{0},', matrix.m.name))) }}
         run: |
           mkdir -p bench-out && cd bench-out && git init -q -b truth-bench-${{ matrix.m.name }} && git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A && git commit -qm "bench $(date -u +%FT%TZ)" --allow-empty && git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" truth-bench-${{ matrix.m.name }}

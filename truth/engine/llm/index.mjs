@@ -5,6 +5,7 @@
 //   gemini      Google Gemini via GEMINI_API_KEY (optional, has a free tier)
 //   groq        Groq via GROQ_API_KEY (optional, has a free tier)
 // chat() always resolves (never throws): { ok, json, text, ms, usage, model, provider, error }.
+import fs from 'node:fs';
 import { http } from '../lib/http.mjs';
 
 export function parseJSON(text) {
@@ -25,13 +26,14 @@ export function providers() {
     gemini: { ready: !!env('GEMINI_API_KEY'), model: env('GEMINI_MODEL', 'gemini-2.5-flash'), free: true },
     groq: { ready: !!env('GROQ_API_KEY'), model: env('GROQ_MODEL', 'llama-3.3-70b-versatile'), free: true },
     openai: { ready: !!env('OPENAI_API_KEY'), model: env('OPENAI_MODEL', 'gpt-4.1-mini'), free: false },
+    mock: { ready: !!env('TRUTH_LLM_MOCK'), model: 'recorded answers (tests)', free: true },
   };
 }
 /** The writer in use: TRUTH_LLM if set and ready, else the first ready one in this order. */
 export function active() {
   const p = providers(); const want = env('TRUTH_LLM');
   if (want && p[want]?.ready) return { name: want, ...p[want] };
-  for (const name of ['anthropic', 'gemini', 'groq', 'openai', 'local']) if (p[name].ready) return { name, ...p[name] };
+  for (const name of ['mock', 'anthropic', 'gemini', 'groq', 'openai', 'local']) if (p[name].ready) return { name, ...p[name] };
   return null;
 }
 
@@ -60,7 +62,8 @@ async function streamLocal(url, body, timeout) {
 }
 
 async function openaiCompat({ base, key, model, system, user, schema, schemaName, maxTokens, temperature, timeout, local, extra }) {
-  const body = { model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: user }], max_tokens: maxTokens, temperature, ...(extra || {}) };
+  const reasoning = local ? process.env.LLM_REASONING : '';                       // reasoning models think before they answer: give them room, keep the effort low
+  const body = { model, messages: [...(system ? [{ role: 'system', content: system }] : []), { role: 'user', content: user }], max_tokens: reasoning ? Math.round(maxTokens * 2.4) : maxTokens, temperature, ...(reasoning ? { chat_template_kwargs: { reasoning_effort: reasoning } } : {}), ...(extra || {}) };
   if (schema && local && !process.env.LLM_NO_SCHEMA) body.response_format = { type: 'json_schema', json_schema: { name: schemaName || 'out', strict: true, schema } };
   else if (schema && !process.env.LLM_NO_SCHEMA) body.response_format = { type: 'json_object' };
   const url = base.replace(/\/$/, '') + '/chat/completions';
@@ -80,13 +83,23 @@ async function anthropic({ model, system, user, schema, maxTokens, temperature, 
   return { ok: true, text: (j.content || []).map((c) => c.text || '').join(''), finish: j.stop_reason, usage: { in: j.usage?.input_tokens, out: j.usage?.output_tokens } };
 }
 
+/** Test double: TRUTH_LLM_MOCK points at a JSON file { "<schemaName>": [answer, answer, …] }; answers are served in order. */
+const mockState = {};
+function mock(schemaName) {
+  const file = env('TRUTH_LLM_MOCK'); if (!mockState[file]) mockState[file] = { data: JSON.parse(fs.readFileSync(file, 'utf8')), i: {} };
+  const st = mockState[file]; const list = st.data[schemaName] || []; const i = st.i[schemaName] || 0; st.i[schemaName] = i + 1;
+  if (!list.length) return { ok: false, error: `no recorded answer for "${schemaName}"` };
+  const a = list[Math.min(i, list.length - 1)]; return { ok: true, text: typeof a === 'string' ? a : JSON.stringify(a), finish: 'stop', usage: { in: 0, out: 0 } };
+}
+
 export async function chat({ system = '', user, schema = null, schemaName = 'out', maxTokens = 1400, temperature = 0.6, timeout = 1500000, provider = null, extra = null }) {
   const act = provider ? { name: provider, ...providers()[provider] } : active();
   if (!act || !act.ready) return { ok: false, error: 'no AI writer is configured', provider: act?.name || null };
   const t0 = Date.now(); let res;
   const common = { model: act.model, system, user, schema, schemaName, maxTokens, temperature, timeout, extra };
   try {
-    if (act.name === 'local') res = await openaiCompat({ ...common, base: env('LLM_BASE_URL'), key: '', local: true });
+    if (act.name === 'mock') res = mock(schemaName);
+    else if (act.name === 'local') res = await openaiCompat({ ...common, base: env('LLM_BASE_URL'), key: '', local: true });
     else if (act.name === 'anthropic') res = await anthropic(common);
     else if (act.name === 'gemini') res = await openaiCompat({ ...common, base: 'https://generativelanguage.googleapis.com/v1beta/openai', key: env('GEMINI_API_KEY') });
     else if (act.name === 'groq') res = await openaiCompat({ ...common, base: 'https://api.groq.com/openai/v1', key: env('GROQ_API_KEY') });

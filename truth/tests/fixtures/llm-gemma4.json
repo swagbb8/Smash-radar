@@ -1,0 +1,124 @@
+{
+ "evidence": [
+  {
+   "claims": [
+    {
+     "claim": "The mere presence of a smartphone reduces available cognitive capacity even when people successfully avoid checking their phones.",
+     "source": "S1",
+     "quote": "even when people are successful at maintaining sustained attention\u2014as when avoiding the temptation to check their phones\u2014the mere presence of these devices reduces available cognitive capacity.",
+     "surprise": 4
+    },
+    {
+     "claim": "The cognitive costs of having a smartphone nearby are highest for people who are most dependent on their phones.",
+     "source": "S1",
+     "quote": "Moreover, these cognitive costs are highest for those highest in smartphone dependence.",
+     "surprise": 3
+    },
+    {
+     "claim": "A meta-analysis found that the mere presence of a smartphone had no significant effect on cognitive outcomes.",
+     "source": "S3",
+     "quote": "It was found that the mere presence of smartphone had no significant effect on cognitive outcomes (d = \u22120.02, SE = 0.02, 95% CI [\u22120.06, 0.01], p = .246).",
+     "surprise": 5
+    },
+    {
+     "claim": "The mere presence of a smartphone reduces basal attentional performance.",
+     "source": "S5",
+     "quote": "The results of the conducted experiment imply that the mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+     "surprise": 3
+    },
+    {
+     "claim": "Working memory capacity was negatively impacted by the mere presence of a smartphone, while other cognitive functions showed no effect.",
+     "source": "S2",
+     "quote": "Working memory capacity was negatively impacted by the mere presence of a smartphone, while results for the remaining cognitive functions produced null summary effects.",
+     "surprise": 4
+    }
+   ],
+   "supports": "partly",
+   "angle": "The famous finding that a silent phone drains your brain is real in single experiments but shrinks to nothing when all the studies are pooled.",
+   "verdict": "The evidence is mixed, with some experiments and meta-analyses showing that a smartphone's presence reduces working memory and cognitive capacity, while a larger meta-analysis found no significant overall effect.",
+   "caveat": "The findings are complicated by substantial methodological heterogeneity and generally poor statistical power in the research domain."
+  }
+ ],
+ "carousel": [
+  {
+   "title": "The Cost of Presence",
+   "hooks": [
+    {
+     "text": "Does your phone drain your focus without you touching it?",
+     "type": "question"
+    },
+    {
+     "text": "1 device. 0 focus.",
+     "type": "number"
+    },
+    {
+     "text": "You think you are ignoring your phone. The data says your brain is still processing it.",
+     "type": "contradiction"
+    },
+    {
+     "text": "Your phone sits on the table while you try to think.",
+     "type": "accusation"
+    },
+    {
+     "text": "A phone sits face down on a wooden desk.",
+     "type": "scene"
+    }
+   ],
+   "reveal": {
+    "headline": "The mere presence of a smartphone reduces your available cognitive capacity.",
+    "body": "This happens even when you successfully avoid checking the device. [F1]",
+    "facts": [
+     "F1"
+    ]
+   },
+   "explain": {
+    "headline": "Your brain allocates resources to the device.",
+    "body": "Having a phone nearby reduces basal attentional performance [F4]. It specifically impacts your working memory capacity [F5].",
+    "facts": [
+     "F4",
+     "F5"
+    ]
+   },
+   "matters": {
+    "headline": "The cost is not equal.",
+    "body": "The cognitive drain is highest for those most dependent on their phones. That may be why your focus feels thinner the more you rely on the screen [F2].",
+    "facts": [
+     "F2"
+    ]
+   },
+   "example": {
+    "headline": "A quiet dinner.",
+    "body": "You place your phone on the table. You try to listen to the person across from you. Your brain remains partially tethered to the device in your line of sight.",
+    "facts": []
+   },
+   "question": {
+    "headline": "Where is your attention actually resting?",
+    "body": "Look at where your phone is right now."
+   },
+   "stat": {
+    "value": "reduced",
+    "label": "available cognitive capacity from the mere presence of a smartphone",
+    "fact": "F1"
+   },
+   "caption": "Your phone consumes mental energy even when it is turned off.\n\nResearch shows that the presence of a smartphone can reduce working memory and attentional performance, though some meta-analyses show no significant overall effect. Findings are complicated by poor statistical power and methodological differences.\n\nWhere do you keep your phone while you work?",
+   "hashtags": [
+    "psychology",
+    "attention",
+    "cognitivescience",
+    "focus",
+    "neuroscience",
+    "behavioralscience",
+    "technology",
+    "mindset",
+    "productivity",
+    "digitalwellness"
+   ],
+   "images": [
+    "A smartphone face down on a plain wooden table.",
+    "A dimly lit office with a single chair and a desk.",
+    "A close up of a hand resting near a phone.",
+    "An empty chair in a quiet library."
+   ]
+  }
+ ]
+}

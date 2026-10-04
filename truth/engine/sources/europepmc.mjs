@@ -7,12 +7,14 @@ const TYPE_RANK = [['meta-analysis', 'meta-analysis'], ['systematic review', 'sy
 
 export function studyType(pubTypes = [], title = '', abstract = '') {
   const t = pubTypes.map((x) => String(x).toLowerCase()); const text = (title + ' ' + abstract.slice(0, 600)).toLowerCase();
-  for (const [needle, label] of TYPE_RANK) if (t.some((x) => x.includes(needle))) return label;
+  for (const [needle, label] of TYPE_RANK.slice(0, 3)) if (t.some((x) => x.includes(needle))) return label;      // explicit strong designs first
   if (/\bmeta-?analy/.test(text)) return 'meta-analysis';
   if (/systematic review/.test(text)) return 'systematic-review';
+  for (const [needle, label] of TYPE_RANK.slice(3)) if (t.some((x) => x.includes(needle))) return label;
   if (/randomi[sz]ed/.test(text) && /trial|controlled|assigned/.test(text)) return 'rct';
-  if (/\b(cross-sectional|cohort|longitudinal|survey|observational|case-control)\b/.test(text)) return 'observational';
-  if (/\b(experiment|participants were (randomly )?assigned|manipulat)/.test(text)) return 'experiment';
+  const all = (title + ' ' + abstract).toLowerCase();
+  if (/\b(experiments?|experimental (study|design|condition)|participants were (randomly )?assigned|randomly assigned|manipulat)/.test(all) && !/\b(cross-sectional|cohort study|survey data)\b/.test(text)) return 'experiment';
+  if (/\b(cross-sectional|cohort|longitudinal|survey|observational|case-control|self-report)\b/.test(all)) return 'observational';
   if (/\breview\b/.test(title.toLowerCase())) return 'review';
   return 'study';
 }

@@ -82,3 +82,81 @@ export function checkClaim(claim, source) {
   const causal = causalLint(claim.claim || claim.text || '', source);
   return { ok: q.found && missing.length === 0, quoteFound: q.found, quoteScore: q.score, quoteExact: q.exact, numbers: missing, causal, reason: !q.found ? 'quote not found in the source' : missing.length ? `numbers not in the source: ${missing.join(', ')}` : '' };
 }
+
+// ------------------------------------------------------------------------------------------------ carousel checks
+const TAG = /\s*[\[(]\s*F\d+(?:\s*,\s*F\d+)*\s*[\])]/g;
+const BANNED = /\b(shocking|mind-?blowing|insane|crazy|you won'?t believe|game-?changer|sheeple|wake up|did you know)\b/i;
+const CLOCK = /\b\d{1,2}(?::\d{2})?\s?(?:a\.?m\.?|p\.?m\.?|o'clock)\b|\b\d{1,2}:\d{2}\b/gi;
+const wordCount = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).length;
+export const soundsCausal = (s) => CAUSAL.test(String(s || ''));
+
+function tidy(s, { headline = false } = {}) {
+  let t = String(s ?? '').replace(TAG, '').replace(/\bF\d+:\s*/g, '').replace(/\*\*|__|`/g, '').replace(/\s+\[\s*$/, '').replace(/\s+/g, ' ').replace(/\s+([.,;:?])/g, '$1').trim();
+  if (headline) t = t.replace(/\s*:\s*$/, '').replace(/^["“”']+|["“”']+$/g, '');
+  return t;
+}
+
+/** Clean up what a model wrote without changing its meaning: fact tags out of the prose, markdown out, hashtags normalised. */
+export function sanitizeCarousel(c) {
+  const out = JSON.parse(JSON.stringify(c || {}));
+  for (const k of ['reveal', 'explain', 'matters', 'example', 'question']) if (out[k]) { out[k].headline = tidy(out[k].headline, { headline: true }); out[k].body = tidy(out[k].body); if (out[k].facts) out[k].facts = [...new Set(out[k].facts)]; }
+  if (out.stat) { out.stat.value = tidy(out.stat.value, { headline: true }); out.stat.label = tidy(out.stat.label, { headline: true }).replace(/\.$/, ''); }
+  out.hooks = (out.hooks || []).map((h) => ({ type: h.type, text: tidy(h.text, { headline: true }) })).filter((h) => h.text);
+  out.caption = String(out.caption ?? '').replace(TAG, '').replace(/\*\*|__/g, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  out.hashtags = [...new Set((out.hashtags || []).map((h) => String(h).toLowerCase().replace(/[^a-z0-9]/g, '')).filter((h) => h.length > 2 && h.length < 30))];
+  out.images = (out.images || []).map((i) => tidy(i).replace(/\.$/, '')).filter(Boolean); out.title = tidy(out.title, { headline: true });
+  return out;
+}
+
+/** Everything wrong with a written carousel, judged against the verified facts. → [{ where, kind, severity, detail }] */
+export function lintCarousel(c, facts) {
+  const issues = []; const add = (where, kind, severity, detail) => issues.push({ where, kind, severity, detail });
+  const byId = Object.fromEntries(facts.map((f) => [f.id, f])); const evidence = facts.map((f) => `${f.claim} ${f.quote}`).join(' ');
+  const fields = [];
+  for (const k of ['reveal', 'explain', 'matters', 'example', 'question']) { fields.push([`${k}.headline`, c[k]?.headline, k]); fields.push([`${k}.body`, c[k]?.body, k]); }
+  fields.push(['stat.label', c.stat?.label, 'stat'], ['caption', c.caption, 'caption']); (c.hooks || []).forEach((h, i) => fields.push([`hooks.${i}`, h.text, 'hook']));
+  for (const [where, text, slide] of fields) {
+    if (!text) { if (/reveal\.headline|explain\.headline|explain\.body|matters\.body|example\.body|question\.headline/.test(where)) add(where, 'empty', 'high', 'missing text'); continue; }
+    const probe = slide === 'example' || slide === 'question' ? text.replace(CLOCK, ' ') : text;
+    const bad = unsupportedNumbers(probe, evidence); if (bad.length) add(where, 'number', slide === 'example' || slide === 'question' ? 'medium' : 'high', `not in the verified facts: ${bad.join(', ')}`);
+    if (/\bF\d+\b/.test(text)) add(where, 'tag', 'high', 'fact tag left in the text');
+    if (/\bthink X\b|\bsays Y\b|\bX\b.{0,30}\bY\b/.test(text)) add(where, 'template', 'high', 'placeholder text');
+    if (BANNED.test(text)) add(where, 'banned', 'medium', 'hype wording'); if (/!/.test(text)) add(where, 'banned', 'medium', 'exclamation mark');
+    if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text)) add(where, 'banned', 'medium', 'emoji');
+    if (slide !== 'caption' && (text.match(/\b[A-Z]{4,}\b/g) || []).length > 1) add(where, 'style', 'medium', 'capital letters');
+    const w = wordCount(text);
+    if (/headline$/.test(where) || slide === 'hook') { if (w > 16) add(where, 'length', 'medium', `${w} words`); }
+    else if (slide !== 'caption' && slide !== 'stat' && w > 52) add(where, 'length', 'medium', `${w} words`);
+  }
+  for (const k of ['reveal', 'explain']) {
+    const used = (c[k]?.facts || []).map((id) => byId[id]).filter(Boolean); const text = `${c[k]?.headline || ''} ${c[k]?.body || ''}`;
+    if (!used.length) add(`${k}.facts`, 'unsourced', 'medium', 'no fact referenced');
+    if (soundsCausal(text) && used.length && !used.some((f) => f.causalOk || soundsCausal(f.claim))) add(`${k}.body`, 'causal', 'high', 'cause-and-effect wording, but the evidence only shows a link');
+  }
+  if (c.stat?.value) {
+    const f = byId[c.stat.fact]; const bad = unsupportedNumbers(c.stat.value, f ? `${f.claim} ${f.quote}` : evidence);
+    if (bad.length) add('stat.value', 'number', 'high', `not in its fact: ${bad.join(', ')}`);
+    if (wordCount(c.stat.value) > 4) add('stat.value', 'length', 'medium', 'too long to show large');
+  }
+  if ((c.hooks || []).length < 1) add('hooks', 'empty', 'high', 'no usable hook'); else if (c.hooks.length < 3) add('hooks', 'empty', 'medium', 'fewer than 3 hooks');
+  return issues;
+}
+
+/** Remove what cannot be published: bad hooks, an unsupported stat, sentences carrying invented numbers. */
+export function hardFix(c, issues, facts) {
+  const out = JSON.parse(JSON.stringify(c)); const fixes = []; const evidence = facts.map((f) => `${f.claim} ${f.quote}`).join(' ');
+  const badHooks = new Set(issues.filter((i) => i.where.startsWith('hooks.') && i.severity === 'high').map((i) => Number(i.where.split('.')[1])));
+  if (badHooks.size) { out.hooks = out.hooks.filter((_, i) => !badHooks.has(i)); fixes.push(`dropped ${badHooks.size} hook(s)`); }
+  if (issues.some((i) => i.where === 'stat.value' && i.severity === 'high')) { out.stat = { value: '', label: '', fact: '' }; fixes.push('removed the stat'); }
+  for (const i of issues.filter((x) => x.kind === 'number' && /\.(body|headline)$/.test(x.where) && x.severity === 'high')) {
+    const [slide, part] = i.where.split('.'); const text = out[slide]?.[part]; if (!text) continue;
+    const kept = (text.match(/[^.!?]+[.!?]*/g) || [text]).filter((s) => unsupportedNumbers(s, evidence).length === 0).join(' ').replace(/\s+/g, ' ').trim();
+    out[slide][part] = kept; fixes.push(`cut a sentence with an unverified number from ${i.where}`);
+  }
+  if (issues.some((i) => i.where === 'caption' && i.kind === 'number' && i.severity === 'high')) {
+    out.caption = out.caption.split(/\n+/).map((p) => (p.match(/[^.!?]+[.!?]*/g) || [p]).filter((s) => unsupportedNumbers(s, evidence).length === 0).join(' ').trim()).filter(Boolean).join('\n\n'); fixes.push('cut unverified numbers from the caption');
+  }
+  if (!out.hooks.length && out.reveal?.headline) { out.hooks = [{ text: out.reveal.headline, type: 'statement' }]; fixes.push('used the reveal headline as the hook'); }
+  const left = lintCarousel(out, facts).filter((i) => i.severity === 'high');
+  return { carousel: out, fixes, fatal: left.filter((i) => i.kind !== 'unsourced'), remaining: left };
+}
