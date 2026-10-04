@@ -1,4 +1,4 @@
-name: THE TRUTH model benchmark
+name: THE TRUTH model bench
 on:
   workflow_dispatch:
     inputs:
@@ -6,58 +6,69 @@ on:
         description: 'run only this model name (blank = all)'
         default: ''
       topics:
-        description: 'number of topics (1-2)'
-        default: '2'
+        description: 'topic indexes'
+        default: '0,1,2'
 permissions:
   contents: write
 jobs:
   bench:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        m:
-          - { name: gemma4-12b,     repo: google/gemma-4-12B-it-qat-q4_0-gguf,          file: gemma-4-12b-it-qat-q4_0.gguf }
-          - { name: qwen35-9b,      repo: unsloth/Qwen3.5-9B-GGUF,                      file: Qwen3.5-9B-Q5_K_M.gguf }
-          - { name: ministral3-14b, repo: mistralai/Ministral-3-14B-Instruct-2512-GGUF, file: Ministral-3-14B-Instruct-2512-Q4_K_M.gguf }
-          - { name: granite42-8b,   repo: ibm-granite/granite-4.2-8b-GGUF,              file: granite-4.2-8b-Q5_K_M.gguf }
-          - { name: gptoss-20b,     repo: unsloth/gpt-oss-20b-GGUF,                     file: gpt-oss-20b-Q4_K_M.gguf, args: '--reasoning-budget -1' }
-          - { name: phi4-14b,       repo: unsloth/phi-4-GGUF,                           file: phi-4-Q4_K_M.gguf }
-          - { name: qwen3-14b,      repo: Qwen/Qwen3-14B-GGUF,                          file: Qwen3-14B-Q4_K_M.gguf }
-          - { name: lfm25-8b,       repo: LiquidAI/LFM2.5-8B-A1B-GGUF,                  file: LFM2.5-8B-A1B-Q5_K_M.gguf }
+        include:
+          - { name: gemma3-12b, hf: 'bartowski/google_gemma-3-12b-it-GGUF:Q4_K_M', flags: '' }
+          - { name: gemma3-4b, hf: 'bartowski/google_gemma-3-4b-it-GGUF:Q4_K_M', flags: '' }
+          - { name: qwen25-14b, hf: 'bartowski/Qwen2.5-14B-Instruct-GGUF:Q4_K_M', flags: '' }
+          - { name: qwen25-7b, hf: 'bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M', flags: '' }
+          - { name: phi4, hf: 'bartowski/phi-4-GGUF:Q4_K_M', flags: '' }
+          - { name: qwen3-14b, hf: 'bartowski/Qwen_Qwen3-14B-GGUF:Q4_K_M', flags: '--jinja --reasoning-budget 0' }
+          - { name: gpt-oss-20b, hf: 'unsloth/gpt-oss-20b-GGUF:Q4_K_M', flags: '--jinja' }
+          - { name: mistral-nemo, hf: 'bartowski/Mistral-Nemo-Instruct-2407-GGUF:Q4_K_M', flags: '' }
+          - { name: llama31-8b, hf: 'bartowski/Meta-Llama-3.1-8B-Instruct-GGUF:Q4_K_M', flags: '' }
     steps:
       - uses: actions/checkout@v4
-        if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
+        if: ${{ inputs.only == '' || inputs.only == matrix.name }}
       - uses: actions/setup-node@v4
-        if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
+        if: ${{ inputs.only == '' || inputs.only == matrix.name }}
         with: { node-version: 22 }
-      - name: Start the model
-        if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
+      - name: Install llama.cpp + start the model
+        if: ${{ inputs.only == '' || inputs.only == matrix.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MODEL_REPO: ${{ matrix.m.repo }}
-          MODEL_FILE: ${{ matrix.m.file }}
-          LLM_ARGS: ${{ matrix.m.args }}
-        shell: bash
         run: |
-          mkdir -p bench-out
-          { nproc; free -g | head -2; df -h / | tail -1; bash truth/engine/llm/serve.sh; rc=$?; free -g | head -2; echo "serve exit $rc"; } 2>&1 | tee bench-out/${{ matrix.m.name }}.start.log
-          grep -q "serve exit 0" bench-out/${{ matrix.m.name }}.start.log || { echo "::error::$(tail -c 600 bench-out/${{ matrix.m.name }}.start.log | tr '\n' ' ')"; exit 1; }
-      - name: Benchmark
-        if: ${{ inputs.only == '' || inputs.only == matrix.m.name }}
+          set -e
+          nproc; free -g | head -2; df -h / | tail -1
+          curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/ggml-org/llama.cpp/releases/latest > /tmp/rel.json
+          python3 -c "import json; r=json.load(open('/tmp/rel.json')); print('release', r.get('tag_name')); [print(' ', a['name']) for a in r.get('assets', [])]"
+          url=$(python3 -c "import json; r=json.load(open('/tmp/rel.json')); a=[x['browser_download_url'] for x in r['assets'] if 'ubuntu-x64' in x['name'] and 'vulkan' not in x['name'] and 'cuda' not in x['name'] and 'rocm' not in x['name']]; print(a[0])")
+          echo "using $url"; curl -sSL -o /tmp/llama.pkg "$url"; mkdir -p /tmp/llama && cd /tmp/llama && (unzip -q /tmp/llama.pkg 2>/dev/null || tar xzf /tmp/llama.pkg)
+          bin=$(find /tmp/llama -name llama-server -type f | head -1); echo "bin: $bin"; export LD_LIBRARY_PATH="$(dirname $bin):${LD_LIBRARY_PATH:-}"
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          t0=$(date +%s)
+          nohup $bin -hf "${{ matrix.hf }}" -c 8192 -t 4 --parallel 1 --host 127.0.0.1 --port 8080 ${{ matrix.flags }} > /tmp/server.log 2>&1 &
+          for i in $(seq 1 360); do
+            if curl -sf http://127.0.0.1:8080/health > /dev/null 2>&1; then echo "model ready after $(( $(date +%s) - t0 ))s"; break; fi
+            if ! pgrep -f llama-server > /dev/null; then echo "server died"; tail -40 /tmp/server.log; exit 1; fi
+            sleep 5
+          done
+          curl -sf http://127.0.0.1:8080/health || (tail -60 /tmp/server.log; exit 1)
+          free -g | head -2; du -sh ~/.cache/llama.cpp 2>/dev/null || true
+      - name: Bench
+        if: ${{ inputs.only == '' || inputs.only == matrix.name }}
+        working-directory: truth/engine
         env:
           LLM_BASE_URL: http://127.0.0.1:8080/v1
-          LLM_MODEL: ${{ matrix.m.name }}
-          BENCH_NAME: ${{ matrix.m.name }}
+          LLM_MODEL_NAME: ${{ matrix.name }}
+          TRUTH_HTTP_CACHE: bench-out/http
           BENCH_TOPICS: ${{ inputs.topics }}
-          TRUTH_HTTP_MODE: record
-          TRUTH_HTTP_CACHE: bench-out/http-cache
+        run: node bench.mjs
+      - name: Save result
+        if: ${{ always() && (inputs.only == '' || inputs.only == matrix.name) }}
         run: |
-          node truth/engine/bench.mjs || echo "bench failed"
-          tail -c 3000 ~/.truth-llm/server.log > bench-out/${{ matrix.m.name }}.server.log || true
-      - name: Save results
-        if: ${{ always() && (inputs.only == '' || inputs.only == matrix.m.name) }}
-        run: |
-          mkdir -p bench-out && cd bench-out && git init -q -b truth-bench-${{ matrix.m.name }} && git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A && git commit -qm "bench $(date -u +%FT%TZ)" --allow-empty && git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" truth-bench-${{ matrix.m.name }}
+          mkdir -p truth/engine/bench-out && cd truth/engine/bench-out
+          tail -c 6000 /tmp/server.log > server-tail.log 2>/dev/null || true
+          grep -E "load time|prompt eval time|eval time|total time|n_ctx|model size|error" /tmp/server.log | tail -60 > server-timings.log 2>/dev/null || true
+          git init -q -b "truth-bench-${{ matrix.name }}" && git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "bench ${{ matrix.name }} $(date -u +%FT%TZ)" && git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "truth-bench-${{ matrix.name }}"
