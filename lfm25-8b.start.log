@@ -1,0 +1,14 @@
+4
+               total        used        free      shared  buff/cache   available
+Mem:              15           1          11           0           2          14
+/dev/root       145G   59G   87G  41% /
+::group::Install llama.cpp
+llama.cpp b11398 llama-b11398-bin-ubuntu-x64.tar.gz
+::endgroup::
+::group::Download LiquidAI/LFM2.5-8B-A1B-GGUF/LFM2.5-8B-A1B-Q5_K_M.gguf
+-rw-r--r-- 1 runner runner 6030339296 Oct  4 20:39 /home/runner/.truth-llm/models/LFM2.5-8B-A1B-Q5_K_M.gguf
+::endgroup::
+model ready after 6s: http://127.0.0.1:8080/v1
+               total        used        free      shared  buff/cache   available
+Mem:              15           1           6           0           8          14
+serve exit 0
