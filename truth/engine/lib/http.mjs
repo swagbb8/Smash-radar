@@ -10,7 +10,7 @@ export const UA = 'TheTruthEngine/1.0 (+https://github.com/swagbb8/Smash-radar; 
 const MODE = () => process.env.TRUTH_HTTP_MODE || 'live';
 const DIR = () => process.env.TRUTH_HTTP_CACHE || '.http-cache';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-export const stats = { requests: 0, cached: 0, failures: 0, byHost: {} };
+export const stats = { requests: 0, cached: 0, failures: 0, byHost: {}, failedByHost: {} };
 
 function keyOf(url, init) { return crypto.createHash('sha1').update(`${init?.method || 'GET'} ${url} ${init?.body || ''}`).digest('hex'); }
 
@@ -33,10 +33,10 @@ export async function http(url, init = {}, { timeout = 25000, retries = 2, cache
       let text = '', buffer = null;
       if (binary) buffer = Buffer.from(await r.arrayBuffer()); else text = await r.text();
       last = { status: r.status, ok: r.ok, text, buffer, type, headers };
-      if (r.status === 429 || r.status >= 500) { stats.failures++; if (a < retries) { await sleep(Math.min(20000, (Number(headers['retry-after']) || 2 ** a * 1.5) * 1000)); continue; } }
+      if (r.status === 429 || r.status >= 500) { stats.failures++; stats.failedByHost[host] = (stats.failedByHost[host] || 0) + 1; if (a < retries) { await sleep(Math.min(20000, (Number(headers['retry-after']) || 2 ** a * 1.5) * 1000)); continue; } }
       break;
     } catch (e) {
-      stats.failures++; last = { status: 598, ok: false, text: '', type: '', headers: {}, error: String(e.cause?.code || e.message || e) };
+      stats.failures++; stats.failedByHost[host] = (stats.failedByHost[host] || 0) + 1; last = { status: 598, ok: false, text: '', type: '', headers: {}, error: String(e.cause?.code || e.message || e) };
       if (a < retries) await sleep(1200 * (a + 1));
     }
   }

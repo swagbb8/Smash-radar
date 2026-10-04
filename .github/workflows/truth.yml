@@ -6,6 +6,9 @@
 #   2. by hand: Actions → THE TRUTH engine → Run workflow
 #   3. from the studio: a request arrives as an issue titled "truth: …" opened by the owner of this repository
 #
+# While it works it publishes each new file the moment it is finished and checks for new studio requests every two
+# minutes, so a settings change never waits behind a long writing run.
+#
 # The library of record is the branch `truth-data` (normal commits, full history). The website branch is rebuilt from
 # it on every run, so a bad build can never lose a file.
 name: THE TRUTH engine
@@ -90,6 +93,12 @@ jobs:
           gh api "repos/$REPO/issues?state=open&creator=$OWNER&per_page=50" > issues.json || echo "[]" > issues.json
           node truth/engine/cli.mjs plan --store store --issues issues.json
 
+      - name: Go live with what was asked
+        shell: bash
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: node truth/engine/cli.mjs first --store store --out dist
+
       - name: AI model cache
         if: steps.plan.outputs.writer == 'true'
         uses: actions/cache@v4
@@ -103,43 +112,16 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: bash truth/engine/llm/serve.sh
 
-      - name: Research, check and write
-        if: steps.plan.outputs.writer == 'true'
+      - name: Work
+        shell: bash
         env:
-          LLM_BASE_URL: http://127.0.0.1:8080/v1
+          LLM_BASE_URL: ${{ steps.plan.outputs.writer == 'true' && 'http://127.0.0.1:8080/v1' || '' }}
+          OWNER: ${{ github.repository_owner }}
           COUNT: ${{ steps.plan.outputs.count }}
-          MINUTES: ${{ steps.plan.outputs.minutes }}
           SUBJECT: ${{ steps.plan.outputs.subject }}
-        run: node truth/engine/cli.mjs run --store store --count "$COUNT" --minutes "$MINUTES" ${SUBJECT:+--subject "$SUBJECT"} || echo "::warning::engine run ended with an error"
-
-      - name: Build
-        run: node truth/engine/cli.mjs build --store store --out dist
-
-      - name: Save the library
-        shell: bash
-        run: |
-          before=$(cat store/.before); after=$(ls store/data/posts 2>/dev/null | wc -l)
-          if [ "$after" -lt "$before" ]; then echo "::error::the library shrank ($before to $after files); nothing was published"; exit 1; fi
-          rm -rf lib && mkdir lib && cd lib && git init -q
-          git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
-          if git fetch -q --depth 1 origin "$DATA_BRANCH" 2>/dev/null; then git checkout -q -b "$DATA_BRANCH" FETCH_HEAD; else git checkout -q --orphan "$DATA_BRANCH"; fi
-          rm -rf data && cp -r ../store/data data
-          git add -A
-          if git diff --cached --quiet; then echo "library unchanged"; else git commit -qm "library: $after files ($(date -u +%FT%TZ))" && git push -q origin "$DATA_BRANCH" && echo "library saved: $after file(s)"; fi
-
-      - name: Publish
-        shell: bash
-        run: |
-          cd dist && git init -q -b "$DEPLOY_BRANCH" && git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A && git commit -qm "THE TRUTH $(date -u +%FT%TZ)" && git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$DEPLOY_BRANCH"
-          echo "published to $DEPLOY_BRANCH"
-
-      - name: Answer requests
-        if: success() && steps.plan.outputs.answers != '0'
-        shell: bash
-        run: |
-          jq -c '.[]' store/answers.json | while read -r a; do
-            n=$(echo "$a" | jq -r .number); echo "$a" | jq -r .reply > reply.txt
-            gh issue comment "$n" --repo "$REPO" --body-file reply.txt && gh issue close "$n" --repo "$REPO" || echo "::warning::could not answer request $n"
-          done
+          # optional paid writers; unused unless Ash adds the secret (never tested against the real services)
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: node truth/engine/cli.mjs cycle --store store --out dist
