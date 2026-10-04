@@ -1,0 +1,14 @@
+4
+               total        used        free      shared  buff/cache   available
+Mem:              15           0          12           0           2          14
+/dev/root       145G   59G   87G  41% /
+::group::Install llama.cpp
+llama.cpp b11398 llama-b11398-bin-ubuntu-x64.tar.gz
+::endgroup::
+::group::Download google/gemma-4-12B-it-qat-q4_0-gguf/gemma-4-12b-it-qat-q4_0.gguf
+-rw-r--r-- 1 runner runner 6975879296 Oct  4 21:03 /home/runner/.truth-llm/models/gemma-4-12b-it-qat-q4_0.gguf
+::endgroup::
+model ready after 9s: http://127.0.0.1:8080/v1
+               total        used        free      shared  buff/cache   available
+Mem:              15           7           0           0           8           8
+serve exit 0

@@ -1,0 +1,191 @@
+{
+ "id": "2026-10-04-the-biology-of-your-mood",
+ "created": "2026-10-04T21:21:32.666Z",
+ "subject": "brain",
+ "style": "darkside",
+ "topic": "What one bad night of sleep does to your emotions",
+ "angle": "While sleep disruption is linked to impaired emotion regulation and increased reactivity in adolescents, the sources also show that psychiatric disorders are characterized by specific patterns of reduced adaptive and increased maladaptive emotion regulation.",
+ "title": "The Biology of Your Mood",
+ "hooks": [
+  {
+   "type": "question",
+   "text": "Does your mood belong to you?"
+  },
+  {
+   "type": "contradiction",
+   "text": "You think you are angry. Your sleep says otherwise."
+  },
+  {
+   "type": "accusation",
+   "text": "You are choosing to trade your emotional stability for sleep."
+  },
+  {
+   "type": "scene",
+   "text": "A blue screen in a dark room."
+  },
+  {
+   "type": "statement",
+   "text": "Sleep disruption alters your emotional experience."
+  }
+ ],
+ "hook": 0,
+ "slides": {
+  "reveal": {
+   "headline": "Sleep disruption impairs emotional regulation.",
+   "body": "Sleep disruption and deprivation are detrimental to emotional experience, emotional reactivity, and emotion-regulation capacities in adolescents.",
+   "facts": [
+    "F1",
+    "F4"
+   ]
+  },
+  "explain": {
+   "headline": "Stress sensitivity increases.",
+   "body": "Disruption of sleep, stress regulation, and circadian rhythms can amplify stress sensitivity and impair emotional regulation. This is a known link in human biology.",
+   "facts": [
+    "F1"
+   ]
+  },
+  "matters": {
+   "headline": "The complexity of your mood.",
+   "body": "The evidence is mixed regarding specific patterns. While sleep affects your reactions, emotion regulation is a complex feature that varies across different psychiatric disorders.",
+   "facts": [
+    "F1",
+    "F2",
+    "F3"
+   ]
+  },
+  "example": {
+   "headline": "The evening commute.",
+   "body": "You sit in your car after a long shift. A driver cuts you off. Your pulse spikes and your frustration feels heavy and difficult to shake."
+  },
+  "question": {
+   "headline": "How much of your mood belongs to you?",
+   "body": ""
+  }
+ },
+ "stat": {
+  "value": "impaired regulation",
+  "label": "the effect of sleep disruption on emotional capacities",
+  "fact": "F4"
+ },
+ "claims": [
+  {
+   "id": "F1",
+   "text": "Disruption of sleep, stress regulation, and circadian rhythms can amplify stress sensitivity and impair emotional regulation.",
+   "source": "S3",
+   "quote": "Disruption of any component can amplify stress sensitivity and impair emotional regulation, leading to neurobehavioral instability.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F2",
+   "text": "Use of cognitive reappraisal was reduced in all psychiatric disorders except panic disorder.",
+   "source": "S1",
+   "quote": "use of cognitive reappraisal (an adaptive form of emotion regulation) was reduced in all disorders except panic disorder",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F3",
+   "text": "Use of expressive suppression was greater in all psychiatric disorders except ADHD and OCD.",
+   "source": "S1",
+   "quote": "use of expressive suppression (a maladaptive form of emotion regulation) was greater in all disorders except ADHD and OCD.",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F4",
+   "text": "Sleep disruption and deprivation are detrimental to emotional experience, emotional reactivity, and emotion-regulation capacities in adolescents.",
+   "source": "S2",
+   "quote": "The present study observes that sleep disruption and deprivation are detrimental in three key aspects of emotions in adolescents: emotional experience, emotional reactivity, and emotion-regulation capacities.",
+   "level": "established",
+   "link": false
+  },
+  {
+   "id": "F5",
+   "text": "Individuals with major psychiatric disorders demonstrated reduced capacity to regulate their emotions across diagnoses and measures.",
+   "source": "S1",
+   "quote": "Overall, individuals with major psychiatric disorders demonstrated reduced capacity to regulate their emotions across diagnoses and measures",
+   "level": "established",
+   "link": false
+  }
+ ],
+ "sources": [
+  {
+   "id": "S1",
+   "title": "Emotion regulation impairment across psychiatric disorders: a systematic review and meta-analysis",
+   "authors": "Sloan ME, Stellern J, Xiao KB, Germeyer A, Gill K, Laputsina V, Mulsant BH, Ngoy A, Nguyen M, Tang VM, Sanches M, Gowin JL",
+   "cite": "Sloan et al.",
+   "year": 2026,
+   "venue": "Translational psychiatry",
+   "type": "meta-analysis",
+   "url": "https://doi.org/10.1038/s41398-026-04119-x",
+   "doi": "10.1038/s41398-026-04119-x",
+   "citedBy": 2,
+   "level": "established"
+  },
+  {
+   "id": "S2",
+   "title": "Sleep and Emotion in Adolescents: A Systematic Review of Studies Using Polysomnography, Actigraphy and Fitbit Data",
+   "authors": "Sunil SA, Tamadala SB, Arun G, Rana S, Prasad BV, Seema N",
+   "cite": "Sunil et al.",
+   "year": 2026,
+   "venue": "Annals of neurosciences",
+   "type": "systematic-review",
+   "url": "https://doi.org/10.1177/09727531261419490",
+   "doi": "10.1177/09727531261419490",
+   "citedBy": 1,
+   "level": "established"
+  },
+  {
+   "id": "S3",
+   "title": "A narrative review on oxytocin at the intersection of sleep, stress, and social behavior",
+   "authors": "Boccalaro IL, Rillosi E, Ramirez-Plascencia OD, De Luca R, Mahoney CE",
+   "cite": "Boccalaro et al.",
+   "year": 2026,
+   "venue": "Frontiers in neuroscience",
+   "type": "review",
+   "url": "https://doi.org/10.3389/fnins.2026.1745281",
+   "doi": "10.3389/fnins.2026.1745281",
+   "citedBy": 1,
+   "level": "supported"
+  }
+ ],
+ "also": [],
+ "verdict": "The evidence confirms that sleep disruption negatively impacts emotional experience and regulation, but it also highlights that emotion regulation is a complex feature across various psychiatric disorders.",
+ "caveat": "The sources do not provide specific data on the effects of a single night of sleep loss on the general adult population.",
+ "supports": "partly",
+ "caption": "Sleep disruption is linked to your ability to manage your emotions.\n\nResearch shows that sleep disruption and deprivation are detrimental to emotional experience and reactivity, though data on a single night of sleep loss in adults is not available. Emotion regulation is a complex feature that varies across psychiatric disorders.\n\nHow does your mood shift after a night of poor sleep?",
+ "hashtags": [
+  "sleep",
+  "emotion",
+  "biology",
+  "circadianrhythm",
+  "mentalhealth",
+  "stress",
+  "neuroscience",
+  "humanbehavior",
+  "rest",
+  "psychology"
+ ],
+ "imageIdeas": [
+  "A blurry, long exposure of a street lamp at night",
+  "A hand gripping a steering wheel in a dark car",
+  "A single chair in a dimly lit room with a glowing screen",
+  "A silhouette of a person looking out a window at 3 am"
+ ],
+ "images": [],
+ "credibility": {
+  "score": 94,
+  "flags": [
+   "Evidence is mixed — the post says so"
+  ]
+ },
+ "intensity": 2,
+ "engine": {
+  "version": "0.3",
+  "writer": "local:gemma4-12b",
+  "seconds": 534,
+  "drafts": 1
+ }
+}

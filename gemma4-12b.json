@@ -1,0 +1,1423 @@
+{
+ "name": "gemma4-12b",
+ "at": "2026-10-04T21:03:35.394Z",
+ "llm": {
+  "name": "local",
+  "ready": true,
+  "model": "gemma4-12b",
+  "free": true
+ },
+ "runs": [
+  {
+   "index": 0,
+   "ok": true,
+   "seconds": 544,
+   "post": {
+    "id": "2026-10-04-the-presence-of-the-phone",
+    "created": "2026-10-04T21:12:38.944Z",
+    "subject": "technology",
+    "style": "reality",
+    "topic": "Your phone weakens your thinking even when you are not using it",
+    "angle": "While sequestration of phones is associated with lower cognitive load and better flow, the mere presence of a smartphone in a child's environment was not linked to lower working memory or executive function.",
+    "title": "The Presence of the Phone",
+    "hooks": [
+     {
+      "type": "question",
+      "text": "Does your phone drain your brain?"
+     },
+     {
+      "type": "contradiction",
+      "text": "You think the phone drains you. The data says otherwise."
+     },
+     {
+      "type": "accusation",
+      "text": "You blame the device for your lack of focus."
+     },
+     {
+      "type": "scene",
+      "text": "A dark screen on a wooden desk."
+     },
+     {
+      "type": "statement",
+      "text": "The presence of a phone is not a cognitive drain."
+     }
+    ],
+    "hook": 0,
+    "slides": {
+     "reveal": {
+      "headline": "The mere presence of a phone does not drain your attention.",
+      "body": "Research on children showed no link between a smartphone being nearby and lower working memory or executive function.",
+      "facts": [
+       "F2",
+       "F3",
+       "F5"
+      ]
+     },
+     "explain": {
+      "headline": "Evidence is mixed on how phones affect your focus.",
+      "body": "While putting your phone away is linked to lower cognitive load and better flow, its physical presence alone did not impact cognitive performance in some settings.",
+      "facts": [
+       "F2",
+       "F3",
+       "F4"
+      ]
+     },
+     "matters": {
+      "headline": "The source of your distraction may be internal.",
+      "body": "That may be why your focus feels fractured. The issue might not be the phone sitting on the table, but how you choose to interact with it.",
+      "facts": []
+     },
+     "example": {
+      "headline": "A smartphone sits on a kitchen table.",
+      "body": "You are making coffee. The screen is dark. It does not move. You continue your morning routine in the quiet of the room."
+     },
+     "question": {
+      "headline": "When you put your phone away, what happens to your thoughts?",
+      "body": ""
+     }
+    },
+    "stat": {
+     "value": "no link",
+     "label": "between phone presence and child working memory",
+     "fact": "F2"
+    },
+    "claims": [
+     {
+      "id": "F1",
+      "text": "The frequency of a caregiver using a smartphone in a child's presence is not linked to gross motor skills, fine motor skills, visual-spatial working memory or inhibition.",
+      "source": "S1",
+      "quote": "the frequency of caregiver smartphone use in a child's presence was not associated with gross motor skills, fine motor skills, visual-spatial working memory or inhibition (all p > 0. 05).",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F2",
+      "text": "The frequency of a caregiver using a smartphone in a child's presence alone may not be linked to performance on motor skills and executive function.",
+      "source": "S1",
+      "quote": "Findings suggest that the frequency of caregiver smartphone use in a child's presence alone may not be associated with performance on motor skills and executive function.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F3",
+      "text": "Sequestration is associated with lower cognitive load.",
+      "source": "S2",
+      "quote": "Process-consistent analyses indicated that sequestration was associated with lower cognitive load",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F4",
+      "text": "Task choice has a moderate effect on flow when sequestration is present, but a negligible effect without sequestration.",
+      "source": "S2",
+      "quote": "the Sequestration × Choice interaction was significant for flow: task choice had a negligible effect without sequestration but a moderate effect with sequestration.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F5",
+      "text": "Sequestration reduces perceived phone distraction without undermining perceived choice or choice authenticity.",
+      "source": "S2",
+      "quote": "Manipulation checks confirmed that sequestration reduced perceived phone distraction without undermining perceived choice or choice authenticity.",
+      "level": "supported",
+      "link": false
+     }
+    ],
+    "sources": [
+     {
+      "id": "S1",
+      "title": "Associations Between Caregiver Smartphone Use in a Child's Presence and Motor Skills and Executive Function in Preschoolers: SUNRISE International Study",
+      "authors": "Toledo-Vargas M, Chong KH, Engberg E, Jáuregui A, Martins C, Byambaa A, López-Gil JF, Abdeta C, Mwase-Vuma T, El Hamdouchi A, Lubree H, Aoko OA, Chelly MS, Chia MYH, Ghofranipour F, Gonzalez-Santamaria J, Jarani J, Katewongsa P, Kontsevaya A, Singh P, Subedi N, Teo WP, Tiongco MM, Trampa K, Turab A, Užičanin E, Veldman SLC, Okely AD",
+      "cite": "Toledo-Vargas et al.",
+      "year": 2026,
+      "venue": "Child: care, health and development",
+      "type": "observational",
+      "url": "https://doi.org/10.1111/cch.70305",
+      "doi": "10.1111/cch.70305",
+      "citedBy": 1,
+      "level": "supported"
+     },
+     {
+      "id": "S2",
+      "title": "Choice Requires Cognitive Availability: Protective Structure as an Enabling Condition for Autonomy Support in Digitally Distracted Physical Education Classrooms",
+      "authors": "Xu H, Zhang B, Wei W",
+      "cite": "Xu et al.",
+      "year": 2026,
+      "venue": "PsyCh journal",
+      "type": "experiment",
+      "url": "https://doi.org/10.1002/pchj.70099",
+      "doi": "10.1002/pchj.70099",
+      "citedBy": 0,
+      "level": "supported"
+     }
+    ],
+    "also": [],
+    "verdict": "The evidence does not support the claim that the mere presence of a phone drains attention, as one study found no association with working memory in children.",
+    "caveat": "The study on children was observational and did not establish a cause, while the classroom study focused on the effects of sequestration rather than the mere presence of phones.",
+    "supports": "no",
+    "caption": "The idea that a phone's presence automatically ruins your focus is being questioned. \n\nResearch shows that a phone nearby was not linked to lower working memory in children, though putting phones away is associated with lower cognitive load. The classroom study focused on sequestration rather than mere presence. \n\nDo you feel less focused when your phone is in the room?",
+    "hashtags": [
+     "cognitiveload",
+     "focus",
+     "smartphone",
+     "psychology",
+     "attention",
+     "brainresearch",
+     "technology",
+     "humanbehavior",
+     "productivity",
+     "realitycheck"
+    ],
+    "imageIdeas": [
+     "A dark smartphone lying face down on a heavy wooden table",
+     "A silhouette of a person sitting in a dimly lit chair",
+     "Close up of hands resting on a lap in a quiet room",
+     "An empty chair in a room with soft, directional light"
+    ],
+    "images": [],
+    "credibility": {
+     "score": 92,
+     "flags": [
+      "No meta-analysis or systematic review among the sources",
+      "The evidence contradicts the popular claim — the post is written as a reality check"
+     ]
+    },
+    "intensity": 2,
+    "engine": {
+     "version": "0.3",
+     "writer": "local:gemma4-12b",
+     "seconds": 544,
+     "drafts": 1
+    }
+   },
+   "trace": {
+    "topic": "Your phone weakens your thinking even when you are not using it",
+    "research": {
+     "ok": true,
+     "search": {
+      "found": 49,
+      "relevant": 2,
+      "errors": [
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget "
+      ]
+     },
+     "sources": [
+      {
+       "id": "S1",
+       "title": "Associations Between Caregiver Smartphone Use in a Child's Presence and Motor Skills and Executive Function in Preschoolers: SUNRISE International Study",
+       "year": 2026,
+       "type": "observational",
+       "citedBy": 1,
+       "level": "supported",
+       "rel": 0.83,
+       "url": "https://doi.org/10.1111/cch.70305"
+      },
+      {
+       "id": "S2",
+       "title": "Choice Requires Cognitive Availability: Protective Structure as an Enabling Condition for Autonomy Support in Digitally Distracted Physical Education Classrooms",
+       "year": 2026,
+       "type": "experiment",
+       "citedBy": 0,
+       "level": "supported",
+       "rel": 0.57,
+       "url": "https://doi.org/10.1002/pchj.70099"
+      }
+     ],
+     "facts": [
+      {
+       "id": "F1",
+       "claim": "The frequency of a caregiver using a smartphone in a child's presence is not linked to gross motor skills, fine motor skills, visual-spatial working memory or inhibition.",
+       "source": "S1",
+       "quote": "the frequency of caregiver smartphone use in a child's presence was not associated with gross motor skills, fine motor skills, visual-spatial working memory or inhibition (all p > 0. 05).",
+       "surprise": 4,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": false
+      },
+      {
+       "id": "F2",
+       "claim": "The frequency of a caregiver using a smartphone in a child's presence alone may not be linked to performance on motor skills and executive function.",
+       "source": "S1",
+       "quote": "Findings suggest that the frequency of caregiver smartphone use in a child's presence alone may not be associated with performance on motor skills and executive function.",
+       "surprise": 4,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F3",
+       "claim": "Sequestration is associated with lower cognitive load.",
+       "source": "S2",
+       "quote": "Process-consistent analyses indicated that sequestration was associated with lower cognitive load",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F4",
+       "claim": "Task choice has a moderate effect on flow when sequestration is present, but a negligible effect without sequestration.",
+       "source": "S2",
+       "quote": "the Sequestration × Choice interaction was significant for flow: task choice had a negligible effect without sequestration but a moderate effect with sequestration.",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F5",
+       "claim": "Sequestration reduces perceived phone distraction without undermining perceived choice or choice authenticity.",
+       "source": "S2",
+       "quote": "Manipulation checks confirmed that sequestration reduced perceived phone distraction without undermining perceived choice or choice authenticity.",
+       "surprise": 2,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      }
+     ],
+     "rejected": [],
+     "supports": "no",
+     "angle": "While sequestration of phones is associated with lower cognitive load and better flow, the mere presence of a smartphone in a child's environment was not linked to lower working memory or executive function.",
+     "verdict": "The evidence does not support the claim that the mere presence of a phone drains attention, as one study found no association with working memory in children.",
+     "caveat": "The study on children was observational and did not establish a cause, while the classroom study focused on the effects of sequestration rather than the mere presence of phones.",
+     "llm": {
+      "ms": 215978,
+      "timings": {
+       "first_s": 74.4,
+       "gen_s": 141.5,
+       "prompt_tps": 12.8,
+       "gen_tps": 3.86
+      },
+      "usage": {
+       "in": 935,
+       "out": 553
+      },
+      "finish": "stop"
+     }
+    },
+    "write": {
+     "ok": true,
+     "reason": "",
+     "drafts": 1,
+     "fixes": [],
+     "issues": [],
+     "llm": {
+      "ms": 286460,
+      "timings": {
+       "first_s": 90.6,
+       "gen_s": 195.8,
+       "prompt_tps": 12.7,
+       "gen_tps": 3.88
+      },
+      "usage": {
+       "in": 1115,
+       "out": 767
+      }
+     }
+    }
+   }
+  },
+  {
+   "index": 1,
+   "ok": true,
+   "seconds": 534,
+   "post": {
+    "id": "2026-10-04-the-biology-of-your-mood",
+    "created": "2026-10-04T21:21:32.666Z",
+    "subject": "brain",
+    "style": "darkside",
+    "topic": "What one bad night of sleep does to your emotions",
+    "angle": "While sleep disruption is linked to impaired emotion regulation and increased reactivity in adolescents, the sources also show that psychiatric disorders are characterized by specific patterns of reduced adaptive and increased maladaptive emotion regulation.",
+    "title": "The Biology of Your Mood",
+    "hooks": [
+     {
+      "type": "question",
+      "text": "Does your mood belong to you?"
+     },
+     {
+      "type": "contradiction",
+      "text": "You think you are angry. Your sleep says otherwise."
+     },
+     {
+      "type": "accusation",
+      "text": "You are choosing to trade your emotional stability for sleep."
+     },
+     {
+      "type": "scene",
+      "text": "A blue screen in a dark room."
+     },
+     {
+      "type": "statement",
+      "text": "Sleep disruption alters your emotional experience."
+     }
+    ],
+    "hook": 0,
+    "slides": {
+     "reveal": {
+      "headline": "Sleep disruption impairs emotional regulation.",
+      "body": "Sleep disruption and deprivation are detrimental to emotional experience, emotional reactivity, and emotion-regulation capacities in adolescents.",
+      "facts": [
+       "F1",
+       "F4"
+      ]
+     },
+     "explain": {
+      "headline": "Stress sensitivity increases.",
+      "body": "Disruption of sleep, stress regulation, and circadian rhythms can amplify stress sensitivity and impair emotional regulation. This is a known link in human biology.",
+      "facts": [
+       "F1"
+      ]
+     },
+     "matters": {
+      "headline": "The complexity of your mood.",
+      "body": "The evidence is mixed regarding specific patterns. While sleep affects your reactions, emotion regulation is a complex feature that varies across different psychiatric disorders.",
+      "facts": [
+       "F1",
+       "F2",
+       "F3"
+      ]
+     },
+     "example": {
+      "headline": "The evening commute.",
+      "body": "You sit in your car after a long shift. A driver cuts you off. Your pulse spikes and your frustration feels heavy and difficult to shake."
+     },
+     "question": {
+      "headline": "How much of your mood belongs to you?",
+      "body": ""
+     }
+    },
+    "stat": {
+     "value": "impaired regulation",
+     "label": "the effect of sleep disruption on emotional capacities",
+     "fact": "F4"
+    },
+    "claims": [
+     {
+      "id": "F1",
+      "text": "Disruption of sleep, stress regulation, and circadian rhythms can amplify stress sensitivity and impair emotional regulation.",
+      "source": "S3",
+      "quote": "Disruption of any component can amplify stress sensitivity and impair emotional regulation, leading to neurobehavioral instability.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F2",
+      "text": "Use of cognitive reappraisal was reduced in all psychiatric disorders except panic disorder.",
+      "source": "S1",
+      "quote": "use of cognitive reappraisal (an adaptive form of emotion regulation) was reduced in all disorders except panic disorder",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F3",
+      "text": "Use of expressive suppression was greater in all psychiatric disorders except ADHD and OCD.",
+      "source": "S1",
+      "quote": "use of expressive suppression (a maladaptive form of emotion regulation) was greater in all disorders except ADHD and OCD.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F4",
+      "text": "Sleep disruption and deprivation are detrimental to emotional experience, emotional reactivity, and emotion-regulation capacities in adolescents.",
+      "source": "S2",
+      "quote": "The present study observes that sleep disruption and deprivation are detrimental in three key aspects of emotions in adolescents: emotional experience, emotional reactivity, and emotion-regulation capacities.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F5",
+      "text": "Individuals with major psychiatric disorders demonstrated reduced capacity to regulate their emotions across diagnoses and measures.",
+      "source": "S1",
+      "quote": "Overall, individuals with major psychiatric disorders demonstrated reduced capacity to regulate their emotions across diagnoses and measures",
+      "level": "established",
+      "link": false
+     }
+    ],
+    "sources": [
+     {
+      "id": "S1",
+      "title": "Emotion regulation impairment across psychiatric disorders: a systematic review and meta-analysis",
+      "authors": "Sloan ME, Stellern J, Xiao KB, Germeyer A, Gill K, Laputsina V, Mulsant BH, Ngoy A, Nguyen M, Tang VM, Sanches M, Gowin JL",
+      "cite": "Sloan et al.",
+      "year": 2026,
+      "venue": "Translational psychiatry",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.1038/s41398-026-04119-x",
+      "doi": "10.1038/s41398-026-04119-x",
+      "citedBy": 2,
+      "level": "established"
+     },
+     {
+      "id": "S2",
+      "title": "Sleep and Emotion in Adolescents: A Systematic Review of Studies Using Polysomnography, Actigraphy and Fitbit Data",
+      "authors": "Sunil SA, Tamadala SB, Arun G, Rana S, Prasad BV, Seema N",
+      "cite": "Sunil et al.",
+      "year": 2026,
+      "venue": "Annals of neurosciences",
+      "type": "systematic-review",
+      "url": "https://doi.org/10.1177/09727531261419490",
+      "doi": "10.1177/09727531261419490",
+      "citedBy": 1,
+      "level": "established"
+     },
+     {
+      "id": "S3",
+      "title": "A narrative review on oxytocin at the intersection of sleep, stress, and social behavior",
+      "authors": "Boccalaro IL, Rillosi E, Ramirez-Plascencia OD, De Luca R, Mahoney CE",
+      "cite": "Boccalaro et al.",
+      "year": 2026,
+      "venue": "Frontiers in neuroscience",
+      "type": "review",
+      "url": "https://doi.org/10.3389/fnins.2026.1745281",
+      "doi": "10.3389/fnins.2026.1745281",
+      "citedBy": 1,
+      "level": "supported"
+     }
+    ],
+    "also": [],
+    "verdict": "The evidence confirms that sleep disruption negatively impacts emotional experience and regulation, but it also highlights that emotion regulation is a complex feature across various psychiatric disorders.",
+    "caveat": "The sources do not provide specific data on the effects of a single night of sleep loss on the general adult population.",
+    "supports": "partly",
+    "caption": "Sleep disruption is linked to your ability to manage your emotions.\n\nResearch shows that sleep disruption and deprivation are detrimental to emotional experience and reactivity, though data on a single night of sleep loss in adults is not available. Emotion regulation is a complex feature that varies across psychiatric disorders.\n\nHow does your mood shift after a night of poor sleep?",
+    "hashtags": [
+     "sleep",
+     "emotion",
+     "biology",
+     "circadianrhythm",
+     "mentalhealth",
+     "stress",
+     "neuroscience",
+     "humanbehavior",
+     "rest",
+     "psychology"
+    ],
+    "imageIdeas": [
+     "A blurry, long exposure of a street lamp at night",
+     "A hand gripping a steering wheel in a dark car",
+     "A single chair in a dimly lit room with a glowing screen",
+     "A silhouette of a person looking out a window at 3 am"
+    ],
+    "images": [],
+    "credibility": {
+     "score": 94,
+     "flags": [
+      "Evidence is mixed — the post says so"
+     ]
+    },
+    "intensity": 2,
+    "engine": {
+     "version": "0.3",
+     "writer": "local:gemma4-12b",
+     "seconds": 534,
+     "drafts": 1
+    }
+   },
+   "trace": {
+    "topic": "What one bad night of sleep does to your emotions",
+    "research": {
+     "ok": true,
+     "search": {
+      "found": 51,
+      "relevant": 3,
+      "errors": [
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget "
+      ]
+     },
+     "sources": [
+      {
+       "id": "S1",
+       "title": "Emotion regulation impairment across psychiatric disorders: a systematic review and meta-analysis",
+       "year": 2026,
+       "type": "meta-analysis",
+       "citedBy": 2,
+       "level": "established",
+       "rel": 0.58,
+       "url": "https://doi.org/10.1038/s41398-026-04119-x"
+      },
+      {
+       "id": "S2",
+       "title": "Sleep and Emotion in Adolescents: A Systematic Review of Studies Using Polysomnography, Actigraphy and Fitbit Data",
+       "year": 2026,
+       "type": "systematic-review",
+       "citedBy": 1,
+       "level": "established",
+       "rel": 0.58,
+       "url": "https://doi.org/10.1177/09727531261419490"
+      },
+      {
+       "id": "S3",
+       "title": "A narrative review on oxytocin at the intersection of sleep, stress, and social behavior",
+       "year": 2026,
+       "type": "review",
+       "citedBy": 1,
+       "level": "supported",
+       "rel": 0.55,
+       "url": "https://doi.org/10.3389/fnins.2026.1745281"
+      }
+     ],
+     "facts": [
+      {
+       "id": "F1",
+       "claim": "Disruption of sleep, stress regulation, and circadian rhythms can amplify stress sensitivity and impair emotional regulation.",
+       "source": "S3",
+       "quote": "Disruption of any component can amplify stress sensitivity and impair emotional regulation, leading to neurobehavioral instability.",
+       "surprise": 2,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F2",
+       "claim": "Use of cognitive reappraisal was reduced in all psychiatric disorders except panic disorder.",
+       "source": "S1",
+       "quote": "use of cognitive reappraisal (an adaptive form of emotion regulation) was reduced in all disorders except panic disorder",
+       "surprise": 2,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F3",
+       "claim": "Use of expressive suppression was greater in all psychiatric disorders except ADHD and OCD.",
+       "source": "S1",
+       "quote": "use of expressive suppression (a maladaptive form of emotion regulation) was greater in all disorders except ADHD and OCD.",
+       "surprise": 2,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F4",
+       "claim": "Sleep disruption and deprivation are detrimental to emotional experience, emotional reactivity, and emotion-regulation capacities in adolescents.",
+       "source": "S2",
+       "quote": "The present study observes that sleep disruption and deprivation are detrimental in three key aspects of emotions in adolescents: emotional experience, emotional reactivity, and emotion-regulation capacities.",
+       "surprise": 1,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F5",
+       "claim": "Individuals with major psychiatric disorders demonstrated reduced capacity to regulate their emotions across diagnoses and measures.",
+       "source": "S1",
+       "quote": "Overall, individuals with major psychiatric disorders demonstrated reduced capacity to regulate their emotions across diagnoses and measures",
+       "surprise": 1,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      }
+     ],
+     "rejected": [],
+     "supports": "partly",
+     "angle": "While sleep disruption is linked to impaired emotion regulation and increased reactivity in adolescents, the sources also show that psychiatric disorders are characterized by specific patterns of reduced adaptive and increased maladaptive emotion regulation.",
+     "verdict": "The evidence confirms that sleep disruption negatively impacts emotional experience and regulation, but it also highlights that emotion regulation is a complex feature across various psychiatric disorders.",
+     "caveat": "The sources do not provide specific data on the effects of a single night of sleep loss on the general adult population.",
+     "llm": {
+      "ms": 217286,
+      "timings": {
+       "first_s": 88.1,
+       "gen_s": 129.2,
+       "prompt_tps": 12.8,
+       "gen_tps": 3.94
+      },
+      "usage": {
+       "in": 1101,
+       "out": 516
+      },
+      "finish": "stop"
+     }
+    },
+    "write": {
+     "ok": true,
+     "reason": "",
+     "drafts": 1,
+     "fixes": [],
+     "issues": [],
+     "llm": {
+      "ms": 275607,
+      "timings": {
+       "first_s": 87.6,
+       "gen_s": 188,
+       "prompt_tps": 12.8,
+       "gen_tps": 3.94
+      },
+      "usage": {
+       "in": 1094,
+       "out": 748
+      }
+     }
+    }
+   }
+  },
+  {
+   "index": 2,
+   "ok": true,
+   "seconds": 548,
+   "post": {
+    "id": "2026-10-04-the-cognitive-cost-of-scarcity",
+    "created": "2026-10-04T21:30:41.081Z",
+    "subject": "money",
+    "style": "unseen",
+    "topic": "Being short of money changes how well you think",
+    "angle": "Financial scarcity is linked to lower planning capacity and reduced risk aversion, but it specifically causes a depletion of executive function in impoverished children through the process of self-control.",
+    "title": "The Cognitive Cost of Scarcity",
+    "hooks": [
+     {
+      "type": "question",
+      "text": "Does your bank balance change how you think?"
+     },
+     {
+      "type": "contradiction",
+      "text": "You think poverty limits choice. It actually limits planning."
+     },
+     {
+      "type": "accusation",
+      "text": "You are spending your mental energy on survival."
+     },
+     {
+      "type": "scene",
+      "text": "A child calculating the price of bread."
+     },
+     {
+      "type": "statement",
+      "text": "Financial scarcity changes your cognitive capacity."
+     }
+    ],
+    "hook": 0,
+    "slides": {
+     "reveal": {
+      "headline": "Poverty depletes the mental capacity of children.",
+      "body": "Paying more attention to prices predicts a decrease in executive function in children experiencing poverty.",
+      "facts": [
+       "F3",
+       "F4"
+      ]
+     },
+     "explain": {
+      "headline": "Scarcity strains the brain.",
+      "body": "Self-control causes a major depletion of executive function in the integrative mental process for impoverished children. Higher financial scarcity is linked to lower planning capacity.",
+      "facts": [
+       "F2",
+       "F4"
+      ]
+     },
+     "matters": {
+      "headline": "The cost of survival.",
+      "body": "That may be why children in poverty struggle with long-term goals. Lower planning ability is linked to a decreased orientation toward the future.",
+      "facts": [
+       "F5"
+      ]
+     },
+     "example": {
+      "headline": "The grocery aisle.",
+      "body": "You stand in the aisle comparing the price of milk and bread. You calculate every cent. You are using your mental energy to survive the week."
+     },
+     "question": {
+      "headline": "How much of your focus is spent just staying afloat?",
+      "body": ""
+     }
+    },
+    "stat": {
+     "value": "depletion of executive function",
+     "label": "the effect of self-control in impoverished children",
+     "fact": "F4"
+    },
+    "claims": [
+     {
+      "id": "F1",
+      "text": "Cognitive depletion may paradoxically reduce risk aversion rather than uniformly impairing prudent choice.",
+      "source": "S2",
+      "quote": "suggesting that cognitive depletion may paradoxically reduce risk aversion rather than uniformly impairing prudent choice.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F2",
+      "text": "Higher financial scarcity is linked to lower planning capacity, which is linked to lower risk aversion.",
+      "source": "S2",
+      "quote": "higher financial scarcity was associated with lower planning capacity, which in turn was associated with lower risk aversion",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F3",
+      "text": "In children experiencing poverty, paying more attention to prices predicted a decrease in executive function.",
+      "source": "S1",
+      "quote": "In addition, more price viewing predicted a decrease in executive function in the poverty group only.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F4",
+      "text": "Self-control results in a major depletion of executive function in the integrative mental process for impoverished children.",
+      "source": "S1",
+      "quote": "self-control results in a major depletion of executive function in the integrative mental process.",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F5",
+      "text": "Lower planning ability is linked to decreased future orientation.",
+      "source": "S2",
+      "quote": "lower planning ability was associated with decreased future orientation.",
+      "level": "supported",
+      "link": false
+     }
+    ],
+    "sources": [
+     {
+      "id": "S1",
+      "title": "Economic Scarcity Impedes Impoverished Children's Executive Function: The Role of Multiple Resources Examined Through Eye Tracking",
+      "authors": "Jiang Y, Zhang F, Ming H, Li H, Huang S",
+      "cite": "Jiang et al.",
+      "year": 2026,
+      "venue": "Developmental science",
+      "type": "experiment",
+      "url": "https://doi.org/10.1111/desc.70283",
+      "doi": "10.1111/desc.70283",
+      "citedBy": 0,
+      "level": "supported"
+     },
+     {
+      "id": "S2",
+      "title": "From financial scarcity to risk and time preferences: the role of executive functions",
+      "authors": "Huang J, Zhu H",
+      "cite": "Huang & Zhu",
+      "year": 2026,
+      "venue": "Frontiers in psychology",
+      "type": "observational",
+      "url": "https://doi.org/10.3389/fpsyg.2026.1782444",
+      "doi": "10.3389/fpsyg.2026.1782444",
+      "citedBy": 0,
+      "level": "supported"
+     }
+    ],
+    "also": [
+     {
+      "title": "Integrative Nutritional Strategies for Performance, Recovery, and Weight Management in Taekwondo",
+      "cite": "Amawi et al.",
+      "year": 2026,
+      "url": "https://doi.org/10.3390/nu18172894",
+      "type": "review"
+     },
+     {
+      "title": "Overcoming barriers to care for individuals with fetal alcohol spectrum disorder: challenges and solutions in New Mexico and beyond",
+      "cite": "Gibson et al.",
+      "year": 2025,
+      "url": "https://doi.org/10.3389/fped.2025.1603765",
+      "type": "study"
+     }
+    ],
+    "verdict": "The evidence shows that financial scarcity is linked to specific cognitive impairments like reduced planning and altered risk preferences, while also causing a measurable depletion of executive function in children.",
+    "caveat": "One study shows an association rather than a proven cause for the link between financial scarcity and risk/time preferences.",
+    "supports": "partly",
+    "caption": "Money affects more than your bank account; it affects your cognitive capacity.\n\nResearch shows that financial scarcity is linked to lower planning capacity and altered risk preferences. In children, the constant act of self-control in poverty causes a measurable depletion of executive function. Note that while these links are observed, some studies show associations rather than proven causes.\n\nHow much of your daily focus is consumed by the cost of living?",
+    "hashtags": [
+     "cognitivebias",
+     "behavioraleconomics",
+     "neuroscience",
+     "poverty",
+     "executivefunction",
+     "mentalcapacity",
+     "sociology",
+     "humanbehavior",
+     "psychology",
+     "scarcity"
+    ],
+    "imageIdeas": [
+     "A close up of a hand holding a few coins on a cracked surface",
+     "A blurry, dimly lit grocery store aisle at night",
+     "A silhouette of a child sitting alone in a chair in a large room",
+     "A stack of unpaid bills on a plain wooden table"
+    ],
+    "images": [],
+    "credibility": {
+     "score": 86,
+     "flags": [
+      "No meta-analysis or systematic review among the sources",
+      "Evidence is mixed — the post says so"
+     ]
+    },
+    "intensity": 2,
+    "engine": {
+     "version": "0.3",
+     "writer": "local:gemma4-12b",
+     "seconds": 548,
+     "drafts": 1
+    }
+   },
+   "trace": {
+    "topic": "Being short of money changes how well you think",
+    "research": {
+     "ok": true,
+     "search": {
+      "found": 51,
+      "relevant": 4,
+      "errors": [
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget "
+      ]
+     },
+     "sources": [
+      {
+       "id": "S1",
+       "title": "Economic Scarcity Impedes Impoverished Children's Executive Function: The Role of Multiple Resources Examined Through Eye Tracking",
+       "year": 2026,
+       "type": "experiment",
+       "citedBy": 0,
+       "level": "supported",
+       "rel": 0.89,
+       "url": "https://doi.org/10.1111/desc.70283"
+      },
+      {
+       "id": "S2",
+       "title": "From financial scarcity to risk and time preferences: the role of executive functions",
+       "year": 2026,
+       "type": "observational",
+       "citedBy": 0,
+       "level": "supported",
+       "rel": 0.66,
+       "url": "https://doi.org/10.3389/fpsyg.2026.1782444"
+      },
+      {
+       "id": "S3",
+       "title": "Integrative Nutritional Strategies for Performance, Recovery, and Weight Management in Taekwondo",
+       "year": 2026,
+       "type": "review",
+       "citedBy": 0,
+       "level": "supported",
+       "rel": 0.56,
+       "url": "https://doi.org/10.3390/nu18172894"
+      },
+      {
+       "id": "S4",
+       "title": "Overcoming barriers to care for individuals with fetal alcohol spectrum disorder: challenges and solutions in New Mexico and beyond",
+       "year": 2025,
+       "type": "study",
+       "citedBy": 0,
+       "level": "supported",
+       "rel": 0.56,
+       "url": "https://doi.org/10.3389/fped.2025.1603765"
+      }
+     ],
+     "facts": [
+      {
+       "id": "F1",
+       "claim": "Cognitive depletion may paradoxically reduce risk aversion rather than uniformly impairing prudent choice.",
+       "source": "S2",
+       "quote": "suggesting that cognitive depletion may paradoxically reduce risk aversion rather than uniformly impairing prudent choice.",
+       "surprise": 5,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F2",
+       "claim": "Higher financial scarcity is linked to lower planning capacity, which is linked to lower risk aversion.",
+       "source": "S2",
+       "quote": "higher financial scarcity was associated with lower planning capacity, which in turn was associated with lower risk aversion",
+       "surprise": 4,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F3",
+       "claim": "In children experiencing poverty, paying more attention to prices predicted a decrease in executive function.",
+       "source": "S1",
+       "quote": "In addition, more price viewing predicted a decrease in executive function in the poverty group only.",
+       "surprise": 2,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F4",
+       "claim": "Self-control results in a major depletion of executive function in the integrative mental process for impoverished children.",
+       "source": "S1",
+       "quote": "self-control results in a major depletion of executive function in the integrative mental process.",
+       "surprise": 1,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F5",
+       "claim": "Lower planning ability is linked to decreased future orientation.",
+       "source": "S2",
+       "quote": "lower planning ability was associated with decreased future orientation.",
+       "surprise": 1,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      }
+     ],
+     "rejected": [],
+     "supports": "partly",
+     "angle": "Financial scarcity is linked to lower planning capacity and reduced risk aversion, but it specifically causes a depletion of executive function in impoverished children through the process of self-control.",
+     "verdict": "The evidence shows that financial scarcity is linked to specific cognitive impairments like reduced planning and altered risk preferences, while also causing a measurable depletion of executive function in children.",
+     "caveat": "One study shows an association rather than a proven cause for the link between financial scarcity and risk/time preferences.",
+     "llm": {
+      "ms": 224635,
+      "timings": {
+       "first_s": 103.2,
+       "gen_s": 121.4,
+       "prompt_tps": 12.7,
+       "gen_tps": 3.84
+      },
+      "usage": {
+       "in": 1285,
+       "out": 473
+      },
+      "finish": "stop"
+     }
+    },
+    "write": {
+     "ok": true,
+     "reason": "",
+     "drafts": 1,
+     "fixes": [],
+     "issues": [],
+     "llm": {
+      "ms": 282629,
+      "timings": {
+       "first_s": 86.7,
+       "gen_s": 195.9,
+       "prompt_tps": 12.7,
+       "gen_tps": 3.94
+      },
+      "usage": {
+       "in": 1082,
+       "out": 778
+      }
+     }
+    }
+   }
+  },
+  {
+   "index": 3,
+   "ok": true,
+   "seconds": 617,
+   "post": {
+    "id": "2026-10-04-the-myth-of-the-social-media-detox",
+    "created": "2026-10-04T21:40:57.794Z",
+    "subject": "social",
+    "style": "reality",
+    "topic": "Does quitting social media actually make people happier?",
+    "angle": "While some studies show that reducing social media use can improve specific symptoms like loneliness or depression, other meta-analyses found no significant impact on general well-being or life satisfaction.",
+    "title": "The Myth of the Social Media Detox",
+    "hooks": [
+     {
+      "type": "question",
+      "text": "Does quitting social media actually make you happier?"
+     },
+     {
+      "type": "contradiction",
+      "text": "You expect a new life. The evidence shows no change."
+     },
+     {
+      "type": "accusation",
+      "text": "You are waiting for a detox to fix your mood."
+     },
+     {
+      "type": "scene",
+      "text": "A phone screen glowing in an empty room."
+     },
+     {
+      "type": "number",
+      "text": "1 h/day to lower loneliness."
+     }
+    ],
+    "hook": 0,
+    "slides": {
+     "reveal": {
+      "headline": "Quitting social media may not make you happier.",
+      "body": "Research shows no significant impact on general well-being or life satisfaction from abstinence.",
+      "facts": [
+       "F1",
+       "F5"
+      ]
+     },
+     "explain": {
+      "headline": "The results are mixed.",
+      "body": "While total abstinence doesn't change general life satisfaction, limiting use to one hour a day can lower loneliness in youth with anxiety and depression.",
+      "facts": [
+       "F3",
+       "F4"
+      ]
+     },
+     "matters": {
+      "headline": "Why the detox feels empty.",
+      "body": "That may be why you feel a small shift in well-being but no major change in your daily life. The evidence suggests specific symptoms respond better than your overall mood.",
+      "facts": []
+     },
+     "example": {
+      "headline": "The morning scroll.",
+      "body": "You sit on the edge of your bed. The blue light hits your face in the dark room. You feel a slight change, but the weight of the day remains the same."
+     },
+     "question": {
+      "headline": "Are you seeking a cure that isn't there?",
+      "body": ""
+     }
+    },
+    "stat": {
+     "value": "1 h/day",
+     "label": "amount of social media use to significantly lower loneliness in youth with anxiety and depression",
+     "fact": "F3"
+    },
+    "claims": [
+     {
+      "id": "F1",
+      "text": "There were no significant effects of social media abstinence interventions on positive affect, negative affect, or life satisfaction.",
+      "source": "S2",
+      "quote": "The analyses revealed no significant effects of social media abstinence interventions on positive affect, negative affect, or life satisfaction.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F2",
+      "text": "The difference in depression effect size between interventions aimed at reducing social media use and those aimed at abstinence was not significant.",
+      "source": "S1",
+      "quote": "Although interventions aimed at reducing use of social media had twice the depression effect size of interventions aimed at abstinence from social media, the difference was not significant.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F3",
+      "text": "Reducing social media use to 1 h/day for three weeks makes loneliness significantly lower in youth with anxiety and depression.",
+      "source": "S3",
+      "quote": "the intervention group showed significantly greater reductions in loneliness compared to controls (β = -0. 11, 95% CI [-0. 21, -0. 005]).",
+      "level": "supported",
+      "link": false
+     },
+     {
+      "id": "F4",
+      "text": "Limiting social media use is an effective way to reduce symptoms of depression.",
+      "source": "S1",
+      "quote": "Overall, this meta-analysis suggests that limiting social media use is an effective way to reduce symptoms of depression.",
+      "level": "established",
+      "link": false
+     },
+     {
+      "id": "F5",
+      "text": "Social media detox has a positive and small effect on well-being, including both positive and negative indicators.",
+      "source": "S5",
+      "quote": "the meta-analysis findings using random effects showed that there was a positive and small effect of SMD on well-being, including positive indicators and negative indicators.",
+      "level": "established",
+      "link": false
+     }
+    ],
+    "sources": [
+     {
+      "id": "S1",
+      "title": "Reducing Social Media Use Decreases Depression Symptoms: A Meta-Analysis of Randomised Controlled Trials",
+      "authors": "May W, Malouff JM, Meynadier J",
+      "cite": "May et al.",
+      "year": 2025,
+      "venue": "European journal of investigation in health, psychology and education",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.3390/ejihpe15110222",
+      "doi": "10.3390/ejihpe15110222",
+      "citedBy": 4,
+      "level": "established"
+     },
+     {
+      "id": "S2",
+      "title": "The effects of social media abstinence on affective well-being and life satisfaction: a systematic review and meta-analysis",
+      "authors": "Lemahieu L, Vander Zwalmen Y, Mennes M, Koster EHW, Vanden Abeele MMP, Poels K",
+      "cite": "Lemahieu et al.",
+      "year": 2025,
+      "venue": "Scientific reports",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.1038/s41598-025-90984-3",
+      "doi": "10.1038/s41598-025-90984-3",
+      "citedBy": 17,
+      "level": "established"
+     },
+     {
+      "id": "S3",
+      "title": "Reducing social media use decreases loneliness regardless of gender or level of social comparisons in youth with anxiety and depression: A randomized controlled trial",
+      "authors": "Goldfield GS, Lopes MVV, Mahboob W, Perry S, Davis CG",
+      "cite": "Goldfield et al.",
+      "year": 2026,
+      "venue": "Journal of affective disorders",
+      "type": "rct",
+      "url": "https://doi.org/10.1016/j.jad.2026.121331",
+      "doi": "10.1016/j.jad.2026.121331",
+      "citedBy": 0,
+      "level": "supported"
+     },
+     {
+      "id": "S5",
+      "title": "Am I Happier Without You? Social Media Detox and Well-Being: A Meta-Analysis of Randomized Controlled Trials",
+      "authors": "Liu Y, Mohamad EMW, Azlan AA, Tan Y",
+      "cite": "Liu et al.",
+      "year": 2025,
+      "venue": "Behavioral sciences (Basel, Switzerland)",
+      "type": "meta-analysis",
+      "url": "https://doi.org/10.3390/bs15030290",
+      "doi": "10.3390/bs15030290",
+      "citedBy": 4,
+      "level": "established"
+     }
+    ],
+    "also": [
+     {
+      "title": "Meta-analytic structural equation modeling with mediation role of problematic mobile phone use between solitude and anxiety and depression",
+      "cite": "Liu et al.",
+      "year": 2026,
+      "url": "https://doi.org/10.1186/s40359-026-04234-w",
+      "type": "meta-analysis"
+     },
+     {
+      "title": "Petit volunteer protocol for loneliness alleviation in community-dwelling older adults in Japan: a randomised controlled trial",
+      "cite": "Tomida et al.",
+      "year": 2026,
+      "url": "https://doi.org/10.1136/bmjopen-2025-107067",
+      "type": "rct"
+     }
+    ],
+    "verdict": "The evidence is mixed, showing that while specific reductions in use may help certain symptoms, total abstinence may not significantly improve overall well-being.",
+    "caveat": "The findings are limited by inconsistent results across studies and a need for more research on long-term effects and methodological differences.",
+    "supports": "partly",
+    "caption": "Quitting social media does not guarantee a happier life.\n\nResearch shows that while limiting use can reduce specific symptoms like loneliness or depression, total abstinence has no significant effect on general well-being. Results remain inconsistent and require more long-term study.\n\nDoes your current usage feel like a habit or a choice?",
+    "hashtags": [
+     "socialmedia",
+     "mentalhealth",
+     "psychology",
+     "wellbeing",
+     "research",
+     "digitalhealth",
+     "behavior",
+     "realitycheck"
+    ],
+    "imageIdeas": [
+     "A close up of a thumb hovering over a glowing glass screen in a dark room",
+     "An empty chair facing a window in a dimly lit apartment",
+     "A silhouette of a person looking at a phone in a crowded train",
+     "A pile of discarded electronics on a wooden table"
+    ],
+    "images": [],
+    "credibility": {
+     "score": 94,
+     "flags": [
+      "Evidence is mixed — the post says so"
+     ]
+    },
+    "intensity": 2,
+    "engine": {
+     "version": "0.3",
+     "writer": "local:gemma4-12b",
+     "seconds": 617,
+     "drafts": 1
+    }
+   },
+   "trace": {
+    "topic": "Does quitting social media actually make people happier?",
+    "research": {
+     "ok": true,
+     "search": {
+      "found": 45,
+      "relevant": 10,
+      "errors": [
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget ",
+       "{\"error\":\"Rate limit exceeded\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget "
+      ]
+     },
+     "sources": [
+      {
+       "id": "S1",
+       "title": "Reducing Social Media Use Decreases Depression Symptoms: A Meta-Analysis of Randomised Controlled Trials",
+       "year": 2025,
+       "type": "meta-analysis",
+       "citedBy": 4,
+       "level": "established",
+       "rel": 0.83,
+       "url": "https://doi.org/10.3390/ejihpe15110222"
+      },
+      {
+       "id": "S2",
+       "title": "The effects of social media abstinence on affective well-being and life satisfaction: a systematic review and meta-analysis",
+       "year": 2025,
+       "type": "meta-analysis",
+       "citedBy": 17,
+       "level": "established",
+       "rel": 0.68,
+       "url": "https://doi.org/10.1038/s41598-025-90984-3"
+      },
+      {
+       "id": "S3",
+       "title": "Reducing social media use decreases loneliness regardless of gender or level of social comparisons in youth with anxiety and depression: A randomized controlled trial",
+       "year": 2026,
+       "type": "rct",
+       "citedBy": 0,
+       "level": "supported",
+       "rel": 1,
+       "url": "https://doi.org/10.1016/j.jad.2026.121331"
+      },
+      {
+       "id": "S4",
+       "title": "Meta-analytic structural equation modeling with mediation role of problematic mobile phone use between solitude and anxiety and depression",
+       "year": 2026,
+       "type": "meta-analysis",
+       "citedBy": 1,
+       "level": "emerging",
+       "rel": 0.69,
+       "url": "https://doi.org/10.1186/s40359-026-04234-w"
+      },
+      {
+       "id": "S5",
+       "title": "Am I Happier Without You? Social Media Detox and Well-Being: A Meta-Analysis of Randomized Controlled Trials",
+       "year": 2025,
+       "type": "meta-analysis",
+       "citedBy": 4,
+       "level": "established",
+       "rel": 0.56,
+       "url": "https://doi.org/10.3390/bs15030290"
+      },
+      {
+       "id": "S6",
+       "title": "Petit volunteer protocol for loneliness alleviation in community-dwelling older adults in Japan: a randomised controlled trial",
+       "year": 2026,
+       "type": "rct",
+       "citedBy": 0,
+       "level": "supported",
+       "rel": 0.56,
+       "url": "https://doi.org/10.1136/bmjopen-2025-107067"
+      }
+     ],
+     "facts": [
+      {
+       "id": "F1",
+       "claim": "There were no significant effects of social media abstinence interventions on positive affect, negative affect, or life satisfaction.",
+       "source": "S2",
+       "quote": "The analyses revealed no significant effects of social media abstinence interventions on positive affect, negative affect, or life satisfaction.",
+       "surprise": 5,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F2",
+       "claim": "The difference in depression effect size between interventions aimed at reducing social media use and those aimed at abstinence was not significant.",
+       "source": "S1",
+       "quote": "Although interventions aimed at reducing use of social media had twice the depression effect size of interventions aimed at abstinence from social media, the difference was not significant.",
+       "surprise": 4,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F3",
+       "claim": "Reducing social media use to 1 h/day for three weeks makes loneliness significantly lower in youth with anxiety and depression.",
+       "source": "S3",
+       "quote": "the intervention group showed significantly greater reductions in loneliness compared to controls (β = -0. 11, 95% CI [-0. 21, -0. 005]).",
+       "surprise": 3,
+       "level": "supported",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": false
+      },
+      {
+       "id": "F4",
+       "claim": "Limiting social media use is an effective way to reduce symptoms of depression.",
+       "source": "S1",
+       "quote": "Overall, this meta-analysis suggests that limiting social media use is an effective way to reduce symptoms of depression.",
+       "surprise": 2,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      },
+      {
+       "id": "F5",
+       "claim": "Social media detox has a positive and small effect on well-being, including both positive and negative indicators.",
+       "source": "S5",
+       "quote": "the meta-analysis findings using random effects showed that there was a positive and small effect of SMD on well-being, including positive indicators and negative indicators.",
+       "surprise": 2,
+       "level": "established",
+       "causalOk": true,
+       "causalWarning": null,
+       "quoteExact": true
+      }
+     ],
+     "rejected": [],
+     "supports": "partly",
+     "angle": "While some studies show that reducing social media use can improve specific symptoms like loneliness or depression, other meta-analyses found no significant impact on general well-being or life satisfaction.",
+     "verdict": "The evidence is mixed, showing that while specific reductions in use may help certain symptoms, total abstinence may not significantly improve overall well-being.",
+     "caveat": "The findings are limited by inconsistent results across studies and a need for more research on long-term effects and methodological differences.",
+     "llm": {
+      "ms": 300078,
+      "timings": {
+       "first_s": 157.6,
+       "gen_s": 142.4,
+       "prompt_tps": 12.6,
+       "gen_tps": 3.88
+      },
+      "usage": {
+       "in": 1964,
+       "out": 559
+      },
+      "finish": "stop"
+     }
+    },
+    "write": {
+     "ok": true,
+     "reason": "",
+     "drafts": 1,
+     "fixes": [],
+     "issues": [],
+     "llm": {
+      "ms": 275707,
+      "timings": {
+       "first_s": 86.3,
+       "gen_s": 189.4,
+       "prompt_tps": 12.8,
+       "gen_tps": 3.98
+      },
+      "usage": {
+       "in": 1085,
+       "out": 760
+      }
+     }
+    }
+   }
+  }
+ ],
+ "http": {
+  "requests": 72,
+  "cached": 0,
+  "failures": 48,
+  "byHost": {
+   "www.ebi.ac.uk": 24,
+   "api.openalex.org": 48
+  }
+ }
+}

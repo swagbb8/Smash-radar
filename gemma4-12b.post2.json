@@ -1,0 +1,193 @@
+{
+ "id": "2026-10-04-the-cognitive-cost-of-scarcity",
+ "created": "2026-10-04T21:30:41.081Z",
+ "subject": "money",
+ "style": "unseen",
+ "topic": "Being short of money changes how well you think",
+ "angle": "Financial scarcity is linked to lower planning capacity and reduced risk aversion, but it specifically causes a depletion of executive function in impoverished children through the process of self-control.",
+ "title": "The Cognitive Cost of Scarcity",
+ "hooks": [
+  {
+   "type": "question",
+   "text": "Does your bank balance change how you think?"
+  },
+  {
+   "type": "contradiction",
+   "text": "You think poverty limits choice. It actually limits planning."
+  },
+  {
+   "type": "accusation",
+   "text": "You are spending your mental energy on survival."
+  },
+  {
+   "type": "scene",
+   "text": "A child calculating the price of bread."
+  },
+  {
+   "type": "statement",
+   "text": "Financial scarcity changes your cognitive capacity."
+  }
+ ],
+ "hook": 0,
+ "slides": {
+  "reveal": {
+   "headline": "Poverty depletes the mental capacity of children.",
+   "body": "Paying more attention to prices predicts a decrease in executive function in children experiencing poverty.",
+   "facts": [
+    "F3",
+    "F4"
+   ]
+  },
+  "explain": {
+   "headline": "Scarcity strains the brain.",
+   "body": "Self-control causes a major depletion of executive function in the integrative mental process for impoverished children. Higher financial scarcity is linked to lower planning capacity.",
+   "facts": [
+    "F2",
+    "F4"
+   ]
+  },
+  "matters": {
+   "headline": "The cost of survival.",
+   "body": "That may be why children in poverty struggle with long-term goals. Lower planning ability is linked to a decreased orientation toward the future.",
+   "facts": [
+    "F5"
+   ]
+  },
+  "example": {
+   "headline": "The grocery aisle.",
+   "body": "You stand in the aisle comparing the price of milk and bread. You calculate every cent. You are using your mental energy to survive the week."
+  },
+  "question": {
+   "headline": "How much of your focus is spent just staying afloat?",
+   "body": ""
+  }
+ },
+ "stat": {
+  "value": "depletion of executive function",
+  "label": "the effect of self-control in impoverished children",
+  "fact": "F4"
+ },
+ "claims": [
+  {
+   "id": "F1",
+   "text": "Cognitive depletion may paradoxically reduce risk aversion rather than uniformly impairing prudent choice.",
+   "source": "S2",
+   "quote": "suggesting that cognitive depletion may paradoxically reduce risk aversion rather than uniformly impairing prudent choice.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F2",
+   "text": "Higher financial scarcity is linked to lower planning capacity, which is linked to lower risk aversion.",
+   "source": "S2",
+   "quote": "higher financial scarcity was associated with lower planning capacity, which in turn was associated with lower risk aversion",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F3",
+   "text": "In children experiencing poverty, paying more attention to prices predicted a decrease in executive function.",
+   "source": "S1",
+   "quote": "In addition, more price viewing predicted a decrease in executive function in the poverty group only.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F4",
+   "text": "Self-control results in a major depletion of executive function in the integrative mental process for impoverished children.",
+   "source": "S1",
+   "quote": "self-control results in a major depletion of executive function in the integrative mental process.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F5",
+   "text": "Lower planning ability is linked to decreased future orientation.",
+   "source": "S2",
+   "quote": "lower planning ability was associated with decreased future orientation.",
+   "level": "supported",
+   "link": false
+  }
+ ],
+ "sources": [
+  {
+   "id": "S1",
+   "title": "Economic Scarcity Impedes Impoverished Children's Executive Function: The Role of Multiple Resources Examined Through Eye Tracking",
+   "authors": "Jiang Y, Zhang F, Ming H, Li H, Huang S",
+   "cite": "Jiang et al.",
+   "year": 2026,
+   "venue": "Developmental science",
+   "type": "experiment",
+   "url": "https://doi.org/10.1111/desc.70283",
+   "doi": "10.1111/desc.70283",
+   "citedBy": 0,
+   "level": "supported"
+  },
+  {
+   "id": "S2",
+   "title": "From financial scarcity to risk and time preferences: the role of executive functions",
+   "authors": "Huang J, Zhu H",
+   "cite": "Huang & Zhu",
+   "year": 2026,
+   "venue": "Frontiers in psychology",
+   "type": "observational",
+   "url": "https://doi.org/10.3389/fpsyg.2026.1782444",
+   "doi": "10.3389/fpsyg.2026.1782444",
+   "citedBy": 0,
+   "level": "supported"
+  }
+ ],
+ "also": [
+  {
+   "title": "Integrative Nutritional Strategies for Performance, Recovery, and Weight Management in Taekwondo",
+   "cite": "Amawi et al.",
+   "year": 2026,
+   "url": "https://doi.org/10.3390/nu18172894",
+   "type": "review"
+  },
+  {
+   "title": "Overcoming barriers to care for individuals with fetal alcohol spectrum disorder: challenges and solutions in New Mexico and beyond",
+   "cite": "Gibson et al.",
+   "year": 2025,
+   "url": "https://doi.org/10.3389/fped.2025.1603765",
+   "type": "study"
+  }
+ ],
+ "verdict": "The evidence shows that financial scarcity is linked to specific cognitive impairments like reduced planning and altered risk preferences, while also causing a measurable depletion of executive function in children.",
+ "caveat": "One study shows an association rather than a proven cause for the link between financial scarcity and risk/time preferences.",
+ "supports": "partly",
+ "caption": "Money affects more than your bank account; it affects your cognitive capacity.\n\nResearch shows that financial scarcity is linked to lower planning capacity and altered risk preferences. In children, the constant act of self-control in poverty causes a measurable depletion of executive function. Note that while these links are observed, some studies show associations rather than proven causes.\n\nHow much of your daily focus is consumed by the cost of living?",
+ "hashtags": [
+  "cognitivebias",
+  "behavioraleconomics",
+  "neuroscience",
+  "poverty",
+  "executivefunction",
+  "mentalcapacity",
+  "sociology",
+  "humanbehavior",
+  "psychology",
+  "scarcity"
+ ],
+ "imageIdeas": [
+  "A close up of a hand holding a few coins on a cracked surface",
+  "A blurry, dimly lit grocery store aisle at night",
+  "A silhouette of a child sitting alone in a chair in a large room",
+  "A stack of unpaid bills on a plain wooden table"
+ ],
+ "images": [],
+ "credibility": {
+  "score": 86,
+  "flags": [
+   "No meta-analysis or systematic review among the sources",
+   "Evidence is mixed — the post says so"
+  ]
+ },
+ "intensity": 2,
+ "engine": {
+  "version": "0.3",
+  "writer": "local:gemma4-12b",
+  "seconds": 548,
+  "drafts": 1
+ }
+}

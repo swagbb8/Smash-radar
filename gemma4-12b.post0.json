@@ -1,0 +1,178 @@
+{
+ "id": "2026-10-04-the-presence-of-the-phone",
+ "created": "2026-10-04T21:12:38.944Z",
+ "subject": "technology",
+ "style": "reality",
+ "topic": "Your phone weakens your thinking even when you are not using it",
+ "angle": "While sequestration of phones is associated with lower cognitive load and better flow, the mere presence of a smartphone in a child's environment was not linked to lower working memory or executive function.",
+ "title": "The Presence of the Phone",
+ "hooks": [
+  {
+   "type": "question",
+   "text": "Does your phone drain your brain?"
+  },
+  {
+   "type": "contradiction",
+   "text": "You think the phone drains you. The data says otherwise."
+  },
+  {
+   "type": "accusation",
+   "text": "You blame the device for your lack of focus."
+  },
+  {
+   "type": "scene",
+   "text": "A dark screen on a wooden desk."
+  },
+  {
+   "type": "statement",
+   "text": "The presence of a phone is not a cognitive drain."
+  }
+ ],
+ "hook": 0,
+ "slides": {
+  "reveal": {
+   "headline": "The mere presence of a phone does not drain your attention.",
+   "body": "Research on children showed no link between a smartphone being nearby and lower working memory or executive function.",
+   "facts": [
+    "F2",
+    "F3",
+    "F5"
+   ]
+  },
+  "explain": {
+   "headline": "Evidence is mixed on how phones affect your focus.",
+   "body": "While putting your phone away is linked to lower cognitive load and better flow, its physical presence alone did not impact cognitive performance in some settings.",
+   "facts": [
+    "F2",
+    "F3",
+    "F4"
+   ]
+  },
+  "matters": {
+   "headline": "The source of your distraction may be internal.",
+   "body": "That may be why your focus feels fractured. The issue might not be the phone sitting on the table, but how you choose to interact with it.",
+   "facts": []
+  },
+  "example": {
+   "headline": "A smartphone sits on a kitchen table.",
+   "body": "You are making coffee. The screen is dark. It does not move. You continue your morning routine in the quiet of the room."
+  },
+  "question": {
+   "headline": "When you put your phone away, what happens to your thoughts?",
+   "body": ""
+  }
+ },
+ "stat": {
+  "value": "no link",
+  "label": "between phone presence and child working memory",
+  "fact": "F2"
+ },
+ "claims": [
+  {
+   "id": "F1",
+   "text": "The frequency of a caregiver using a smartphone in a child's presence is not linked to gross motor skills, fine motor skills, visual-spatial working memory or inhibition.",
+   "source": "S1",
+   "quote": "the frequency of caregiver smartphone use in a child's presence was not associated with gross motor skills, fine motor skills, visual-spatial working memory or inhibition (all p > 0. 05).",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F2",
+   "text": "The frequency of a caregiver using a smartphone in a child's presence alone may not be linked to performance on motor skills and executive function.",
+   "source": "S1",
+   "quote": "Findings suggest that the frequency of caregiver smartphone use in a child's presence alone may not be associated with performance on motor skills and executive function.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F3",
+   "text": "Sequestration is associated with lower cognitive load.",
+   "source": "S2",
+   "quote": "Process-consistent analyses indicated that sequestration was associated with lower cognitive load",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F4",
+   "text": "Task choice has a moderate effect on flow when sequestration is present, but a negligible effect without sequestration.",
+   "source": "S2",
+   "quote": "the Sequestration × Choice interaction was significant for flow: task choice had a negligible effect without sequestration but a moderate effect with sequestration.",
+   "level": "supported",
+   "link": false
+  },
+  {
+   "id": "F5",
+   "text": "Sequestration reduces perceived phone distraction without undermining perceived choice or choice authenticity.",
+   "source": "S2",
+   "quote": "Manipulation checks confirmed that sequestration reduced perceived phone distraction without undermining perceived choice or choice authenticity.",
+   "level": "supported",
+   "link": false
+  }
+ ],
+ "sources": [
+  {
+   "id": "S1",
+   "title": "Associations Between Caregiver Smartphone Use in a Child's Presence and Motor Skills and Executive Function in Preschoolers: SUNRISE International Study",
+   "authors": "Toledo-Vargas M, Chong KH, Engberg E, Jáuregui A, Martins C, Byambaa A, López-Gil JF, Abdeta C, Mwase-Vuma T, El Hamdouchi A, Lubree H, Aoko OA, Chelly MS, Chia MYH, Ghofranipour F, Gonzalez-Santamaria J, Jarani J, Katewongsa P, Kontsevaya A, Singh P, Subedi N, Teo WP, Tiongco MM, Trampa K, Turab A, Užičanin E, Veldman SLC, Okely AD",
+   "cite": "Toledo-Vargas et al.",
+   "year": 2026,
+   "venue": "Child: care, health and development",
+   "type": "observational",
+   "url": "https://doi.org/10.1111/cch.70305",
+   "doi": "10.1111/cch.70305",
+   "citedBy": 1,
+   "level": "supported"
+  },
+  {
+   "id": "S2",
+   "title": "Choice Requires Cognitive Availability: Protective Structure as an Enabling Condition for Autonomy Support in Digitally Distracted Physical Education Classrooms",
+   "authors": "Xu H, Zhang B, Wei W",
+   "cite": "Xu et al.",
+   "year": 2026,
+   "venue": "PsyCh journal",
+   "type": "experiment",
+   "url": "https://doi.org/10.1002/pchj.70099",
+   "doi": "10.1002/pchj.70099",
+   "citedBy": 0,
+   "level": "supported"
+  }
+ ],
+ "also": [],
+ "verdict": "The evidence does not support the claim that the mere presence of a phone drains attention, as one study found no association with working memory in children.",
+ "caveat": "The study on children was observational and did not establish a cause, while the classroom study focused on the effects of sequestration rather than the mere presence of phones.",
+ "supports": "no",
+ "caption": "The idea that a phone's presence automatically ruins your focus is being questioned. \n\nResearch shows that a phone nearby was not linked to lower working memory in children, though putting phones away is associated with lower cognitive load. The classroom study focused on sequestration rather than mere presence. \n\nDo you feel less focused when your phone is in the room?",
+ "hashtags": [
+  "cognitiveload",
+  "focus",
+  "smartphone",
+  "psychology",
+  "attention",
+  "brainresearch",
+  "technology",
+  "humanbehavior",
+  "productivity",
+  "realitycheck"
+ ],
+ "imageIdeas": [
+  "A dark smartphone lying face down on a heavy wooden table",
+  "A silhouette of a person sitting in a dimly lit chair",
+  "Close up of hands resting on a lap in a quiet room",
+  "An empty chair in a room with soft, directional light"
+ ],
+ "images": [],
+ "credibility": {
+  "score": 92,
+  "flags": [
+   "No meta-analysis or systematic review among the sources",
+   "The evidence contradicts the popular claim — the post is written as a reality check"
+  ]
+ },
+ "intensity": 2,
+ "engine": {
+  "version": "0.3",
+  "writer": "local:gemma4-12b",
+  "seconds": 544,
+  "drafts": 1
+ }
+}
