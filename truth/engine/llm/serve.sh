@@ -9,9 +9,10 @@ PORT=${LLM_PORT:-8080}; CTX=${LLM_CTX:-8192}; HOME_DIR=${LLM_HOME:-$HOME/.truth-
 
 if [ ! -x "$HOME_DIR/bin/llama-server" ]; then
   echo "::group::Install llama.cpp"
-  api="https://api.github.com/repos/ggml-org/llama.cpp/releases/${LLAMA_TAG:+tags/}${LLAMA_TAG:-latest}"
+  # The project publishes several kinds of release; take the newest one that carries a Linux x64 CPU build.
+  api="https://api.github.com/repos/ggml-org/llama.cpp/releases${LLAMA_TAG:+/tags/$LLAMA_TAG}${LLAMA_TAG:-?per_page=30}"
   curl -sSL -H "Accept: application/vnd.github+json" ${GITHUB_TOKEN:+-H "Authorization: Bearer $GITHUB_TOKEN"} "$api" -o /tmp/llama-release.json || { echo "release lookup failed"; exit 1; }
-  url=$(node -e 'const j=JSON.parse(require("fs").readFileSync("/tmp/llama-release.json","utf8"));const names=(j.assets||[]).map(a=>a.name);const pick=(j.assets||[]).filter(a=>/(ubuntu|linux).*(x64|x86_64|amd64)/i.test(a.name)&&!/vulkan|cuda|rocm|sycl|arm|aarch|s390|riscv|openvino|hip|opencl/i.test(a.name));if(!pick.length){console.error("no linux x64 CPU asset in",j.tag_name||j.message,"assets:",names.join(", "));process.exit(1)}console.error("llama.cpp",j.tag_name,pick[0].name);console.log(pick[0].browser_download_url)')
+  url=$(node -e 'let j=JSON.parse(require("fs").readFileSync("/tmp/llama-release.json","utf8"));if(!Array.isArray(j))j=[j];const ok=a=>/(ubuntu|linux).*(x64|x86_64|amd64)/i.test(a.name)&&/\.(zip|tar\.gz|tgz|tar\.xz)$/i.test(a.name)&&!/vulkan|cuda|rocm|sycl|arm|aarch|s390|riscv|openvino|hip|opencl/i.test(a.name);for(const r of j){const pick=(r.assets||[]).filter(ok);if(pick.length){console.error("llama.cpp",r.tag_name,pick[0].name);console.log(pick[0].browser_download_url);process.exit(0)}}console.error("no linux x64 CPU build found. releases:",j.slice(0,8).map(r=>r.tag_name+" ["+(r.assets||[]).map(a=>a.name).slice(0,6).join(", ")+"]").join(" ; "));process.exit(1)')
   curl -fsSL "$url" -o /tmp/llama.pkg
   rm -rf /tmp/llama && mkdir -p /tmp/llama && (unzip -q /tmp/llama.pkg -d /tmp/llama 2>/dev/null || tar xf /tmp/llama.pkg -C /tmp/llama)
   srv=$(find /tmp/llama -type f -name llama-server | head -1); [ -n "$srv" ] || { echo "llama-server not found in package:"; find /tmp/llama -maxdepth 3 | head -30; exit 1; }
