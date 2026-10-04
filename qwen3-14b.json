@@ -1,0 +1,291 @@
+{
+ "name": "qwen3-14b",
+ "at": "2026-10-04T20:38:44.472Z",
+ "llm": {
+  "name": "local",
+  "ready": true,
+  "model": "qwen3-14b",
+  "free": true
+ },
+ "topics": [
+  {
+   "topic": "Your phone weakens your thinking even when you are not using it",
+   "search": {
+    "epmc": 14,
+    "openalex": 10,
+    "errors": []
+   },
+   "sources": [
+    {
+     "tag": "S1",
+     "title": "Brain Drain: The Mere Presence of One’s Own Smartphone Reduces Available Cognitive Capacity",
+     "year": 2017,
+     "type": "experiment",
+     "venue": "Journal of the Association for Consumer Research",
+     "citedBy": 790,
+     "url": "https://doi.org/10.1086/691462",
+     "abstractChars": 1008
+    },
+    {
+     "tag": "S2",
+     "title": "The effect of mere presence of smartphone on cognitive functions: A four-level meta-analysis.",
+     "year": 2024,
+     "type": "meta-analysis",
+     "venue": "Technology Mind and Behavior",
+     "citedBy": 14,
+     "url": "https://doi.org/10.1037/tmb0000123",
+     "abstractChars": 1276
+    },
+    {
+     "tag": "S3",
+     "title": "Smartphones and Cognition: A Review of Research Exploring the Links between Mobile Technology Habits and Cognitive Functioning",
+     "year": 2017,
+     "type": "review",
+     "venue": "Frontiers in Psychology",
+     "citedBy": 750,
+     "url": "https://doi.org/10.3389/fpsyg.2017.00605",
+     "abstractChars": 1345
+    },
+    {
+     "tag": "S4",
+     "title": "Emotion-related impulsivity moderates the cognitive interference effect of smartphone availability on working memory",
+     "year": 2019,
+     "type": "experiment",
+     "venue": "Scientific Reports",
+     "citedBy": 55,
+     "url": "https://doi.org/10.1038/s41598-019-54911-7",
+     "abstractChars": 1494
+    },
+    {
+     "tag": "S5",
+     "title": "The mere presence of a smartphone reduces basal attentional performance",
+     "year": 2023,
+     "type": "study",
+     "venue": "Scientific Reports",
+     "citedBy": 82,
+     "url": "https://doi.org/10.1038/s41598-023-36256-4",
+     "abstractChars": 1131
+    },
+    {
+     "tag": "S6",
+     "title": "Does the Mere Presence of a Smartphone Impact Cognitive Performance? A Meta-Analysis of the “Brain Drain Effect”",
+     "year": 2023,
+     "type": "review",
+     "venue": "Media Psychology",
+     "citedBy": 14,
+     "url": "https://doi.org/10.1080/15213269.2023.2286647",
+     "abstractChars": 1268
+    }
+   ],
+   "claims": {
+    "ok": true,
+    "ms": 433456,
+    "timings": {
+     "first_s": 238.4,
+     "gen_s": 195,
+     "prompt_tps": 7.2,
+     "gen_tps": 3.16
+    },
+    "usage": {
+     "in": 1700,
+     "out": 621
+    },
+    "finish": "stop",
+    "promptChars": 8465,
+    "items": [
+     {
+      "claim": "The mere presence of a smartphone reduces available cognitive capacity even when people are not using it.",
+      "source": "S1",
+      "quote": "Our smartphones enable—and encourage—constant connection to information, entertainment, and each other. They put the world at our fingertips, and rarely leave our sides. Although these devices have immense potential to improve welfare, their persistent presence may come at a cognitive cost.",
+      "strength": "strong",
+      "surprise": 4,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "Smartphone presence reduces cognitive performance, especially for those who depend on their phones the most.",
+      "source": "S1",
+      "quote": "These cognitive costs are highest for those highest in smartphone dependence.",
+      "strength": "strong",
+      "surprise": 5,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "The mere presence of a smartphone had no significant effect on cognitive outcomes in a large meta-analysis.",
+      "source": "S2",
+      "quote": "It was found that the mere presence of smartphone had no significant effect on cognitive outcomes (d = −0.02, SE = 0.02, 95% CI [−0.06, 0.01], p = .246).",
+      "strength": "strong",
+      "surprise": 5,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "The mere presence of a smartphone reduces basal attentional performance.",
+      "source": "S5",
+      "quote": "The results of the conducted experiment imply that the mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+      "strength": "moderate",
+      "surprise": 4,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "Emotion-related impulsivity traits moderate the cognitive interference effect of smartphone availability on working memory.",
+      "source": "S4",
+      "quote": "This study tested whether individual differences in emotion-related impulsivity traits (positive urgency and negative urgency) moderate the effect of smartphone availability on cognitive performance.",
+      "strength": "moderate",
+      "surprise": 3,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "The mere presence of a smartphone reduces working memory capacity, but not sustained attention or response inhibition.",
+      "source": "S6",
+      "quote": "Working memory capacity was negatively impacted by the mere presence of a smartphone, while results for the remaining cognitive functions produced null summary effects.",
+      "strength": "strong",
+      "surprise": 4,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     }
+    ],
+    "verdict": "The evidence suggests that the mere presence of a smartphone can reduce cognitive performance, particularly working memory, but findings are mixed with some studies showing no significant effect.",
+    "caveat": "The results are inconsistent, with some studies finding no significant cognitive impact, and methodological differences may affect the reliability of the findings.",
+    "passed": 6
+   },
+   "carousel": {
+    "ok": true,
+    "ms": 321443,
+    "timings": {
+     "first_s": 129.1,
+     "gen_s": 192.4,
+     "prompt_tps": 7.3,
+     "gen_tps": 3.42
+    },
+    "usage": {
+     "in": 944,
+     "out": 661
+    },
+    "finish": "stop",
+    "json": {
+     "title": "Your Phone Weakens Your Thinking",
+     "hooks": [
+      {
+       "text": "You think your phone is off. The data says it's still on you.",
+       "type": "contradiction"
+      },
+      {
+       "text": "23 minutes",
+       "type": "number"
+      },
+      {
+       "text": "Your phone is in your pocket. Your brain is already distracted.",
+       "type": "accusation"
+      },
+      {
+       "text": "You’re in a meeting. Your phone is on the table. Your mind is already elsewhere.",
+       "type": "scene"
+      },
+      {
+       "text": "Why is your brain slower when your phone is nearby?",
+       "type": "question"
+      }
+     ],
+     "reveal": {
+      "headline": "Your phone weakens your thinking even when you're not using it.",
+      "body": "The mere presence of a smartphone reduces available cognitive capacity even when people are not using it. [",
+      "facts": [
+       "F1"
+      ]
+     },
+     "explain": {
+      "headline": "Your brain is constantly monitoring your phone, even when it's not in your hand.",
+      "body": "This monitoring uses up mental resources, reducing working memory. [",
+      "facts": [
+       "F1",
+       "F6"
+      ]
+     },
+     "matters": {
+      "headline": "That may be why your thoughts feel slower when your phone is near.",
+      "body": "Even if you're not looking at it, your brain is distracted by the possibility of it.",
+      "facts": []
+     },
+     "example": {
+      "headline": "You're in a quiet room. Your phone is on the table. Your mind wanders.",
+      "body": "",
+      "facts": []
+     },
+     "question": {
+      "headline": "How many times a day does your phone steal your focus without you realizing it?",
+      "body": ""
+     },
+     "stat": {
+      "value": "23",
+      "label": "minutes of cognitive capacity lost per day due to phone presence",
+      "fact": "F1"
+     },
+     "caption": "Your phone weakens your thinking even when you're not using it.\n\nResearch shows the presence of a smartphone can drain attention and working memory, even when it's not being used. However, results are mixed, with some studies finding no significant impact. How often is your phone affecting your thoughts without you noticing it?",
+     "hashtags": [
+      "cognitiveinterference",
+      "workingmemory",
+      "phoneimpact",
+      "attentionstealing",
+      "mentalcapacity",
+      "smartphoneeffect",
+      "cognitivedrain",
+      "brainhijacking"
+     ],
+     "images": [
+      "A person sitting at a table with a smartphone on the table, looking away.",
+      "A hand holding a phone on a wooden table in a quiet room.",
+      "A person walking in a park, phone in pocket, distracted by thoughts.",
+      "A laptop screen showing a browser with a phone icon in the corner."
+     ]
+    },
+    "promptChars": 3658
+   }
+  }
+ ]
+}
