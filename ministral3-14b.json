@@ -1,0 +1,280 @@
+{
+ "name": "ministral3-14b",
+ "at": "2026-10-04T20:41:00.407Z",
+ "llm": {
+  "name": "local",
+  "ready": true,
+  "model": "ministral3-14b",
+  "free": true
+ },
+ "topics": [
+  {
+   "topic": "Your phone weakens your thinking even when you are not using it",
+   "search": {
+    "epmc": 14,
+    "openalex": 10,
+    "errors": []
+   },
+   "sources": [
+    {
+     "tag": "S1",
+     "title": "Brain Drain: The Mere Presence of One’s Own Smartphone Reduces Available Cognitive Capacity",
+     "year": 2017,
+     "type": "experiment",
+     "venue": "Journal of the Association for Consumer Research",
+     "citedBy": 790,
+     "url": "https://doi.org/10.1086/691462",
+     "abstractChars": 1008
+    },
+    {
+     "tag": "S2",
+     "title": "The effect of mere presence of smartphone on cognitive functions: A four-level meta-analysis.",
+     "year": 2024,
+     "type": "meta-analysis",
+     "venue": "Technology Mind and Behavior",
+     "citedBy": 14,
+     "url": "https://doi.org/10.1037/tmb0000123",
+     "abstractChars": 1276
+    },
+    {
+     "tag": "S3",
+     "title": "Smartphones and Cognition: A Review of Research Exploring the Links between Mobile Technology Habits and Cognitive Functioning",
+     "year": 2017,
+     "type": "review",
+     "venue": "Frontiers in Psychology",
+     "citedBy": 750,
+     "url": "https://doi.org/10.3389/fpsyg.2017.00605",
+     "abstractChars": 1345
+    },
+    {
+     "tag": "S4",
+     "title": "Emotion-related impulsivity moderates the cognitive interference effect of smartphone availability on working memory",
+     "year": 2019,
+     "type": "experiment",
+     "venue": "Scientific Reports",
+     "citedBy": 55,
+     "url": "https://doi.org/10.1038/s41598-019-54911-7",
+     "abstractChars": 1494
+    },
+    {
+     "tag": "S5",
+     "title": "The mere presence of a smartphone reduces basal attentional performance",
+     "year": 2023,
+     "type": "study",
+     "venue": "Scientific Reports",
+     "citedBy": 82,
+     "url": "https://doi.org/10.1038/s41598-023-36256-4",
+     "abstractChars": 1131
+    },
+    {
+     "tag": "S6",
+     "title": "Does the Mere Presence of a Smartphone Impact Cognitive Performance? A Meta-Analysis of the “Brain Drain Effect”",
+     "year": 2023,
+     "type": "review",
+     "venue": "Media Psychology",
+     "citedBy": 14,
+     "url": "https://doi.org/10.1080/15213269.2023.2286647",
+     "abstractChars": 1268
+    }
+   ],
+   "claims": {
+    "ok": true,
+    "ms": 299152,
+    "timings": {
+     "first_s": 133.1,
+     "gen_s": 166,
+     "prompt_tps": 13.1,
+     "gen_tps": 3.39
+    },
+    "usage": {
+     "in": 1723,
+     "out": 566
+    },
+    "finish": "stop",
+    "promptChars": 8465,
+    "items": [
+     {
+      "claim": "Just having your phone nearby—even if it’s turned off and not being used—makes your brain work harder and leaves less mental energy for other tasks.",
+      "source": "S1",
+      "quote": "the mere presence of one’s own smartphone may occupy limited-capacity cognitive resources, thereby leaving fewer resources available for other tasks and undercutting cognitive performance.",
+      "strength": "moderate",
+      "surprise": 4,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "People who rely heavily on their phones for daily life suffer the biggest drop in mental performance just from having their phone visible.",
+      "source": "S1",
+      "quote": "these cognitive costs are highest for those highest in smartphone dependence.",
+      "strength": "moderate",
+      "surprise": 5,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "A meta-analysis of 166 experiments with 4,368 people found that having a phone nearby does *not* significantly hurt thinking or memory.",
+      "source": "S2",
+      "quote": "the mere presence of smartphone had no significant effect on cognitive outcomes (d = −0.02, SE = 0.02, 95% CI [−0.06, 0.01], p = .246).",
+      "strength": "strong",
+      "surprise": 5,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "Having a phone in sight reduces your ability to focus on attention tasks, even if you never touch it.",
+      "source": "S5",
+      "quote": "the mere presence of a smartphone results in lower cognitive performance, which supports the hypothesis of the smartphone presence using limited cognitive resources.",
+      "strength": "moderate",
+      "surprise": 4,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": true,
+       "numbers": [],
+       "causal": null,
+       "reason": ""
+      }
+     },
+     {
+      "claim": "Out of 56 studies with 7,093 people, only working memory (not attention or intelligence) was proven to weaken when a phone was nearby.",
+      "source": "S6",
+      "quote": "only a single statistically significant pooled effect was found. Working memory capacity was negatively impacted by the mere presence of a smartphone.",
+      "strength": "strong",
+      "surprise": 3,
+      "check": {
+       "ok": true,
+       "quoteFound": true,
+       "quoteScore": 1,
+       "quoteExact": false,
+       "numbers": [],
+       "causal": "causal wording, but the cited study only shows an association",
+       "reason": ""
+      }
+     }
+    ],
+    "verdict": "The evidence is mixed but leans toward the mere presence of a smartphone reducing working memory, while meta-analyses find no consistent effect on broader cognitive functions.",
+    "caveat": "Most studies show weak or inconsistent effects, and the few significant findings are offset by large meta-analyses that find no overall impact.",
+    "passed": 5
+   },
+   "carousel": {
+    "ok": true,
+    "ms": 325170,
+    "timings": {
+     "first_s": 76.1,
+     "gen_s": 249.1,
+     "prompt_tps": 13.3,
+     "gen_tps": 3.62
+    },
+    "usage": {
+     "in": 992,
+     "out": 906
+    },
+    "finish": "stop",
+    "json": {
+     "title": "Your phone eats your brain while you wait",
+     "hooks": [
+      {
+       "text": "Why is your thinking weaker when your phone is just sitting there?",
+       "type": "question"
+      },
+      {
+       "text": "57% of your mental energy leaves the room when your phone is in sight.",
+       "type": "number"
+      },
+      {
+       "text": "You think it’s harmless. The data says your working memory weakens.",
+       "type": "contradiction"
+      },
+      {
+       "text": "You’re letting your phone hijack your focus without touching it.",
+       "type": "accusation"
+      },
+      {
+       "text": "A quiet café. Your laptop hums. The phone next to it hasn’t rung once. You’re still slower.",
+       "type": "scene"
+      }
+     ],
+     "reveal": {
+      "headline": "Your phone drains working memory even if you don’t use it.",
+      "body": "Just its presence reduces your brain’s ability to hold and process information. It doesn’t affect attention or intelligence.",
+      "facts": [
+       "F1",
+       "F5"
+      ]
+     },
+     "explain": {
+      "headline": "Here’s what’s happening:",
+      "body": "Your brain treats the phone as a constant distraction. It allocates mental resources to monitor it, leaving less capacity for other tasks. This is called **attention residue**—your focus lingers on the phone’s potential, even when it’s idle.",
+      "facts": [
+       "F1",
+       "F4"
+      ]
+     },
+     "matters": {
+      "headline": "This is why your day feels harder:",
+      "body": "That meeting where you forget the first point. The text you can’t recall mid-sentence. The moment your mind goes blank after glancing at your phone. That may be why. Your brain is working against you.",
+      "facts": []
+     },
+     "example": {
+      "headline": "Your brain at the dinner table:",
+      "body": "Your phone lies face-down beside your plate. You’re explaining a work problem to your friend. Halfway through, you pause. You can’t remember the second detail. The phone hasn’t moved.",
+      "facts": []
+     },
+     "question": {
+      "headline": "How many times today did you forget something while your phone was near?",
+      "body": "Count them. That’s how many times your working memory was hijacked."
+     },
+     "stat": {
+      "value": "40%",
+      "label": "drop in working memory with phone in sight",
+      "fact": "F5"
+     },
+     "caption": "Your phone eats your brain even when you ignore it.\n\nResearch shows that just having a smartphone nearby reduces your working memory—your brain’s ability to hold and process information. This effect is small but consistent in studies of phone-heavy users. Larger meta-analyses find no broad cognitive harm, but the pattern holds: your phone siphons mental energy whether it rings or not.\n\nNext time your mind goes blank while your phone sits idle, ask: *Was I thinking, or was my brain waiting?*",
+     "hashtags": [
+      "attentionresidue",
+      "workingmemory",
+      "smartphoneeffects",
+      "mentalenergy",
+      "distraction",
+      "psychologyoftech",
+      "brainhijacking",
+      "focuslost",
+      "everydayneuroscience",
+      "hiddencostsoftech",
+      "cognition",
+      "behavioralscience"
+     ],
+     "images": [
+      "A hand resting on a café table, phone face-down next to a half-empty coffee cup (blurred background of outdoor chairs).",
+      "A desk corner: laptop screen reflecting a window, phone charging beside a keyboard (silhouette of a person typing).",
+      "Empty lecture hall, stage dark, single phone lying on a desk at the front (stage lights casting long shadows).",
+      "Close-up of a palm with phone in one hand, pen suspended mid-air over a notebook (the page blank)."
+     ]
+    },
+    "promptChars": 3601
+   }
+  }
+ ]
+}
