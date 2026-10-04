@@ -28,7 +28,7 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           POSTIZ_API_KEY: ${{ secrets.POSTIZ_API_KEY }}
           PROBE_MODELS: ${{ inputs.models }}
-        run: if [ "${{ inputs.models }}" = "debug" ]; then node truth/engine/probe-models.mjs; else node truth/engine/probe.mjs; fi
+        run: if [ "${{ inputs.models }}" = "debug" ]; then node truth/engine/probe-models.mjs; elif [ "${{ inputs.models }}" = "hf" ]; then node truth/engine/probe-hf.mjs; else node truth/engine/probe.mjs; fi
       - name: Save result to the truth-probe branch
         run: |
           cd probe-out && git init -q -b truth-probe && git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
