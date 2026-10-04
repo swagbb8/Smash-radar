@@ -1,33 +1,38 @@
-// Europe PMC: 40M+ life-science, psychology and health papers with abstracts, publication types and citation counts. Free, no key.
-import { getJSON, stripTags } from '../lib/util.mjs';
+// Europe PMC: 40M+ life-science, psychology and health papers with abstracts, publication types and citation counts.
+// Free, no key. https://europepmc.org/RestfulWebService
+import { getJSON, qs } from '../lib/http.mjs';
+import { clean } from '../lib/text.mjs';
 
-const BASE = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search';
+const TYPE_RANK = [['meta-analysis', 'meta-analysis'], ['systematic review', 'systematic-review'], ['randomized controlled trial', 'rct'], ['clinical trial', 'trial'], ['review', 'review'], ['observational study', 'observational'], ['preprint', 'preprint']];
 
-export async function searchEuropePMC(query, { limit = 12, sort = '', minYear = 0, reviewsOnly = false } = {}) {
-  let q = `(${query}) AND HAS_ABSTRACT:y AND LANG:eng`;
-  if (minYear) q += ` AND PUB_YEAR:[${minYear} TO 2100]`;
+export function studyType(pubTypes = [], title = '', abstract = '') {
+  const t = pubTypes.map((x) => String(x).toLowerCase()); const text = (title + ' ' + abstract.slice(0, 600)).toLowerCase();
+  for (const [needle, label] of TYPE_RANK) if (t.some((x) => x.includes(needle))) return label;
+  if (/\bmeta-?analy/.test(text)) return 'meta-analysis';
+  if (/systematic review/.test(text)) return 'systematic-review';
+  if (/randomi[sz]ed/.test(text) && /trial|controlled|assigned/.test(text)) return 'rct';
+  if (/\b(cross-sectional|cohort|longitudinal|survey|observational|case-control)\b/.test(text)) return 'observational';
+  if (/\b(experiment|participants were (randomly )?assigned|manipulat)/.test(text)) return 'experiment';
+  if (/\breview\b/.test(title.toLowerCase())) return 'review';
+  return 'study';
+}
+
+/** Search → normalized source records. `query` uses Europe PMC syntax; plain words work too. */
+export async function search(query, { limit = 12, sort = 'relevance', from = 1995, reviewsOnly = false } = {}) {
+  let q = `(${query}) AND HAS_ABSTRACT:y AND LANG:eng AND PUB_YEAR:[${from} TO 2100] NOT PUB_TYPE:"retraction of publication" NOT PUB_TYPE:"retracted publication"`;
   if (reviewsOnly) q += ' AND (PUB_TYPE:"meta-analysis" OR PUB_TYPE:"systematic review" OR PUB_TYPE:"review")';
-  const url = `${BASE}?query=${encodeURIComponent(q)}&format=json&pageSize=${limit}&resultType=core${sort ? `&sort=${encodeURIComponent(sort)}` : ''}`;
-  const j = await getJSON(url, { timeout: 30000 });
-  return (j.resultList?.result || []).map(toSource).filter((s) => s && s.text.length > 200);
-}
-
-function toSource(r) {
-  if (!r.title) return null;
-  const types = (r.pubTypeList?.pubType || []).map((t) => String(t).toLowerCase());
-  const doi = r.doi ? String(r.doi).toLowerCase() : null;
-  return {
-    key: doi ? `doi:${doi}` : r.pmid ? `pmid:${r.pmid}` : `epmc:${r.source}:${r.id}`,
-    provider: 'europepmc', title: stripTags(r.title).replace(/\.$/, ''), authors: shortAuthors(r.authorString), year: Number(r.pubYear) || null, date: r.firstPublicationDate || null,
-    venue: r.journalInfo?.journal?.title || r.journalTitle || r.bookOrReportDetails?.publisher || (r.source === 'PPR' ? 'Preprint' : ''),
-    doi, pmid: r.pmid || null, url: doi ? `https://doi.org/${doi}` : r.pmid ? `https://pubmed.ncbi.nlm.nih.gov/${r.pmid}/` : `https://europepmc.org/article/${r.source}/${r.id}`,
-    text: stripTags(r.abstractText || ''), pubTypes: types, cited_by: Number(r.citedByCount) || 0, open_access: r.isOpenAccess === 'Y',
-    retracted: types.some((t) => t.includes('retracted publication') || t.includes('retraction of publication')), preprint: r.source === 'PPR' || types.includes('preprint'),
-  };
-}
-
-export function shortAuthors(s) {
-  if (!s) return '';
-  const a = String(s).replace(/\.$/, '').split(/,\s*/).filter(Boolean);
-  return a.length <= 2 ? a.join(' & ') : `${a[0]} et al.`;
+  const url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search?' + qs({ query: q, format: 'json', pageSize: Math.min(limit, 50), resultType: 'core', sort: sort === 'cited' ? 'CITED desc' : sort === 'date' ? 'P_PDATE_D desc' : undefined });
+  const r = await getJSON(url);
+  if (!r.ok) return { ok: false, error: r.error, total: 0, items: [] };
+  const items = (r.data.resultList?.result || []).map((w) => {
+    const abstract = clean(w.abstractText || ''); const pubTypes = w.pubTypeList?.pubType || []; const doi = w.doi ? String(w.doi).toLowerCase() : null;
+    return {
+      provider: 'europepmc', key: doi ? 'doi:' + doi : `epmc:${w.source}:${w.id}`, kind: w.source === 'PPR' ? 'preprint' : 'paper',
+      title: clean(w.title || '').replace(/\.$/, ''), authors: clean(w.authorString || '').replace(/\.$/, ''), year: Number(w.pubYear) || null, date: w.firstPublicationDate || null,
+      venue: w.journalInfo?.journal?.title || w.bookOrReportDetails?.publisher || (w.source === 'PPR' ? 'Preprint' : ''), doi,
+      url: doi ? `https://doi.org/${doi}` : w.pmid ? `https://pubmed.ncbi.nlm.nih.gov/${w.pmid}/` : `https://europepmc.org/article/${w.source}/${w.id}`,
+      pmid: w.pmid || null, abstract, pubTypes, type: w.source === 'PPR' ? 'preprint' : studyType(pubTypes, w.title, abstract), citedBy: Number(w.citedByCount) || 0, openAccess: w.isOpenAccess === 'Y', retracted: pubTypes.some((t) => /retract/i.test(t)),
+    };
+  }).filter((s) => s.title && s.abstract.length > 200);
+  return { ok: true, total: r.data.hitCount || 0, items };
 }
