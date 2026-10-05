@@ -28,15 +28,26 @@ def setup(sc, bloom=0.0, fur_raw=0.85, plate=None):
             except Exception: pass
         ao = N.new('CompositorNodeAlphaOver'); bg_in = ao.inputs['Background'] if 'Background' in ao.inputs else ao.inputs[1]; fg_in = ao.inputs['Foreground'] if 'Foreground' in ao.inputs else ao.inputs[2]
         L(im.outputs['Image'], bg_in); L(sa.outputs['Image'], fg_in); img = ao.outputs['Image']
-    if bloom > 0:
-        g = N.new('CompositorNodeGlare'); L(img, g.inputs['Image'])
-        for k, v in (('Type', 'Bloom'), ('Quality', 'High')):
-            try: g.inputs[k].default_value = v
-            except Exception: pass
-        for k, v in (('Threshold', 1.4), ('Strength', bloom), ('Size', 0.55), ('Saturation', 1.0)):
-            if k in g.inputs: g.inputs[k].default_value = v
-        img = g.outputs['Image']
+    if bloom > 0: img = _bloom(N, L, img, bloom)
     L(img, out.inputs[0]); return tree
+
+
+def simple(sc, bloom=0.0):
+    """For frames with no fur and no noise to speak of (plates looked at again): just the bloom."""
+    tree = bpy.data.node_groups.new('FinishSimple', 'CompositorNodeTree'); sc.compositing_node_group = tree; sc.render.use_compositing = True
+    tree.interface.new_socket('Image', in_out='OUTPUT', socket_type='NodeSocketColor'); N = tree.nodes; L = tree.links.new; rl = N.new('CompositorNodeRLayers'); out = N.new('NodeGroupOutput'); img = rl.outputs['Image']
+    if bloom > 0: img = _bloom(N, L, img, bloom)
+    L(img, out.inputs[0]); return tree
+
+
+def _bloom(N, L, img, bloom, threshold=1.4):
+    g = N.new('CompositorNodeGlare'); L(img, g.inputs['Image'])
+    for k, v in (('Type', 'Bloom'), ('Quality', 'High')):
+        try: g.inputs[k].default_value = v
+        except Exception: pass
+    for k, v in (('Threshold', threshold), ('Strength', bloom), ('Size', 0.55), ('Saturation', 1.0)):
+        if k in g.inputs: g.inputs[k].default_value = v
+    return g.outputs['Image']
 
 
 def mark_fur(*objects):

@@ -15,9 +15,18 @@ def plan():
 
 def still():
     name = re.sub(r'[^A-Za-z0-9_-]+', '-', os.environ['ML_NAME'])[:60]; tool = os.environ.get('ML_TOOL') or 'studio'
-    if tool not in ('studio', 'sheet', 'swamp'): sys.exit('unknown tool')
-    os.makedirs('out', exist_ok=True); out = os.path.abspath(os.path.join('out', name + '.png'))
-    r = subprocess.run([sys.executable, os.path.join(HERE, tool + '.py'), out, *shlex.split(os.environ.get('ML_ARGS', ''))], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if tool not in ('studio', 'sheet', 'swamp', 'shot', 'witness', 'motion'): sys.exit('unknown tool')
+    os.makedirs('out', exist_ok=True); out = os.path.abspath(os.path.join('out', name + '.png')); args = shlex.split(os.environ.get('ML_ARGS', ''))
+    if tool in ('shot', 'witness', 'motion'):                                                  # one moment of a shot (plate + Seven), or the fast flat views of it:  args = "<shot> --at 3.4 --quality preview ..."
+        import glob, shutil, time
+        tmp = os.path.abspath('shot_tmp'); t0 = time.time(); mode = {'shot': 'still', 'witness': 'witness', 'motion': 'sheet'}[tool]
+        r = subprocess.run([sys.executable, os.path.join(HERE, 'render.py'), mode, args[0], tmp, *args[1:]], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        got = sorted(p for p in glob.glob(os.path.join(tmp, '*.png')) if not os.path.basename(p).startswith('_'))
+        for p in got:
+            if p.endswith('_plate.png'): shutil.copy(p, out.replace('.png', '_plate.png'))
+            else: shutil.copy(p, out)
+        r.stdout += f'\nrendered {out} in {time.time() - t0:.0f}s ({os.cpu_count()} cores)\n'
+    else: r = subprocess.run([sys.executable, os.path.join(HERE, tool + '.py'), out, *args], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     tail = [l for l in r.stdout.splitlines() if not l.startswith('Fra:')][-25:]; print('\n'.join(tail))
     if r.returncode or not os.path.exists(out): print('::error::' + ' | '.join(tail[-6:])[:900]); sys.exit(1)
     done = [l for l in tail if l.startswith('rendered ')]                    # the timing line, kept where the sandbox can read it (it cannot fetch logs)

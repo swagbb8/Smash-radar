@@ -51,25 +51,65 @@ class Actor:
         for pb in self.arm.pose.bones: pb.rotation_quaternion = Quaternion()
         self.arm.rotation_euler = (0, 0, 0); bpy.context.view_layer.update()
 
-    def key(self, pose, root=(0.0, 0.0), heading=0.0, sink=0.0, z=None, curl=None, lcurl=None, rcurl=None, tweak=None):
+    def curl(self, side, c, index=None):
+        """Curl the fingers of one hand: c = (j1, j2, j3) radians; index = a separate curl for the index finger (to point)."""
+        for f in ('Index', 'Middle', 'Ring', 'Pinky'):
+            for j, a in enumerate(index if (index is not None and f == 'Index') else c, 1):
+                pb = self.arm.pose.bones[f'{side}Hand{f}{j}']; pb.rotation_quaternion = Quaternion(poses._curl_axis(self.arm, pb), a)
+
+    def key(self, pose, root=(0.0, 0.0), heading=0.0, sink=0.0, z=None, curl=None, lcurl=None, rcurl=None, tweak=None, pitch=0.0, pin=None, reach=None, lindex=None, rindex=None):
         """A key pose. pose = a name in poses.POSES or a spec dict. root = (x, y) of the rig's origin in the world (metres),
-        heading = turn about Z (radians; 0 = facing -Y), sink = where his lowest point rests (z; negative = in the mud), or give z outright.
-        curl = (j1, j2, j3) finger curl for both hands, lcurl / rcurl for one. tweak = {bone: direction spec} laid over the pose."""
+        heading = turn about Z (radians; 0 = facing -Y), pitch = tip about his left-right axis (+ = head forward and down),
+        sink = where his lowest point rests (z; negative = in the mud), or give z outright, or pin = (points, world position):
+        slide him until those points of his body (see `point`) sit there. curl = (j1, j2, j3) finger curl for both hands,
+        lcurl / rcurl for one. tweak = {bone: direction spec} laid over the pose. reach = {'Left' | 'Right': (world target for
+        the wrist, pole direction in world)}: that arm is bent so the wrist lands on the target."""
         self.reset(); spec = dict(poses.POSES[pose] if isinstance(pose, str) else pose)
         if tweak: spec.update(tweak)
         S.pose(self.sv, spec); c = curl or (poses.CURL.get(pose) if isinstance(pose, str) else None) or (0.3, 0.4, 0.3)
-        for side, cc in (('Left', lcurl or c), ('Right', rcurl or c)):
-            for f in ('Index', 'Middle', 'Ring', 'Pinky'):
-                for j, a in enumerate(cc, 1):
-                    pb = self.arm.pose.bones[f'{side}Hand{f}{j}']; pb.rotation_quaternion = Quaternion(poses._curl_axis(self.arm, pb), a)
-        self.arm.location = (root[0], root[1], 0.0); self.arm.rotation_euler = (0, 0, heading); bpy.context.view_layer.update()
-        if z is None: S.ground(self.sv, sink); z = self.arm.location.z
+        self.curl('Left', lcurl or c, lindex); self.curl('Right', rcurl or c, rindex)
+        self.arm.location = (root[0], root[1], 0.0 if z is None else z); self.arm.rotation_euler = (pitch, 0, heading); bpy.context.view_layer.update()
+        if pin is not None: self.pin(*pin)
+        elif z is None: S.ground(self.sv, sink)
+        for side, (target, pole) in (reach or {}).items(): self.reach(side, target, pole)
         q = {pb.name: pb.rotation_quaternion.copy() for pb in self.arm.pose.bones}
-        return dict(q=q, loc=Vector((root[0], root[1], z)), heading=heading)
+        return dict(q=q, loc=self.arm.location.copy(), heading=heading, pitch=pitch)
 
     def apply(self, k):
         for n, q in k['q'].items(): self.arm.pose.bones[n].rotation_quaternion = q
-        self.arm.location = k['loc']; self.arm.rotation_euler = (0, 0, k['heading'])
+        self.arm.location = k['loc']; self.arm.rotation_euler = (k.get('pitch', 0.0), 0, k['heading'])
+
+    # ---------------------------------------------------------------- contact
+    def point(self, name):
+        """World position of a named point of his body: any bone (its head), or 'LeftPalm' / 'RightPalm', 'LeftTip' / 'RightTip'
+        (end of the index finger), 'Seat' (under the hips), 'Eyes'."""
+        pb = self.arm.pose.bones; M = self.arm.matrix_world
+        if name.endswith('Palm'): s_ = name[:-4]; return M @ ((pb[s_ + 'Hand'].head + pb[s_ + 'HandMiddle1'].head) / 2)
+        if name.endswith('Tip'): s_ = name[:-3]; return M @ pb[s_ + 'HandIndex3'].tail
+        if name == 'Eyes': return M @ ((pb['LeftEye'].head + pb['RightEye'].head) / 2)
+        if name == 'Seat': return M @ ((pb['LeftUpLeg'].head + pb['RightUpLeg'].head) / 2)
+        return M @ pb[name].head
+
+    def device(self):
+        """-> (centre of the screen in his left forearm, the direction it faces), both in the world."""
+        import device as D
+        pb = self.arm.pose.bones['LeftForeArm']; M = self.arm.matrix_world; B = M @ pb.matrix @ pb.bone.matrix_local.inverted(); L = getattr(self, '_dev', None)
+        if L is None: L = self._dev = D.layout(self.sv['data'])
+        c = Vector(L['c']) + Vector((0, 0, D.PROUD)); n = (B.to_3x3() @ Vector((-L['slope'], 0, 1.0))).normalized(); return B @ c, n
+
+    def pin(self, names, where, weight=1.0):
+        """Slide the whole body so the average of the named points sits at `where` (world). The cheap way to keep hands on
+        a branch or a seat on it while the rest of him moves."""
+        bpy.context.view_layer.update(); names = [names] if isinstance(names, str) else names; cur = sum((self.point(n) for n in names), Vector()) / len(names)
+        self.arm.location = self.arm.location + (Vector(where) - cur) * weight; bpy.context.view_layer.update()
+
+    def reach(self, side, target, pole=(0, 0, -1)):
+        """Bend one arm so its wrist lands on `target` (world), the elbow leaning toward `pole` (a world direction)."""
+        bpy.context.view_layer.update(); pb = self.arm.pose.bones; M = self.arm.matrix_world; R = M.to_3x3().inverted()
+        s_ = M @ pb[side + 'Arm'].head; l1 = (M @ pb[side + 'ForeArm'].head - s_).length; l2 = (M @ pb[side + 'Hand'].head - M @ pb[side + 'ForeArm'].head).length
+        v = Vector(target) - s_; d = min(max(v.length, abs(l1 - l2) + 1e-3), l1 + l2 - 1e-3); u = v.normalized(); a = (l1 * l1 - l2 * l2 + d * d) / (2 * d); h = math.sqrt(max(l1 * l1 - a * a, 0.0))
+        p = Vector(pole); p = p - u * p.dot(u); p = p.normalized() if p.length > 1e-5 else u.orthogonal().normalized(); e = s_ + u * a + p * h; w = s_ + u * d
+        S.aim(self.arm, side + 'Arm', R @ (e - s_)); S.aim(self.arm, side + 'ForeArm', R @ (w - e)); bpy.context.view_layer.update()
 
     # ---------------------------------------------------------------- life
     def alive(self, t, breath=1.0, rate=0.30, tremble=None, restless=1.0):
@@ -112,8 +152,8 @@ class Track:
         for n in a['q']:
             g = self.actor.group.get(n, 'spine'); l = lag.get(g, LAG.get(g, 0.0)); w = ease((u - l) / max(1e-6, 1 - l), kind) if l >= 0 else ease(u / max(1e-6, 1 + l), kind)
             q[n] = a['q'][n].slerp(b['q'][n], w)
-        w = ease(u, kind); dh = (b['heading'] - a['heading'] + math.pi) % (2 * math.pi) - math.pi
-        return dict(q=q, loc=a['loc'].lerp(b['loc'], w), heading=a['heading'] + dh * w)
+        w = ease(u, kind); dh = (b['heading'] - a['heading'] + math.pi) % (2 * math.pi) - math.pi; pa, pb_ = a.get('pitch', 0.0), b.get('pitch', 0.0)
+        return dict(q=q, loc=a['loc'].lerp(b['loc'], w), heading=a['heading'] + dh * w, pitch=pa + (pb_ - pa) * w)
 
 
 def blinks(t, times, close=0.07, hold=0.04, open_=0.16):

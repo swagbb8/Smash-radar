@@ -29,15 +29,15 @@ WATER = 0.0
 def layout(seed=4):
     """Where everything stands. Trees in rows 6 m apart, each row shifted against the last, a clearing round the origin."""
     rng = np.random.default_rng(seed); trees = []
-    for iy, gy in enumerate(np.arange(-27.0, 96.0, 6.5)):
-        for gx in np.arange(-48.0, 49.0, 6.0):
+    for iy, gy in enumerate(np.arange(-66.0, 96.0, 6.5)):
+        for gx in np.arange(-78.0, 79.0, 6.0):
             x = gx + (3.0 if iy % 2 else 0.0) + rng.uniform(-1.3, 1.3); y = gy + rng.uniform(-1.3, 1.3)
             if math.hypot(x, y - 0.5) < 4.4: continue
             trees.append(dict(x=float(x), y=float(y), r=float(rng.uniform(0.30, 0.62) * (1.45 if rng.random() < 0.14 else 1.0)), kind=int(rng.integers(0, 6)), rot=float(rng.uniform(0, 2 * math.pi)), s=float(rng.uniform(0.88, 1.18))))
     big = [(-6.6, 5.2, 1.9, 0.6), (7.4, 7.9, 2.1, 2.5), (-9.5, -6.0, 1.7, 4.0), (9.8, -3.2, 1.8, 1.2)]            # whole spreading trees round the clearing: x, y, scale, turn
     trees = [t for t in trees if all(math.hypot(t['x'] - b[0], t['y'] - b[1]) > 3.4 for b in big)]
     # the branch: a dead limb fallen across the corner of the pool, low enough to jump for
-    return dict(seed=seed, trees=trees, bank=(0.5, 1.3), big=big, branch=dict(a=(-4.6, 3.6, 2.05), b=(2.9, 2.1, 1.92), thick=0.30))
+    return dict(seed=seed, trees=trees, bank=(0.5, 1.3), big=big, branch=dict(a=(-4.6, 3.6, 1.80), b=(2.9, 2.1, 1.67), thick=0.22), bed=0.16)
 
 
 def ground_z(x, y, L):
@@ -48,7 +48,9 @@ def ground_z(x, y, L):
     for t in L['trees']:
         d2 = (x - t['x']) ** 2 + (y - t['y']) ** 2; near = d2 < 49.0
         if near.any(): z = z + np.where(near, 0.46 * np.exp(-d2 / (2.4 * t['r'] + 0.7) ** 2), 0.0)
-    bx, by = L['bank']; z = z + 0.47 * np.exp(-(((x - bx) ** 2 + (y - by) ** 2) / 1.9 ** 2))
+    bx, by = L['bank']; d = np.sqrt((x - bx) ** 2 + (y - (by - 0.6)) ** 2); z = z + 0.47 * np.exp(-(d / 2.1) ** 2)
+    px, py, pr, pd = L.get('pool', (0.0, 3.7, 1.7, 0.95)); z = z - pd * np.exp(-(((x - px) ** 2 + (y - py) ** 2) / pr ** 2))                 # the deep hole under the branch
+    flat = smoothstep((1.9 - d) / 0.8); z = z * (1 - flat) + (L.get('bed', 0.16) + 0.03 * (n3 - 0.5) + 0.02 * (n2 - 0.5)) * flat      # the bed he lies on: level, a little above the water
     return z
 
 
@@ -115,6 +117,30 @@ def zone_all(skip=('LeafScreen', 'SwampAir')):
     return n
 
 
+def ripple_field():
+    """Rings spreading over the water from where something fell in. Inside: RX, RY = where, RT = seconds since (negative =
+    nothing), RA = how hard. Out: a height to add to the water's bump."""
+    g = bpy.data.node_groups.get('SwampRipple')
+    if g: return g
+    g = bpy.data.node_groups.new('SwampRipple', 'ShaderNodeTree'); g.interface.new_socket('Height', in_out='OUTPUT', socket_type='NodeSocketFloat'); T = NT(g); go = T.node('NodeGroupOutput'); vals = {}
+    for name, v in (('RX', 0.0), ('RY', 0.0), ('RT', -1.0), ('RA', 0.0)):
+        n = T.node('ShaderNodeValue'); n.name = n.label = name; n.outputs[0].default_value = v; vals[name] = n.outputs[0]
+    pos = T.node('ShaderNodeSeparateXYZ'); T.link(T.node('ShaderNodeNewGeometry').outputs['Position'], pos.inputs[0])
+    dx = T.math('SUBTRACT', pos.outputs['X'], vals['RX']); dy = T.math('SUBTRACT', pos.outputs['Y'], vals['RY']); r = T.math('SQRT', T.math('ADD', T.math('MULTIPLY', dx, dx), T.math('MULTIPLY', dy, dy)))
+    t = T.math('MAXIMUM', vals['RT'], 0.0); total = None
+    for speed, width, freq, amp in ((0.85, 0.42, 17.0, 1.0), (0.48, 0.30, 26.0, 0.6), (0.22, 0.22, 34.0, 0.35)):                 # three trains of rings, the fast wide one in front
+        u = T.math('SUBTRACT', r, T.math('ADD', T.math('MULTIPLY', t, speed), 0.12)); env = T.math('EXPONENT', T.math('MULTIPLY', T.math('MULTIPLY', T.math('DIVIDE', u, width), T.math('DIVIDE', u, width)), -1.0))
+        w = T.math('MULTIPLY', T.math('MULTIPLY', env, T.math('SINE', T.math('MULTIPLY', u, freq))), amp); total = w if total is None else T.math('ADD', total, w)
+    fade = T.math('MULTIPLY', T.math('MULTIPLY', vals['RA'], T.math('EXPONENT', T.math('MULTIPLY', t, -0.75))), T.math('GREATER_THAN', vals['RT'], 0.0))
+    T.link(T.math('MULTIPLY', total, fade), go.inputs['Height']); return g
+
+
+def set_ripple(xy=None, t=-1.0, amp=1.0):
+    g = ripple_field(); v = lambda n: g.nodes[n].outputs[0]
+    if xy is None: v('RT').default_value = -1.0; v('RA').default_value = 0.0
+    else: v('RX').default_value = xy[0]; v('RY').default_value = xy[1]; v('RT').default_value = t; v('RA').default_value = amp
+
+
 def mud_material():
     """Swamp floor: two scanned muds mixed in patches, soaked dark and shiny at the waterline, slimed green under it."""
     m = bpy.data.materials.new('SwampMud'); m.use_nodes = True; T = NT(m.node_tree); p = T.nt.nodes['Principled BSDF']
@@ -137,6 +163,8 @@ def water_material():
     out = T.node('ShaderNodeOutputMaterial'); pos = T.node('ShaderNodeNewGeometry').outputs['Position']
     rip = T.node('ShaderNodeBump'); rip.inputs['Strength'].default_value = 0.10; rip.inputs['Distance'].default_value = 0.02
     w1 = T.noise(1.6, 2.0, 0.5, pos); w2 = T.noise(9.0, 2.0, 0.5, pos); T.link(T.math('ADD', w1, T.math('MULTIPLY', w2, 0.25)), rip.inputs['Height'])
+    rg = T.node('ShaderNodeGroup'); rg.node_tree = ripple_field(); rings = T.node('ShaderNodeBump'); rings.inputs['Strength'].default_value = 0.85; rings.inputs['Distance'].default_value = 0.035
+    T.link(rg.outputs['Height'], rings.inputs['Height']); T.link(rip.outputs['Normal'], rings.inputs['Normal']); rip = rings                       # rings from a splash ride on top of the still water's own slight movement
     gloss = T.node('ShaderNodeBsdfGlossy'); gloss.inputs['Roughness'].default_value = 0.015; gloss.inputs['Color'].default_value = (0.9, 0.92, 0.9, 1); T.link(rip.outputs['Normal'], gloss.inputs['Normal'])
     clear = T.node('ShaderNodeBsdfTransparent'); clear.inputs['Color'].default_value = (0.80, 0.86, 0.72, 1)
     fr = T.node('ShaderNodeFresnel'); fr.inputs['IOR'].default_value = 1.33; T.link(rip.outputs['Normal'], fr.inputs['Normal'])
@@ -184,7 +212,7 @@ def _mesh(name, V, F, material=None, smooth=True, coll=None):
 def terrain(L):
     """A fine patch of ground where the camera works, inside a coarse one that runs off into the trees."""
     mat = mud_material(); obs = []
-    for name, (x0, x1, y0, y1, step), drop in (('GroundNear', (-9, 9, -7, 13, 0.05), 0.0), ('GroundFar', (-66, 66, -44, 112, 0.6), 0.0)):
+    for name, (x0, x1, y0, y1, step), drop in (('GroundNear', (-9, 9, -7, 13, 0.05), 0.0), ('GroundFar', (-96, 96, -84, 112, 0.7), 0.0)):
         X, Y, F = _grid(x0, x1, y0, y1, step); Z = ground_z(X, Y, L)
         if name == 'GroundFar': Z = Z - 0.06 * smoothstep((9.5 - np.abs(X)) / 0.5) * smoothstep((7.5 - np.abs(Y - 3.0)) / 0.5 + 5.0) * ((np.abs(X) < 9.6) & (Y > -7.6) & (Y < 13.6))      # tuck under the fine patch
         obs.append(_mesh(name, np.stack([X, Y, Z], -1), F, mat))
@@ -192,7 +220,7 @@ def terrain(L):
 
 
 def water():
-    V = [(-70, -48, WATER), (70, -48, WATER), (70, 116, WATER), (-70, 116, WATER), (-70, -48, -2.2), (70, -48, -2.2), (70, 116, -2.2), (-70, 116, -2.2)]
+    V = [(-100, -88, WATER), (100, -88, WATER), (100, 116, WATER), (-100, 116, WATER), (-100, -88, -2.2), (100, -88, -2.2), (100, 116, -2.2), (-100, 116, -2.2)]
     F = [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
     return _mesh('Water', V, F, water_material(), smooth=False)
 
@@ -337,9 +365,9 @@ def branch(L, coll):
     return ob
 
 
-def fog(sc, coll, density=0.010):
+def fog(sc, coll, density=0.0045):
     """Air you can see: thin mist through the whole wood, so trees fade with distance and the sun shows as shafts."""
-    V = [(-80, -60, -0.5), (80, -60, -0.5), (80, 130, -0.5), (-80, 130, -0.5), (-80, -60, 39), (80, -60, 39), (80, 130, 39), (-80, 130, 39)]; F = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    V = [(-110, -98, -0.5), (110, -98, -0.5), (110, 130, -0.5), (-110, 130, -0.5), (-110, -98, 39), (110, -98, 39), (110, 130, 39), (-110, 130, 39)]; F = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
     m = bpy.data.materials.new('SwampAir'); m.use_nodes = True; nt = m.node_tree; T = NT(nt)
     for n in list(nt.nodes): nt.nodes.remove(n)
     o = T.node('ShaderNodeOutputMaterial'); v = T.node('ShaderNodeVolumePrincipled'); v.inputs['Color'].default_value = (0.70, 0.86, 0.74, 1); v.inputs['Density'].default_value = density; v.inputs['Anisotropy'].default_value = 0.55; v.inputs['Absorption Color'].default_value = (0.25, 0.45, 0.30, 1)
@@ -368,7 +396,7 @@ def _gobo(name, light, dist, size, scale, open_=0.5, sc=None):
     ob.visible_camera = False; ob.visible_diffuse = False; ob.visible_glossy = False; ob.visible_transmission = False; ob.visible_volume_scatter = False; return ob
 
 
-def sky(sc, ambient=0.05, gap=16000.0, sun=60000.0, far=None, tint=(0.62, 0.92, 0.78)):
+def sky(sc, ambient=0.015, gap=16000.0, sun=70000.0, far=10000.0, tint=(0.62, 0.92, 0.78)):
     """Lit the way a film crew would light a wood: almost nothing from the sky itself (the roof is shut), a pool of cold
     daylight falling through one gap above the water, and the low sun slanting in from ahead-left in a few warm shafts,
     both broken up by leaf-cut screens. Everything further off is left to fall away into the dark."""
@@ -379,13 +407,13 @@ def sky(sc, ambient=0.05, gap=16000.0, sun=60000.0, far=None, tint=(0.62, 0.92, 
     out = dict(world=w)
     out['gap'] = _area('SkyGap', (0.5, 4.5, 20.0), (0.5, 3.0, 0.0), gap, (0.74, 0.95, 0.86), 5.0, sc, spread=60.0)
     out['sun'] = _area('SunShafts', (-15.0, 27.0, 19.0), (0.5, 2.0, 0.3), sun, (1.0, 0.84, 0.58), 1.6, sc, spread=24.0)
-    out['far'] = _area('FarGlow', (6.0, 48.0, 18.0), (2.0, 32.0, 0.0), gap * 3.0 if far is None else far, (0.60, 0.90, 0.80), 12.0, sc, spread=80.0)        # a second, dimmer gap deep in the trees: something for the rows to stand against
+    out['far'] = _area('FarGlow', (6.0, 48.0, 18.0), (2.0, 32.0, 0.0), far, (0.60, 0.90, 0.80), 12.0, sc, spread=80.0)        # a second, dimmer gap deep in the trees: something for the rows to stand against
     bpy.context.view_layer.update()
     out['gobos'] = [_gobo('GapScreen', out['gap'], 4.0, 6.0, 1.0, 0.62, sc), _gobo('SunScreen', out['sun'], 6.0, 5.0, 1.0, 0.62, sc), _gobo('FarScreen', out['far'], 4.0, 12.0, 1.0, 0.62, sc)]
     return out
 
 
-def build(sc, seed=4, parts=('ground', 'water', 'trees', 'canopy', 'vines', 'plants', 'grass', 'branch', 'fog'), fog_density=0.010, light=None):
+def build(sc, seed=4, parts=('ground', 'water', 'trees', 'canopy', 'vines', 'plants', 'grass', 'branch', 'fog'), fog_density=0.0045, light=None):
     t0 = time.time(); L = layout(seed); coll = bpy.data.collections.new('Swamp'); sc.collection.children.link(coll); rng = np.random.default_rng(seed + 100); out = dict(layout=L)
     if 'ground' in parts: out['ground'] = terrain(L)
     if 'water' in parts: out['water'] = water()
@@ -408,7 +436,7 @@ if __name__ == '__main__':
     arg, flag = studio.arg, studio.flag; out = sys.argv[1]; t0 = time.time(); sc = studio.reset()
     w, h = (int(v) for v in arg('--size', '960x402').split('x')); sc.render.resolution_x = w; sc.render.resolution_y = h
     light = {k: float(arg('--' + k)) for k in ('ambient', 'gap', 'sun', 'far') if arg('--' + k) is not None}
-    S_ = build(sc, int(arg('--seed', 4)), parts=tuple(arg('--parts', 'ground,water,trees,canopy,vines,plants,grass,branch,fog').split(',')), fog_density=float(arg('--fogd', 0.010)), light=light)
+    S_ = build(sc, int(arg('--seed', 4)), parts=tuple(arg('--parts', 'ground,water,trees,canopy,vines,plants,grass,branch,fog').split(',')), fog_density=float(arg('--fogd', 0.0045)), light=light)
     pos, look, fl = CAMS[arg('--cam', 'wide')]; v3 = lambda t: tuple(float(v) for v in t.split(','))
     if arg('--pos'): pos = v3(arg('--pos'))
     if arg('--look'): look = v3(arg('--look'))
