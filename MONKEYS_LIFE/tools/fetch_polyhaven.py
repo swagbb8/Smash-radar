@@ -33,11 +33,15 @@ def catalog():
 
 def fetch(ids, res='1k'):
     report = {}
+    default = res
     for i in ids:
+        i, _, own = i.partition('@'); res = own or default                    # "id@4k" asks for one asset at its own size
         try:
             files = get(f'{API}/files/{i}'); print(i, list(files.keys())[:12], flush=True); d = os.path.join(OUT, i)
             if 'hdri' in files:
-                r = res if res in files['hdri'] else sorted(files['hdri'])[0]; save(files['hdri'][r]['hdr']['url'], os.path.join(d, f'{i}.hdr')); report[i] = 'hdri ' + r
+                r = res if res in files['hdri'] else sorted(files['hdri'])[0]; path = os.path.join(d, f'{i}.hdr')
+                if own and os.path.exists(path): os.remove(path)               # asked for a different size than the one kept
+                save(files['hdri'][r]['hdr']['url'], path); report[i] = 'hdri ' + r
             elif 'blend' in files:
                 r = res if res in files['blend'] else sorted(files['blend'])[0]; b = files['blend'][r]['blend']; save(b['url'], os.path.join(d, f'{i}.blend'))
                 for rel, inc in (b.get('include') or {}).items(): save(inc['url'], os.path.join(d, rel))
