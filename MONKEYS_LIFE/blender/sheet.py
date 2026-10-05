@@ -36,10 +36,10 @@ def clay(sv):
 
 if __name__ == '__main__':
     out = sys.argv[1]; t0 = time.time(); sc = studio.reset(); studio.stage(sc)
-    sv = S.build(fur=flag('--fur'), fur_count=int(arg('--strands', 450000)), subdiv=int(arg('--subdiv', 2)))
+    sv = S.build(fur=flag('--fur'), fur_count=int(arg('--strands', 450000)), subdiv=int(arg('--subdiv', 2)), wet=float(arg('--wet', 0)))
     pname = arg('--pose', 'tpose')
     if pname != 'tpose': poses.apply(sv, pname)
-    S.ground(sv); S.device_power(sv, float(arg('--power', 0)), wave=float(arg('--wave', -10))); S.face(sv, Blink=float(arg('--blink', 0)), JawOpen=float(arg('--jaw', 0)), BrowUp=float(arg('--brow', 0)))
+    S.ground(sv); S.device_power(sv, float(arg('--power', 0)), wave=float(arg('--wave', -10))); S.mud(float(arg('--mud', 0)), float(arg('--mudwet', 1))); S.face(sv, Blink=float(arg('--blink', 0)), JawOpen=float(arg('--jaw', 0)), BrowUp=float(arg('--brow', 0)))
     if flag('--clay'): clay(sv)
     kind = arg('--views', 'head'); T = targets(sv); tiles = []
     cd = bpy.data.cameras.new('Cam'); cam = bpy.data.objects.new('Cam', cd); sc.collection.objects.link(cam); sc.camera = cam; cd.sensor_width = 36

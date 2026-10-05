@@ -50,10 +50,10 @@ def camera(sc, name, target=None):
 
 if __name__ == '__main__':
     out = sys.argv[1]; t0 = time.time(); sc = reset(); stage(sc)
-    sv = S.build(fur=flag('--fur'), fur_count=int(arg('--strands', 450000)), subdiv=int(arg('--subdiv', 2)))
+    sv = S.build(fur=flag('--fur'), fur_count=int(arg('--strands', 450000)), subdiv=int(arg('--subdiv', 2)), wet=float(arg('--wet', 0)))
     pname = arg('--pose', 'tpose')
     if pname != 'tpose': poses.apply(sv, pname)
-    S.ground(sv); S.device_power(sv, float(arg('--power', 0)), wave=float(arg('--wave', -10))); S.face(sv, Blink=float(arg('--blink', 0)), JawOpen=float(arg('--jaw', 0)), BrowUp=float(arg('--brow', 0)))
+    S.ground(sv); S.device_power(sv, float(arg('--power', 0)), wave=float(arg('--wave', -10))); S.mud(float(arg('--mud', 0)), float(arg('--mudwet', 1))); S.face(sv, Blink=float(arg('--blink', 0)), JawOpen=float(arg('--jaw', 0)), BrowUp=float(arg('--brow', 0)))
     cam = arg('--cam', 'front'); head = sv['arm'].matrix_world @ sv['arm'].pose.bones['Head'].head
     camera(sc, cam, target=tuple(head + Vector((0, 0, 0.08))) if cam == 'face' else None)
     if pname == 'look':

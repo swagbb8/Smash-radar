@@ -61,6 +61,34 @@ class NT:
         return n.outputs['Fac']
 
 
+def mud_field():
+    """One swamp-mud field for the whole character (a node group, so skin, fur and the device all agree on where the mud is).
+    In: a position in his rest space (cm). Out: Mud (0..1 covered), Thick (0..1 how caked), Wet (1 dripping .. 0 dried).
+    Inside sit two values to animate: MudLevel (0 clean .. 1 caked head to toe) and MudWet."""
+    g = bpy.data.node_groups.get('MudField')
+    if g: return g
+    g = bpy.data.node_groups.new('MudField', 'ShaderNodeTree'); g.interface.new_socket('Position', in_out='INPUT', socket_type='NodeSocketVector')
+    for name in ('Mud', 'Thick', 'Wet'): g.interface.new_socket(name, in_out='OUTPUT', socket_type='NodeSocketFloat')
+    T = NT(g); gi = T.node('NodeGroupInput'); go = T.node('NodeGroupOutput'); pos = gi.outputs['Position']
+    level = T.node('ShaderNodeValue'); level.name = level.label = 'MudLevel'; level.outputs[0].default_value = 0.0
+    wet = T.node('ShaderNodeValue'); wet.name = wet.label = 'MudWet'; wet.outputs[0].default_value = 1.0
+    n = T.math('ADD', T.math('MULTIPLY', T.noise(0.075, 3.0, 0.55, pos), 0.62), T.math('MULTIPLY', T.noise(0.42, 3.0, 0.6, pos), 0.38))      # big patches, ragged edges
+    n = T.math('DIVIDE', T.math('SUBTRACT', n, 0.30), 0.40, clamp=True)                                                        # spread to the full 0..1
+    sep = T.node('ShaderNodeSeparateXYZ'); T.link(pos, sep.inputs[0]); low = T.math('SUBTRACT', 1.0, T.math('DIVIDE', sep.outputs['Z'], 150.0), clamp=True)
+    x = T.math('SUBTRACT', T.math('ADD', T.math('SUBTRACT', T.math('MULTIPLY', level.outputs[0], 1.30), 0.14), T.math('MULTIPLY', T.math('MULTIPLY', low, 0.30), level.outputs[0])), n)   # mud clings longest low down
+    def ramp01(v, lo, hi):
+        m_ = T.node('ShaderNodeMapRange', interpolation_type='SMOOTHSTEP'); T.link(v, m_.inputs['Value']); m_.inputs['From Min'].default_value = lo; m_.inputs['From Max'].default_value = hi; return m_.outputs['Result']
+    T.link(ramp01(x, 0.0, 0.10), go.inputs['Mud']); T.link(ramp01(x, 0.05, 0.50), go.inputs['Thick']); T.link(wet.outputs[0], go.inputs['Wet'])
+    return g
+
+
+def _mud(T, position):
+    n = T.node('ShaderNodeGroup'); n.node_tree = mud_field(); T.link(position, n.inputs['Position']); return n.outputs['Mud'], n.outputs['Thick'], n.outputs['Wet']
+
+
+MUD_WET, MUD_DRY = '#221a12', '#6e5d4a'
+
+
 def _material(name):
     m = bpy.data.materials.new(name); m.use_nodes = True; nt = m.node_tree; return m, NT(nt), nt.nodes['Principled BSDF']
 
@@ -108,8 +136,16 @@ def skin_material(maps):
     front = T.math('SUBTRACT', far, wave.outputs[0]); pulse = T.math('POWER', 2.718, T.math('MULTIPLY', T.math('MULTIPLY', front, front), -1.0 / (1.4 * 1.4)))
     level = T.math('ADD', T.math('MULTIPLY', power.outputs[0], 0.10), pulse)                                              # a dim steady glow when it is awake, bright where the pulse is passing
     emis = T.math('MULTIPLY', T.math('ADD', traces, T.math('MULTIPLY', halo, 0.35)), level)
-    T.set(p, Base_Color=base, Roughness=rough, Specular_IOR_Level=0.35, Subsurface_Weight=0.10, Subsurface_Scale=0.003, Normal=bump.outputs['Normal'],
-          Emission_Color=lin('#2f9dff'), Emission_Strength=T.math('MULTIPLY', emis, 5.0))
+    # swamp mud over everything: dark and glossy while wet, lumpy where it is caked on
+    mud, thick, wet = _mud(T, obj); lumps = T.noise(1.7, 4.0, 0.65, obj); grit = T.noise(14.0, 2.0, 0.5, obj)
+    mudcol = T.mix(T.math('MULTIPLY', lumps, 0.8), T.mix(wet, lin(MUD_DRY), lin(MUD_WET)), T.mix(wet, lin('#84735f'), lin('#191611')))
+    sheen = T.ramp(T.noise(0.9, 3.0, 0.6, obj), [(0.42, (0.50, 0.50, 0.50, 1)), (0.62, (0.16, 0.16, 0.16, 1))])                # mostly dull wet earth, with slicks of standing water
+    base = T.mix(mud, base, mudcol); rough = T.mix(mud, rough, T.mix(wet, (0.88, 0.88, 0.88, 1), sheen))
+    T.set(p, Base_Color=base, Roughness=rough, Specular_IOR_Level=T.math('ADD', 0.35, T.math('MULTIPLY', T.math('MULTIPLY', mud, wet), 0.35)), Subsurface_Weight=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, mud), 0.10), Subsurface_Scale=0.003, Normal=bump.outputs['Normal'],
+          Emission_Color=lin('#2f9dff'), Emission_Strength=T.math('MULTIPLY', T.math('MULTIPLY', emis, T.math('SUBTRACT', 1.0, T.math('MULTIPLY', thick, 0.85))), 5.0))
+    mud_h = T.math('MULTIPLY', thick, T.math('ADD', 0.25, T.math('ADD', T.math('MULTIPLY', lumps, 1.2), T.math('MULTIPLY', grit, 0.35))))          # 0..~1.6: lumpy and gritty
+    md = T.math('ADD', T.math('MULTIPLY', T.math('MULTIPLY', T.math('SUBTRACT', ih.outputs['Color'], 0.5), skinpaint.HRANGE), T.math('MULTIPLY', paint, T.math('SUBTRACT', 1.0, T.math('MULTIPLY', thick, 0.7)))), T.math('MULTIPLY', mud_h, 0.22))
+    T.link(md, disp.inputs['Height'])                                                           # caked mud fills the wrinkles and stands up to ~3 mm proud
     p.inputs['Subsurface Radius'].default_value = (1.0, 0.35, 0.2)
     h2 = T.math('ADD', height, T.math('ADD', T.math('MULTIPLY', scar, T.math('ADD', 1.6, T.math('MULTIPLY', fine, 1.2))), T.math('MULTIPLY', traces, 0.9))); T.link(h2, bump.inputs['Height'])      # scar and wires stand proud
     return m
@@ -220,18 +256,25 @@ def simple(name, colour, rough=0.4, sss=0.0):
 
 def fur_material():
     """Coarse black chimp hair, glossy along the strand, with white hairs on the chin and the odd grey one elsewhere.
-    Per-strand attributes: grey (0..1), mud (0..1: caked, see mud())."""
+    Swamp mud (the shared MudField, looked up at each strand's root) coats strands brown; wet hair is slicker."""
     m = bpy.data.materials.new('SevenFur'); m.use_nodes = True; nt = m.node_tree; T = NT(nt)
     for n in list(nt.nodes): nt.nodes.remove(n)
     out = T.node('ShaderNodeOutputMaterial'); hair = T.node('ShaderNodeBsdfHairPrincipled', parametrization='MELANIN'); info = T.node('ShaderNodeHairInfo')
-    rnd = info.outputs['Random']; grey = T.attr('grey')
-    T.set(hair, Melanin=T.math('SUBTRACT', 1.0, T.math('MULTIPLY', grey, 0.80)), Melanin_Redness=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, grey), 0.22), Roughness=0.28, Radial_Roughness=0.55, Coat=0.0, Random_Color=0.12, Random_Roughness=0.3)
-    T.link(rnd, hair.inputs['Random']); T.link(hair.outputs['BSDF'], out.inputs['Surface'])
+    rnd = info.outputs['Random']; grey = T.attr('grey'); root = T.node('ShaderNodeAttribute', attribute_name='root').outputs['Vector']
+    mud, thick, wet = _mud(T, root); soak = T.attr('wet')                                    # 'wet' per strand: how soaked the coat was when it was groomed
+    slick = T.math('MULTIPLY', soak, wet)
+    T.set(hair, Melanin=T.math('SUBTRACT', 1.0, T.math('MULTIPLY', grey, 0.80)), Melanin_Redness=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, grey), 0.22), Roughness=T.math('SUBTRACT', 0.28, T.math('MULTIPLY', slick, 0.13)),
+          Radial_Roughness=0.55, Coat=T.math('MULTIPLY', slick, 0.55), Random_Color=0.12, Random_Roughness=0.3)
+    T.link(rnd, hair.inputs['Random'])
+    mb = T.node('ShaderNodeBsdfPrincipled'); tone = T.math('ADD', T.math('MULTIPLY', rnd, 0.5), T.math('MULTIPLY', T.noise(0.9, 2.0, 0.5, root), 0.5))
+    T.set(mb, Base_Color=T.mix(tone, T.mix(wet, lin(MUD_DRY), lin(MUD_WET)), T.mix(wet, lin('#84735f'), lin('#191611'))), Roughness=T.math('SUBTRACT', 0.85, T.math('MULTIPLY', wet, 0.42)), Specular_IOR_Level=0.4)
+    tipward = T.math('ADD', T.math('MULTIPLY', mud, 0.75), T.math('MULTIPLY', T.math('MULTIPLY', thick, info.outputs['Intercept']), 0.6), clamp=True)   # the outside of the coat is caked first
+    mix = T.node('ShaderNodeMixShader'); T.link(tipward, mix.inputs[0]); T.link(hair.outputs['BSDF'], mix.inputs[1]); T.link(mb.outputs['BSDF'], mix.inputs[2]); T.link(mix.outputs[0], out.inputs['Surface'])
     return m
 
 
 # ------------------------------------------------------------------------------------------------ fur
-def fur_strands(b, count=450000, k=7, seed=3):
+def fur_strands(b, count=450000, k=7, seed=3, wet=0.0):
     """Hair as real strands: roots spread over the furry skin (thick here, thin there, a few mangy patches), lying along
     the hair-flow field with slow swirls in it, uneven in length, gathered into ragged clumps.
     -> (points (n, k, 3) in rest space, radius (n, k), surface uv (n, 2), per-strand attributes)"""
@@ -256,25 +299,29 @@ def fur_strands(b, count=450000, k=7, seed=3):
     L = at(M['length']) * rng.uniform(0.55, 1.18, n_) * (0.72 + 0.56 * bm.noise3(root, 6.0, seed + 2)); thick = 1 / np.sqrt(close[ti])
     ft = fl - (fl * n).sum(1, keepdims=True) * n; ft /= np.linalg.norm(ft, axis=1, keepdims=True) + 1e-9; side = np.cross(n, ft)
     swirl = (bm.noise3(root, 7.0, seed + 3) - 0.5) * 1.5 + rng.normal(0, 0.17, n_); ft = ft * np.cos(swirl)[:, None] + side * np.sin(swirl)[:, None]; side = np.cross(n, ft)
-    lift = np.clip(at(M['lift']) + rng.normal(0, 0.09, n_), 0.10, 0.85)[:, None]; d0 = n * lift + ft * (1 - lift); d0 /= np.linalg.norm(d0, axis=1, keepdims=True)
+    soak = np.clip(wet * (0.75 + 0.5 * bm.noise3(root, 14.0, seed + 5)), 0, 1)                    # a soaked coat lies flat, sticks together in spikes and shines
+    lift = (np.clip(at(M['lift']) + rng.normal(0, 0.09, n_), 0.10, 0.85) * (1 - 0.55 * soak))[:, None]; d0 = n * lift + ft * (1 - lift); d0 /= np.linalg.norm(d0, axis=1, keepdims=True)
     hang = at(M['hang'])[:, None]; bend = -n * 0.20 + np.array([0, 0, -0.22]) * hang
-    frizz = (side * rng.normal(0, 1, (n_, 1)) + n * rng.normal(0, 0.5, (n_, 1))) * rng.uniform(0.03, 0.22, (n_, 1))
+    frizz = (side * rng.normal(0, 1, (n_, 1)) + n * rng.normal(0, 0.5, (n_, 1))) * rng.uniform(0.03, 0.22, (n_, 1)) * (1 - 0.7 * soak[:, None])
     t = np.linspace(0, 1, k); pts = root[:, None, :] + L[:, None, None] * (t[None, :, None] * d0[:, None, :] + (t ** 2)[None, :, None] * (bend + frizz)[:, None, :])
     # clumps: every strand leans toward a nearby leader, more at the tip; small tight tufts inside big loose locks
     for ratio, mean, reach in ((14, 0.70, 2.2), (240, 0.26, 7.0)):
         lead = rng.choice(n_, size=max(1, n_ // ratio), replace=False); dist, j = cKDTree(root[lead]).query(root); Li = lead[j]
-        cs = (np.clip(rng.normal(mean, 0.2, len(lead)), 0.05, 0.97)[j] * (dist < reach))[:, None, None] * (t ** 1.2)[None, :, None]
+        cs = (np.clip(np.clip(rng.normal(mean, 0.2, len(lead)), 0.05, 0.97)[j] + soak * (0.26 if ratio < 100 else 0.5), 0, 0.985) * (dist < reach))[:, None, None] * (t[None, :] ** (1.2 - 0.5 * soak)[:, None])[:, :, None]
         target = pts[Li] + (root - root[Li])[:, None, :] * (1 - 0.88 * t)[None, :, None]; pts = pts * (1 - cs) + target * cs
-    rad = (0.0105 * thick)[:, None] * (1 - 0.82 * t ** 1.4)[None, :]
+    rad = (0.0105 * thick * (1 + 0.35 * soak))[:, None] * (1 - 0.82 * t ** 1.4)[None, :]
     grey = ((at(M['grey']) > rng.random(n_)) | (rng.random(n_) < 0.012)).astype(np.float32)
-    return pts, rad, uv, dict(grey=grey, mud=np.zeros(n_, np.float32))
+    return pts, rad, uv, dict(grey=grey, wet=soak.astype(np.float32), root=root.astype(np.float32))
 
 
 def _fur_object(name, body, arm, pts, rad, uv, attrs, material):
     n, k, _ = pts.shape; cu = bpy.data.hair_curves.new(name); cu.add_curves([k] * n)
     cu.points.foreach_set('position', pts.reshape(-1).astype(np.float32)); cu.points.foreach_set('radius', rad.reshape(-1).astype(np.float32))
     at = cu.attributes.new('surface_uv_coordinate', 'FLOAT2', 'CURVE'); at.data.foreach_set('vector', uv.reshape(-1).astype(np.float32))
-    for key, val in attrs.items(): cu.attributes.new(key, 'FLOAT', 'CURVE').data.foreach_set('value', np.asarray(val, np.float32))
+    for key, val in attrs.items():
+        val = np.asarray(val, np.float32)
+        if val.ndim == 2: cu.attributes.new(key, 'FLOAT_VECTOR', 'CURVE').data.foreach_set('vector', val.reshape(-1))
+        else: cu.attributes.new(key, 'FLOAT', 'CURVE').data.foreach_set('value', val)
     cu.surface = body; cu.surface_uv_map = 'UVMap'; cu.materials.append(material)
     ob = bpy.data.objects.new(name, cu); bpy.context.scene.collection.objects.link(ob); ob.parent = arm
     ng = bpy.data.node_groups.new('FurFollowsSkin', 'GeometryNodeTree')
@@ -286,7 +333,7 @@ def _fur_object(name, body, arm, pts, rad, uv, attrs, material):
 
 
 # ------------------------------------------------------------------------------------------------ build
-def build(fur=True, fur_count=450000, subdiv=2, paint_size=2048):
+def build(fur=True, fur_count=450000, subdiv=2, paint_size=2048, wet=0.0):
     b = ape.build(); V, F = b['V'], b['F']
     me = bpy.data.meshes.new('SevenBody'); me.from_pydata([tuple(v) for v in V], [], F); me.update()
     for p_ in me.polygons: p_.use_smooth = True
@@ -329,7 +376,7 @@ def build(fur=True, fur_count=450000, subdiv=2, paint_size=2048):
     glow.matrix_parent_inverse = Matrix.Identity(4); glow.location = (rest @ c_rest) - Vector((0, fb.length, 0)); glow.rotation_euler = (rest.to_3x3() @ Matrix.Rotation(math.pi, 3, 'X')).to_euler()   # an area light shines down its -Z: turn it to face +Z in rest space
     out = dict(arm=arm, body=body, data=b, mats=mats, fur=None, glow=glow, eyes=eyes(b, arm), device=dev); arm.scale = (SCALE, SCALE, SCALE)
     if fur:
-        pts, rad, uv, fa = fur_strands(b, fur_count); out['fur'] = _fur_object('SevenFur', body, arm, pts, rad, uv, fa, mats['fur']); out['strands'] = len(pts)
+        pts, rad, uv, fa = fur_strands(b, fur_count, wet=wet); out['fur'] = _fur_object('SevenFur', body, arm, pts, rad, uv, fa, mats['fur']); out['strands'] = len(pts)
     return out
 
 
@@ -394,6 +441,14 @@ def device_power(seven, value, frame=None, light=4.5, wave=None):
         if frame is not None: node.outputs[0].keyframe_insert('default_value', frame=frame)
     wn = seven['mats']['skin'].node_tree.nodes['DeviceWave']; wn.outputs[0].default_value = -10.0 if wave is None else wave
     if frame is not None: seven['glow'].data.keyframe_insert('energy', frame=frame); wn.outputs[0].keyframe_insert('default_value', frame=frame)
+
+
+def mud(level, wet=1.0, frame=None):
+    """level: 0 = clean .. 1 = caked in swamp mud head to toe. wet: 1 = dripping .. 0 = dried pale. (One field for skin, fur and device.)"""
+    g = mud_field()
+    for name, v in (('MudLevel', level), ('MudWet', wet)):
+        o = g.nodes[name].outputs[0]; o.default_value = v
+        if frame is not None: o.keyframe_insert('default_value', frame=frame)
 
 
 def face(seven, frame=None, **values):
