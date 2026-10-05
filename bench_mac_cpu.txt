@@ -1,0 +1,1 @@
+rendered bench_mac_cpu in 102s (render 83s) on cpu x3, strands 404496
