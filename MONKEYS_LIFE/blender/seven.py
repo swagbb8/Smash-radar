@@ -9,6 +9,7 @@ import bpy
 import numpy as np
 from mathutils import Vector, Quaternion, Matrix
 import ape
+import skinpaint
 
 SCALE = 0.01
 
@@ -63,23 +64,36 @@ def _material(name):
     m = bpy.data.materials.new(name); m.use_nodes = True; nt = m.node_tree; return m, NT(nt), nt.nodes['Principled BSDF']
 
 
-def skin_material():
-    """Dark, creased ape skin: lighter and blotchy on the muzzle, leathery palms, and the device glowing through the forearm."""
+def _image(nt, path, colour=False, uv='HeadUV'):
+    img = bpy.data.images.load(path, check_existing=True)
+    if not colour: img.colorspace_settings.name = 'Non-Color'
+    n = nt.nodes.new('ShaderNodeTexImage'); n.image = img; n.extension = 'EXTEND'; n.interpolation = 'Cubic'
+    u = nt.nodes.new('ShaderNodeUVMap'); u.uv_map = uv; nt.links.new(u.outputs['UV'], n.inputs['Vector']); return n
+
+
+def skin_material(maps):
+    """Ape skin. The head is painted (skinpaint.py: nostrils, folds, wrinkles, mottled muzzle); the rest of the body is
+    procedural leather. The device in the left forearm glows through it."""
     m, T, p = _material('SevenSkin'); nt = T.nt
     rest = T.node('ShaderNodeAttribute', attribute_name='rest_position'); obj = rest.outputs['Vector']      # textures stay glued to the skin when he moves
-    face = T.attr('face'); palm = T.math('MAXIMUM', T.attr('palm'), T.attr('sole'))
+    face = T.attr('face'); palm = T.math('MAXIMUM', T.attr('palm'), T.attr('sole')); paint = T.attr('paint')
     blotch = T.noise(0.9, 5.0, 0.6, obj); fine = T.noise(9.0, 3.0, 0.5, obj)
-    muzzle = T.attr('muzzle'); warm = T.math('MULTIPLY', T.math('MULTIPLY', muzzle, 0.85), T.ramp(blotch, [(0.30, (0.25, 0.25, 0.25, 1)), (0.80, (1, 1, 1, 1))]))
-    base = T.mix(warm, lin('#17110f'), lin('#3d2b23'))                                                   # near-black face, a warmer worn patch on the muzzle
-    base = T.mix(T.attr('nostril'), base, lin('#020101'))
+    base = T.mix(T.ramp(blotch, [(0.30, (0.0, 0.0, 0.0, 1)), (0.80, (1, 1, 1, 1))]), lin('#17110f'), lin('#2a1e19'))
     base = T.mix(palm, base, lin('#2b2320')); base = T.mix(T.math('MULTIPLY', fine, 0.25), base, lin('#0e0b0a'))
-    # creases: stretched cells for wrinkles, stronger on the face and hands
+    # creases on the body skin: stretched cells, stronger on the hands and feet
     vor = T.node('ShaderNodeTexVoronoi', feature='DISTANCE_TO_EDGE'); vor.inputs['Scale'].default_value = 5.5; map_ = T.node('ShaderNodeMapping'); map_.inputs['Scale'].default_value = (1.0, 1.0, 2.6)
     T.link(obj, map_.inputs['Vector']); T.link(map_.outputs['Vector'], vor.inputs['Vector'])
     crease = T.math('SUBTRACT', 1.0, T.math('MULTIPLY', vor.outputs['Distance'], 9.0, clamp=True), clamp=True)
     amount = T.math('ADD', 0.25, T.math('MULTIPLY', T.math('MAXIMUM', face, palm), 0.75))
     height = T.math('ADD', T.math('MULTIPLY', T.math('MULTIPLY', crease, amount), -1.0), T.math('MULTIPLY', fine, 0.35))
-    bump = T.node('ShaderNodeBump'); bump.inputs['Strength'].default_value = 0.55; bump.inputs['Distance'].default_value = 0.004; T.link(height, bump.inputs['Height'])
+    height = T.math('MULTIPLY', height, T.math('SUBTRACT', 1.0, paint))                                   # the painted head brings its own relief
+    bump = T.node('ShaderNodeBump'); bump.inputs['Strength'].default_value = 0.55; bump.inputs['Distance'].default_value = 0.004
+    # the painted head
+    ic = _image(nt, maps['colour'], colour=True); ih = _image(nt, maps['height']); ir = _image(nt, maps['rough'])
+    base = T.mix(paint, base, ic.outputs['Color']); rough = T.mix(paint, T.math('ADD', 0.62, T.math('MULTIPLY', fine, 0.25)), ir.outputs['Color'])
+    disp = T.node('ShaderNodeDisplacement'); disp.space = 'OBJECT'; disp.inputs['Midlevel'].default_value = 0.0; disp.inputs['Scale'].default_value = 1.0
+    T.link(T.math('MULTIPLY', T.math('MULTIPLY', T.math('SUBTRACT', ih.outputs['Color'], 0.5), skinpaint.HRANGE), paint), disp.inputs['Height'])
+    T.link(disp.outputs['Displacement'], nt.nodes['Material Output'].inputs['Displacement']); m.displacement_method = 'BOTH'
     # the device: a plate under the skin, a scar around it, cracked circuit lines that can glow
     dev = T.attr('device'); du = T.attr('dev_u'); dv = T.attr('dev_v'); comb = T.node('ShaderNodeCombineXYZ'); T.link(du, comb.inputs[0]); T.link(dv, comb.inputs[1])
     brick = T.node('ShaderNodeTexBrick'); T.link(comb.outputs[0], brick.inputs['Vector']); brick.inputs['Scale'].default_value = 3.2; brick.inputs['Mortar Size'].default_value = 0.014; brick.inputs['Color1'].default_value = (0, 0, 0, 1); brick.inputs['Color2'].default_value = (0, 0, 0, 1); brick.inputs['Mortar'].default_value = (1, 1, 1, 1)
@@ -92,18 +106,82 @@ def skin_material():
     power = T.node('ShaderNodeValue'); power.name = power.label = 'DevicePower'; power.outputs[0].default_value = 0.0
     base = T.mix(T.math('MULTIPLY', plate, 0.55), base, lin('#0b0d10')); base = T.mix(edge, base, lin('#3b2623')); base = T.mix(T.math('MULTIPLY', plate, cracks), base, lin('#020203'))
     emis = T.math('MULTIPLY', glow_mask, power.outputs[0]); under = T.math('MULTIPLY', T.math('MULTIPLY', plate, 0.012), power.outputs[0])      # faint blue under the skin when it wakes
-    T.set(p, Base_Color=base, Roughness=T.math('ADD', 0.62, T.math('MULTIPLY', fine, 0.25)), Specular_IOR_Level=0.22, Subsurface_Weight=0.12, Subsurface_Scale=0.004, Normal=bump.outputs['Normal'],
+    T.set(p, Base_Color=base, Roughness=rough, Specular_IOR_Level=0.35, Subsurface_Weight=0.10, Subsurface_Scale=0.003, Normal=bump.outputs['Normal'],
           Emission_Color=lin('#1f8dff'), Emission_Strength=T.math('MULTIPLY', T.math('ADD', emis, under), 22.0))
     p.inputs['Subsurface Radius'].default_value = (1.0, 0.35, 0.2)
     h2 = T.math('ADD', height, T.math('MULTIPLY', plate, 0.9)); T.link(h2, bump.inputs['Height'])        # the plate stands a little proud of the arm
     return m
 
 
-def eye_material():
-    m, T, p = _material('SevenEye'); iris = T.attr('iris')
-    col = T.ramp(iris, [(0.0, lin('#3a2a20')), (0.72, lin('#4a3628')), (0.80, lin('#170e09')), (0.84, lin('#5c3a14')), (0.915, lin('#8a571a')), (0.94, lin('#2e1b0a')), (0.953, (0, 0, 0, 1))])
-    T.set(p, Base_Color=col, Roughness=0.06, Coat_Weight=1.0, Coat_Roughness=0.02, Specular_IOR_Level=0.8)
-    return m
+def eye_materials():
+    """A real eye in two layers: a wet shell (dark ape sclera, clear cornea that bends light) over an amber iris set back inside it."""
+    m = bpy.data.materials.new('SevenEyeShell'); m.use_nodes = True; nt = m.node_tree; T = NT(nt)
+    for n in list(nt.nodes): nt.nodes.remove(n)
+    out = T.node('ShaderNodeOutputMaterial'); rest = T.node('ShaderNodeAttribute', attribute_name='rest_position').outputs['Vector']
+    cornea = T.attr('cornea'); limb = T.attr('limb')
+    blot = T.noise(2.2, 4.0, 0.6, rest); col = T.mix(blot, lin('#2a1810'), lin('#4b2d1e')); col = T.mix(T.math('MULTIPLY', limb, 0.9), col, lin('#080504'))
+    sclera = T.node('ShaderNodeBsdfPrincipled'); T.set(sclera, Base_Color=col, Roughness=0.16, Coat_Weight=1.0, Coat_Roughness=0.03, Specular_IOR_Level=0.6, Subsurface_Weight=0.2, Subsurface_Scale=0.002)
+    glass = T.node('ShaderNodeBsdfGlass'); glass.inputs['IOR'].default_value = 1.376; glass.inputs['Roughness'].default_value = 0.0
+    clear = T.node('ShaderNodeBsdfTransparent'); lp = T.node('ShaderNodeLightPath')
+    lens = T.node('ShaderNodeMixShader'); T.link(T.math('MAXIMUM', lp.outputs['Is Shadow Ray'], lp.outputs['Is Diffuse Ray']), lens.inputs[0]); T.link(glass.outputs[0], lens.inputs[1]); T.link(clear.outputs[0], lens.inputs[2])
+    mix = T.node('ShaderNodeMixShader'); T.link(cornea, mix.inputs[0]); T.link(sclera.outputs[0], mix.inputs[1]); T.link(lens.outputs[0], mix.inputs[2]); T.link(mix.outputs[0], out.inputs['Surface'])
+    # iris
+    mi, I, p = _material('SevenIris'); ix = I.attr('iris_x'); iy = I.attr('iris_y')
+    rho = I.math('SQRT', I.math('ADD', I.math('MULTIPLY', ix, ix), I.math('MULTIPLY', iy, iy))); safe = I.math('MAXIMUM', rho, 0.001)
+    comb = I.node('ShaderNodeCombineXYZ'); I.link(I.math('MULTIPLY', I.math('DIVIDE', ix, safe), 5.5), comb.inputs[0]); I.link(I.math('MULTIPLY', I.math('DIVIDE', iy, safe), 5.5), comb.inputs[1]); I.link(I.math('MULTIPLY', rho, 1.4), comb.inputs[2])
+    fibre = I.noise(3.0, 6.0, 0.7, comb.outputs[0]); fine = I.noise(11.0, 3.0, 0.6, comb.outputs[0])
+    pu = ape.EYE['pupil']
+    base = I.ramp(rho, [(0.0, (0, 0, 0, 1)), (pu, (0, 0, 0, 1)), (pu + 0.035, lin('#180b04')), (pu + 0.15, lin('#6e4313')), (0.72, lin('#55320f')), (0.90, lin('#231207')), (0.985, lin('#060302'))])
+    streak = I.math('ADD', 0.45, I.math('MULTIPLY', I.math('ADD', fibre, I.math('MULTIPLY', fine, 0.5)), 0.75))
+    mul = I.node('ShaderNodeMix', data_type='RGBA', blend_type='MULTIPLY'); mul.inputs[0].default_value = 1.0; I.link(base, mul.inputs[6]); I.link(streak, mul.inputs[7])
+    I.set(p, Base_Color=mul.outputs[2], Roughness=0.55, Specular_IOR_Level=0.15)
+    return m, mi
+
+
+def _eye_geo(c, r, nth=64, nph=56, nr=14):
+    """One eyeball in rest space, looking along -Y. -> (verts, faces, material index per face, per-vertex attributes)"""
+    lim, bulge = ape.EYE['limbus'], ape.EYE['bulge']
+    th = np.pi * np.linspace(0, 1, nth + 1) ** 1.55; ph = np.linspace(0, 2 * np.pi, nph, endpoint=False)          # more rings toward the front
+    R = r * (1 + bulge * np.cos(np.pi / 2 * np.clip(th / (lim * 1.15), 0, 1)) ** 2)
+    V = [np.array([0, -R[0], 0])]; cor = [1.0]; limb = [0.0]
+    for i in range(1, nth):
+        for f in ph: V.append(R[i] * np.array([np.sin(th[i]) * np.cos(f), -np.cos(th[i]), np.sin(th[i]) * np.sin(f)]))
+        k = 1 - float(np.clip((th[i] - 0.93 * lim) / (0.14 * lim), 0, 1)); cor += [k * k * (3 - 2 * k)] * nph; limb += [float(np.exp(-0.5 * ((th[i] - 1.12 * lim) / (0.16 * lim)) ** 2))] * nph
+    V.append(np.array([0, R[-1], 0])); cor.append(0.0); limb.append(0.0); back = len(V) - 1
+    ring = lambda i, j: 1 + (i - 1) * nph + (j % nph); F = []
+    for j in range(nph): F.append((0, ring(1, j), ring(1, j + 1)))
+    for i in range(1, nth - 1):
+        for j in range(nph): F.append((ring(i, j), ring(i + 1, j), ring(i + 1, j + 1), ring(i, j + 1)))
+    for j in range(nph): F.append((back, ring(nth - 1, j + 1), ring(nth - 1, j)))
+    ns = len(V); mat = [0] * len(F); ix = [0.0] * ns; iy = [0.0] * ns
+    # the iris: a shallow dish set back behind the cornea
+    Ri = r * np.sin(lim) * 1.05; base = len(V); V.append(np.array([0, -(r * np.cos(lim) - 0.085 * r), 0])); ix.append(0.0); iy.append(0.0)
+    for q in range(1, nr + 1):
+        rho = q / nr
+        for f in ph: V.append(np.array([rho * Ri * np.cos(f), -(r * np.cos(lim) - 0.025 * r - 0.06 * r * (1 - rho) ** 1.5), rho * Ri * np.sin(f)])); ix.append(rho * np.cos(f)); iy.append(rho * np.sin(f))
+    iring = lambda q, j: base + 1 + (q - 1) * nph + (j % nph)
+    for j in range(nph): F.append((base, iring(1, j), iring(1, j + 1))); mat.append(1)
+    for q in range(1, nr):
+        for j in range(nph): F.append((iring(q, j), iring(q + 1, j), iring(q + 1, j + 1), iring(q, j + 1))); mat.append(1)
+    n = len(V); pad = lambda a: np.array(list(a) + [0.0] * (n - len(a)), np.float32)
+    return np.array(V) + c, F, mat, dict(cornea=pad(cor), limb=pad(limb), iris_x=np.array(ix, np.float32), iris_y=np.array(iy, np.float32))
+
+
+def eyes(b, arm):
+    """Both eyeballs as one object, each skinned to its own eye bone."""
+    V, F, M, A, grp = [], [], [], {}, []
+    for s, bone in (('l', 'LeftEye'), ('r', 'RightEye')):
+        v, f, mt, at = _eye_geo(b['marks']['eye'][s], b['marks']['eye_r'] * 0.995); o = sum(len(q) for q in V)
+        V.append(v); F += [tuple(i + o for i in q) for q in f]; M += mt; grp.append((bone, o, len(v)))
+        for k, a in at.items(): A.setdefault(k, []).append(a)
+    V = np.concatenate(V); me = bpy.data.meshes.new('SevenEyes'); me.from_pydata([tuple(q) for q in V], [], F); me.update()
+    for p_ in me.polygons: p_.use_smooth = True
+    for k, a in A.items(): me.attributes.new(k, 'FLOAT', 'POINT').data.foreach_set('value', np.concatenate(a))
+    shell, iris = eye_materials(); me.materials.append(shell); me.materials.append(iris); me.polygons.foreach_set('material_index', np.array(M, np.int32))
+    ob = bpy.data.objects.new('SevenEyes', me); bpy.context.scene.collection.objects.link(ob); ob.add_rest_position_attribute = True
+    for bone, o, n in grp: ob.vertex_groups.new(name=bone).add(list(range(o, o + n)), 1.0, 'REPLACE')
+    ob.parent = arm; ob.modifiers.new('Armature', 'ARMATURE').object = arm
+    return ob
 
 
 def simple(name, colour, rough=0.4, sss=0.0):
@@ -111,54 +189,62 @@ def simple(name, colour, rough=0.4, sss=0.0):
 
 
 def fur_material():
-    """Coarse black-brown chimp hair with a dull sheen and the odd grey strand."""
+    """Coarse black chimp hair, glossy along the strand, with white hairs on the chin and the odd grey one elsewhere.
+    Per-strand attributes: grey (0..1), mud (0..1: caked, see mud())."""
     m = bpy.data.materials.new('SevenFur'); m.use_nodes = True; nt = m.node_tree; T = NT(nt)
     for n in list(nt.nodes): nt.nodes.remove(n)
-    out = T.node('ShaderNodeOutputMaterial'); hair = T.node('ShaderNodeBsdfHairPrincipled', parametrization='COLOR'); info = T.node('ShaderNodeHairInfo')
-    rnd = info.outputs['Random']; grey = T.math('GREATER_THAN', rnd, 0.985)
-    col = T.mix(grey, T.mix(rnd, lin('#030202'), lin('#0d0806')), lin('#55504a'))
-    T.set(hair, Color=col, Roughness=0.5, Radial_Roughness=0.8, Coat=0.0, Random_Roughness=0.3); T.link(rnd, hair.inputs['Random'])
-    T.link(hair.outputs['BSDF'], out.inputs['Surface'])
+    out = T.node('ShaderNodeOutputMaterial'); hair = T.node('ShaderNodeBsdfHairPrincipled', parametrization='MELANIN'); info = T.node('ShaderNodeHairInfo')
+    rnd = info.outputs['Random']; grey = T.attr('grey')
+    T.set(hair, Melanin=T.math('SUBTRACT', 1.0, T.math('MULTIPLY', grey, 0.80)), Melanin_Redness=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, grey), 0.22), Roughness=0.28, Radial_Roughness=0.55, Coat=0.0, Random_Color=0.12, Random_Roughness=0.3)
+    T.link(rnd, hair.inputs['Random']); T.link(hair.outputs['BSDF'], out.inputs['Surface'])
     return m
 
 
 # ------------------------------------------------------------------------------------------------ fur
-def fur_strands(b, count=190000, k=6, seed=3):
-    """Hair as real strands: roots spread over the furry skin, lying along the hair-flow field, bent by gravity, gathered into
-    ragged clumps. -> (points (n, k, 3) in rest space, radius (n, k), uv (n, 2))"""
+def fur_strands(b, count=450000, k=7, seed=3):
+    """Hair as real strands: roots spread over the furry skin (thick here, thin there, a few mangy patches), lying along
+    the hair-flow field with slow swirls in it, uneven in length, gathered into ragged clumps.
+    -> (points (n, k, 3) in rest space, radius (n, k), surface uv (n, 2), per-strand attributes)"""
     from scipy.spatial import cKDTree
-    V, F, N = b['V'], b['F'], b['N']; fur = b['masks']['fur']; length = b['masks']['length']; flow = b['flow']; rng = np.random.default_rng(seed)
+    import basemesh as bm
+    V, F, N = b['V'], b['F'], b['N']; M = b['masks']; flow = b['flow']; rng = np.random.default_rng(seed)
     tris, tuv = [], []
     for fi, f in enumerate(F):
         if b['part'][fi] != 0: continue
         uv = b['UV'][fi]
         for a in range(1, len(f) - 1): tris.append((f[0], f[a], f[a + 1])); tuv.append((uv[0], uv[a], uv[a + 1]))
     tris = np.array(tris); tuv = np.array(tuv); p0, p1, p2 = V[tris[:, 0]], V[tris[:, 1]], V[tris[:, 2]]
-    area = 0.5 * np.linalg.norm(np.cross(p1 - p0, p2 - p0), axis=1); dens = fur[tris].mean(1)
-    W = b['W']; bi = {n: i for i, n in enumerate(b['bones'])}; headw = W[:, bi['Head']]; close = 1 + 2.4 * headw[tris].mean(1) + 1.2 * sum(W[:, i] for n, i in bi.items() if 'Hand' in n or 'ForeArm' in n)[tris].mean(1)
+    area = 0.5 * np.linalg.norm(np.cross(p1 - p0, p2 - p0), axis=1); dens = M['fur'][tris].mean(1)
+    W = b['W']; bi = {n: i for i, n in enumerate(b['bones'])}; headw = W[:, bi['Head']]
+    close = 1 + 2.2 * headw[tris].mean(1) + 1.0 * sum(W[:, i] for n, i in bi.items() if 'Hand' in n or 'ForeArm' in n)[tris].mean(1)      # finer, denser hair where the camera goes
     prob = area * dens * close; prob /= prob.sum(); ti = rng.choice(len(tris), size=count, p=prob)
-    r1, r2 = rng.random(count), rng.random(count); s = np.sqrt(r1); bary = np.stack([1 - s, s * (1 - r2), s * r2], 1)
-    interp = lambda A: (A[tris[ti]] * bary[:, :, None]).sum(1)
-    keep = (fur[tris[ti]] * bary).sum(1) > rng.random(count) * 0.55; ti, bary = ti[keep], bary[keep]; n_ = len(ti)
-    root = interp(V); n = interp(N); n /= np.linalg.norm(n, axis=1, keepdims=True) + 1e-9; fl = interp(flow); uv = (tuv[ti] * bary[:, :, None]).sum(1)
-    L = (length[tris[ti]] * bary).sum(1) * rng.uniform(0.62, 1.18, n_); thick = 1 / np.sqrt(close[ti])
-    ft = fl - (fl * n).sum(1, keepdims=True) * n; ft /= np.linalg.norm(ft, axis=1, keepdims=True) + 1e-9
-    lift = np.clip(rng.normal(0.38, 0.12, n_), 0.12, 0.8)[:, None]; d0 = n * lift + ft * (1 - lift); d0 /= np.linalg.norm(d0, axis=1, keepdims=True)
-    side = np.cross(d0, n); frizz = (side * rng.normal(0, 1, (n_, 1)) + n * rng.normal(0, 0.6, (n_, 1))) * rng.uniform(0.05, 0.3, (n_, 1))
-    t = np.linspace(0, 1, k); droop = -n * 0.22 + np.array([0, 0, -0.16])
-    pts = root[:, None, :] + L[:, None, None] * (t[None, :, None] * d0[:, None, :] + (t ** 2)[None, :, None] * (droop[:, None, :] + frizz[:, None, :]))
-    # clumps: every strand leans toward a nearby leader, more at the tip
-    lead = rng.choice(n_, size=max(1, n_ // 16), replace=False); tree = cKDTree(root[lead]); dist, j = tree.query(root); L_ = lead[j]
-    c = (np.clip(rng.normal(0.74, 0.16, n_), 0.15, 0.97) * (dist < 2.2))[:, None, None] * (t ** 1.15)[None, :, None]
-    target = pts[L_] + (root - root[L_])[:, None, :] * (1 - 0.86 * t)[None, :, None]; pts = pts * (1 - c) + target * c
-    rad = (0.026 * thick)[:, None] * (1 - 0.85 * t ** 1.5)[None, :]
-    return pts, rad, uv
+    r1, r2 = rng.random(count), rng.random(count); sq = np.sqrt(r1); bary = np.stack([1 - sq, sq * (1 - r2), sq * r2], 1)
+    at = lambda A: (A[tris[ti]] * (bary[:, :, None] if A.ndim == 2 else bary)).sum(1)
+    root = at(V); rag = bm.noise3(root, 11.0, seed + 1); patch = np.clip((rag - 0.33) / 0.2, 0, 1); patch = patch * patch * (3 - 2 * patch)        # mangy patches where the coat is thin
+    keep = at(M['fur']) * (0.30 + 0.70 * patch) > rng.random(count) * 0.62; ti, bary = ti[keep], bary[keep]; n_ = len(ti)
+    root = at(V); n = at(N); n /= np.linalg.norm(n, axis=1, keepdims=True) + 1e-9; fl = at(flow); uv = (tuv[ti] * bary[:, :, None]).sum(1)
+    L = at(M['length']) * rng.uniform(0.55, 1.18, n_) * (0.72 + 0.56 * bm.noise3(root, 6.0, seed + 2)); thick = 1 / np.sqrt(close[ti])
+    ft = fl - (fl * n).sum(1, keepdims=True) * n; ft /= np.linalg.norm(ft, axis=1, keepdims=True) + 1e-9; side = np.cross(n, ft)
+    swirl = (bm.noise3(root, 7.0, seed + 3) - 0.5) * 1.5 + rng.normal(0, 0.17, n_); ft = ft * np.cos(swirl)[:, None] + side * np.sin(swirl)[:, None]; side = np.cross(n, ft)
+    lift = np.clip(at(M['lift']) + rng.normal(0, 0.09, n_), 0.10, 0.85)[:, None]; d0 = n * lift + ft * (1 - lift); d0 /= np.linalg.norm(d0, axis=1, keepdims=True)
+    hang = at(M['hang'])[:, None]; bend = -n * 0.20 + np.array([0, 0, -0.22]) * hang
+    frizz = (side * rng.normal(0, 1, (n_, 1)) + n * rng.normal(0, 0.5, (n_, 1))) * rng.uniform(0.03, 0.22, (n_, 1))
+    t = np.linspace(0, 1, k); pts = root[:, None, :] + L[:, None, None] * (t[None, :, None] * d0[:, None, :] + (t ** 2)[None, :, None] * (bend + frizz)[:, None, :])
+    # clumps: every strand leans toward a nearby leader, more at the tip; small tight tufts inside big loose locks
+    for ratio, mean, reach in ((14, 0.70, 2.2), (240, 0.26, 7.0)):
+        lead = rng.choice(n_, size=max(1, n_ // ratio), replace=False); dist, j = cKDTree(root[lead]).query(root); Li = lead[j]
+        cs = (np.clip(rng.normal(mean, 0.2, len(lead)), 0.05, 0.97)[j] * (dist < reach))[:, None, None] * (t ** 1.2)[None, :, None]
+        target = pts[Li] + (root - root[Li])[:, None, :] * (1 - 0.88 * t)[None, :, None]; pts = pts * (1 - cs) + target * cs
+    rad = (0.0105 * thick)[:, None] * (1 - 0.82 * t ** 1.4)[None, :]
+    grey = ((at(M['grey']) > rng.random(n_)) | (rng.random(n_) < 0.012)).astype(np.float32)
+    return pts, rad, uv, dict(grey=grey, mud=np.zeros(n_, np.float32))
 
 
-def _fur_object(name, body, arm, pts, rad, uv, material):
+def _fur_object(name, body, arm, pts, rad, uv, attrs, material):
     n, k, _ = pts.shape; cu = bpy.data.hair_curves.new(name); cu.add_curves([k] * n)
     cu.points.foreach_set('position', pts.reshape(-1).astype(np.float32)); cu.points.foreach_set('radius', rad.reshape(-1).astype(np.float32))
     at = cu.attributes.new('surface_uv_coordinate', 'FLOAT2', 'CURVE'); at.data.foreach_set('vector', uv.reshape(-1).astype(np.float32))
+    for key, val in attrs.items(): cu.attributes.new(key, 'FLOAT', 'CURVE').data.foreach_set('value', np.asarray(val, np.float32))
     cu.surface = body; cu.surface_uv_map = 'UVMap'; cu.materials.append(material)
     ob = bpy.data.objects.new(name, cu); bpy.context.scene.collection.objects.link(ob); ob.parent = arm
     ng = bpy.data.node_groups.new('FurFollowsSkin', 'GeometryNodeTree')
@@ -170,15 +256,17 @@ def _fur_object(name, body, arm, pts, rad, uv, material):
 
 
 # ------------------------------------------------------------------------------------------------ build
-def build(fur=True, fur_count=190000, subdiv=1):
+def build(fur=True, fur_count=450000, subdiv=2, paint_size=2048):
     b = ape.build(); V, F = b['V'], b['F']
     me = bpy.data.meshes.new('SevenBody'); me.from_pydata([tuple(v) for v in V], [], F); me.update()
     for p_ in me.polygons: p_.use_smooth = True
     layer = me.uv_layers.new(name='UVMap'); layer.data.foreach_set('uv', [c for f in b['UV'] for uv in f for c in uv])
-    attrs = dict(b['masks']); attrs['dev_u'] = b['dev_uv'][:, 0]; attrs['dev_v'] = b['dev_uv'][:, 1]
+    maps = skinpaint.paint(b, paint_size); huv = maps['uv']; loops = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', loops)
+    me.uv_layers.new(name='HeadUV').data.foreach_set('uv', huv[loops].reshape(-1)); me.uv_layers['UVMap'].active = True; me.uv_layers['UVMap'].active_render = True
+    attrs = dict(b['masks']); attrs['dev_u'] = b['dev_uv'][:, 0]; attrs['dev_v'] = b['dev_uv'][:, 1]; attrs['paint'] = maps['mask']
     for name, a in attrs.items(): me.attributes.new(name, 'FLOAT', 'POINT').data.foreach_set('value', np.asarray(a, dtype=np.float32))
-    mats = dict(skin=skin_material(), eye=eye_material(), teeth=simple('SevenTeeth', '#cbbf9c', 0.3, 0.2), tongue=simple('SevenTongue', '#7a3b3b', 0.35, 0.3), fur=fur_material())
-    for key in ('skin', 'eye', 'teeth', 'tongue'): me.materials.append(mats[key])
+    mats = dict(skin=skin_material(maps), teeth=simple('SevenTeeth', '#cbbf9c', 0.3, 0.2), tongue=simple('SevenTongue', '#7a3b3b', 0.35, 0.3), fur=fur_material())
+    for key in ('skin', 'teeth', 'tongue'): me.materials.append(mats[key])
     me.polygons.foreach_set('material_index', b['part'].astype(np.int32))
     body = bpy.data.objects.new('SevenBody', me); bpy.context.scene.collection.objects.link(body); body.add_rest_position_attribute = True
     body.shape_key_add(name='Basis')
@@ -208,9 +296,9 @@ def build(fur=True, fur_count=190000, subdiv=1):
     glow = bpy.data.objects.new('DeviceGlow', ld); bpy.context.scene.collection.objects.link(glow); glow.parent = arm; glow.parent_type = 'BONE'; glow.parent_bone = 'LeftForeArm'
     fb = ad.bones['LeftForeArm']; c_rest = Vector(b['marks']['device']) + Vector((0, 0, 6.5))                    # just above the plate, in rest space
     glow.matrix_parent_inverse = Matrix.Identity(4); glow.location = (fb.matrix_local.inverted() @ c_rest) - Vector((0, fb.length, 0))
-    arm.scale = (SCALE, SCALE, SCALE); out = dict(arm=arm, body=body, data=b, mats=mats, fur=None, glow=glow)
+    out = dict(arm=arm, body=body, data=b, mats=mats, fur=None, glow=glow, eyes=eyes(b, arm)); arm.scale = (SCALE, SCALE, SCALE)
     if fur:
-        pts, rad, uv = fur_strands(b, fur_count); out['fur'] = _fur_object('SevenFur', body, arm, pts, rad, uv, mats['fur']); out['strands'] = len(pts)
+        pts, rad, uv, fa = fur_strands(b, fur_count); out['fur'] = _fur_object('SevenFur', body, arm, pts, rad, uv, fa, mats['fur']); out['strands'] = len(pts)
     return out
 
 

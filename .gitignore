@@ -7,3 +7,7 @@ dist/
 scripts/__pycache__/
 __pycache__/
 *.pyc
+
+MONKEYS_LIFE/assets/seven/
+MONKEYS_LIFE/assets/scene/
+out/

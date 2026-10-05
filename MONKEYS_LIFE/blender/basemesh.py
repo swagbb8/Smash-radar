@@ -15,6 +15,16 @@ def smoothstep(x): x = np.clip(x, 0.0, 1.0); return x * x * (3 - 2 * x)
 def gauss(x, s): return np.exp(-0.5 * (x / s) ** 2)
 
 
+def noise3(P, scale, seed=0, octaves=3):
+    """Smooth value noise at points P (n, 3), 0..1, no seams. scale = size of the largest features in the same units as P."""
+    from scipy import ndimage as ndi
+    rng = np.random.default_rng(seed); out = np.zeros(len(P), np.float32); amp = 1.0; tot = 0.0
+    for o in range(octaves):
+        g = rng.random((48, 48, 48)).astype(np.float32); q = (np.asarray(P, np.float32) + 500.0) / (scale / 2 ** o) + rng.uniform(0, 48, 3)
+        out += amp * ndi.map_coordinates(g, q.T, order=1, mode='grid-wrap'); tot += amp; amp *= 0.5
+    return out / tot
+
+
 def data():
     """Base mesh + rig, parsed once."""
     if _D: return _D

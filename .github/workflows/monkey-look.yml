@@ -1,0 +1,62 @@
+# Monkey's Life — renders still pictures of Seven (look development) on several runners at once and keeps them on the
+# branch `monkey-renders`. Input: a JSON list, one entry per picture: [{"name": "face", "args": "--fur --cam face"}]
+name: Monkey look
+on:
+  workflow_dispatch:
+    inputs:
+      jobs:
+        description: 'JSON list of {"name", "args"} (arguments of MONKEYS_LIFE/blender/studio.py)'
+        required: true
+      assets:
+        description: 'Fetch the scene assets branch too (yes/no)'
+        default: 'no'
+permissions:
+  contents: write
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        env: { ML_JOBS: '${{ inputs.jobs }}' }
+        run: python3 MONKEYS_LIFE/blender/ci.py plan
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13', cache: pip, cache-dependency-path: MONKEYS_LIFE/requirements.txt }
+      - name: Blender + libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libsm6 libxkbcommon0 libegl1 >/dev/null
+          pip install -q -r MONKEYS_LIFE/requirements.txt
+      - name: Scene assets
+        if: ${{ inputs.assets == 'yes' }}
+        run: |
+          git clone -q --depth 1 -b monkey-assets "https://github.com/${{ github.repository }}.git" MONKEYS_LIFE/assets/scene
+          find MONKEYS_LIFE/assets/scene -name '*.part-00' | while read -r f; do b="${f%.part-00}"; cat "$b".part-* > "$b" && rm "$b".part-*; done
+      - name: Render ${{ matrix.name }}
+        env: { ML_NAME: '${{ matrix.name }}', ML_ARGS: '${{ matrix.args }}', ML_TOOL: '${{ matrix.tool }}' }
+        run: python MONKEYS_LIFE/blender/ci.py still
+      - uses: actions/upload-artifact@v4
+        with: { name: 'still-${{ matrix.name }}', path: out, retention-days: 2 }
+  keep:
+    needs: render
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'still-*', merge-multiple: true, path: out }
+      - name: Save to the monkey-renders branch
+        run: |
+          cd out && ls -la && git init -q -b monkey-renders && git config user.name "monkey-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "run ${{ github.run_number }} $(date -u +%FT%TZ)" > RUN.txt
+          git add -A && git commit -qm "look ${{ github.run_number }}" && git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" monkey-renders
