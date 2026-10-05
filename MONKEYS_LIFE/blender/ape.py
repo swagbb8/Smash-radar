@@ -102,6 +102,41 @@ def _reproportion(V, J):
     return out, H
 
 
+def _rot_x(p, c, ang):
+    """Rotate points p about the X axis through c by per-point angles (radians)."""
+    q = p - c; ca, sa = np.cos(ang), np.sin(ang); out = q.copy(); out[:, 1] = q[:, 1] * ca - q[:, 2] * sa; out[:, 2] = q[:, 1] * sa + q[:, 2] * ca; return out + c
+
+
+def _face_shapes(V, ids, eye, J, G):
+    """Shape keys built on the finished head: Blink (lids roll over the eyeball), JawOpen, BrowUp, BrowDown. -> {name: (n, 3) offsets}"""
+    out = {}; body = np.arange(len(V)) < NBODY; hs = _prop('Head')[0]
+    # blink: every lid vertex turns about the eyeball's horizontal axis, the upper lid most of the way, the lower lid a little
+    blink = np.zeros_like(V)
+    for s in 'lr':
+        c = eye[s]; r = np.linalg.norm(V[G[f'helper-{s}-eye']] - c, axis=1).mean(); q = V - c; dist = np.linalg.norm(q, axis=1)
+        phi = np.arctan2(q[:, 2], -q[:, 1])                                             # elevation seen from inside the eye: 0 = straight ahead, + up
+        near = smoothstep((r * 2.1 - dist) / (r * 0.9)) * smoothstep((-q[:, 1] - r * 0.15) / (r * 0.5)) * smoothstep((r * 1.55 - np.abs(q[:, 0])) / (r * 0.5)) * body
+        meet = -0.16                                                                    # where the lids meet, a little below the middle
+        upper = phi > meet; fall_u = smoothstep((1.25 - phi) / 0.7); fall_l = smoothstep((phi + 1.0) / 0.6)
+        ang = np.where(upper, (meet - phi) * fall_u, (meet - phi) * 0.9 * fall_l) * near
+        moved = _rot_x(V, c, -ang)                                                      # -ang: rotating about +X by a negative angle brings the upper lid down in this frame
+        d2 = moved - c; n2 = np.linalg.norm(d2, axis=1, keepdims=True); lift = np.maximum(0, (r + 0.06) - n2) * (near[:, None] > 0.02); moved = moved + d2 / np.maximum(n2, 1e-6) * lift   # never through the eyeball
+        blink += (moved - V) * (near[:, None] > 0)
+    out['Blink'] = blink[ids]
+    # jaw: everything under the mouth line swings open about the jaw joint
+    ec = (eye['l'] + eye['r']) / 2; pv = np.array([0.0, ec[1] + 8.0 * hs, ec[2] - 3.2 * hs])         # the hinge: behind the eyes, level with the ear hole
+    up_i = bm.target('mouth-upperlip-volume-decr')[0]; lo_i = bm.target('mouth-lowerlip-volume-decr')[0]; only_up = np.setdiff1d(up_i, lo_i); only_lo = np.setdiff1d(lo_i, up_i)
+    zm = (V[only_up][:, 2].min() + V[only_lo][:, 2].max()) / 2; x, y, z = V[:, 0], V[:, 1], V[:, 2]                      # the line where the lips meet
+    W = bm.data()['W']; bi = {b: i for i, b in enumerate(bm.data()['bones'])}; wh = W[:, bi['Head']]
+    low = smoothstep((zm - z) / 0.35); low[only_lo] = 1.0; low[only_up] = 0.0
+    low = low * smoothstep((pv[1] + 1.0 - y) / 3.0) * smoothstep((7.0 * hs - np.abs(x)) / 3.0) * (wh > 0.5)
+    lower_teeth = np.zeros(len(V)); lower_teeth[G['helper-lower-teeth']] = 1; lower_teeth[G['helper-tongue']] = 1
+    wj = np.maximum(low * body, lower_teeth); out['JawOpen'] = ((_rot_x(V, pv, np.full(len(V), 0.26)) - V) * wj[:, None])[ids]
+    for name, t in (('BrowUp', 'eyebrows-trans-up'), ('BrowDown', 'eyebrows-trans-down')):
+        idx, dv = bm.target(t); o = np.zeros_like(V); o[idx] = dv * hs * 1.3; out[name] = o[ids]
+    return out
+
+
 def build(muscle=1.0, weight=0.58):
     """-> dict: V, F, UV (per face corner), W, bones, parent, J (joint heads), tails, masks, landmarks, part ids."""
     d = bm.data(); T = bm.macro(muscle, weight); T.update(FACE)
@@ -173,11 +208,12 @@ def build(muscle=1.0, weight=0.58):
         else:
             p = d['parent'][n]; v = J[n] - J[p] if p else np.array([0, 0, 1.0]); L_ = np.linalg.norm(v) or 1.0
             tails[n] = J[n] + (np.array([0, 0, 12.0]) if n == 'Head' else np.array([0, -8.0, 0]) if n.endswith('ToeBase') else v / L_ * max(2.0, L_ * 0.7))
+    shapes = _face_shapes(V, ids, eye, J, G)
     bones = list(d['bones']); parent = dict(d['parent']); Wk = np.concatenate([Wk, np.zeros((len(P), 2), np.float32)], 1)
     for col, (s_, name) in enumerate((('l', 'LeftEye'), ('r', 'RightEye'))):
         gi = np.array([remap[v] for v in G[f'helper-{s_}-eye']]); Wk[gi, :] = 0; Wk[gi, len(d['bones']) + col] = 1
         bones.append(name); parent[name] = 'Head'; J[name] = eye[s_].copy(); tails[name] = eye[s_] + np.array([0, -2.5, 0])
-    return dict(V=P, F=faces, UV=uvs, W=Wk, bones=bones, parent=parent, J=J, tails=tails, part=part, N=N, ids=ids,
+    return dict(V=P, F=faces, UV=uvs, W=Wk, bones=bones, parent=parent, J=J, tails=tails, part=part, N=N, ids=ids, shapes=shapes,
                 masks=dict(bare=bare, fur=fur, length=length, device=device, iris=iris, face=face * body, ear=is_ear.astype(float), palm=palm * body, sole=sole * body, nostril=L['nostril'][ids], muzzle=L['muzzle'][ids]),
                 flow=flow, dev_uv=np.stack([dev_u, dev_v], 1), stature=float(top),
                 marks=dict(eye=eye, eye_z=eye_z, lips=np.array([0, lips[:, 1].min(), np.median(lips[:, 2])]), chin_z=chin_z, top=top, device=c))

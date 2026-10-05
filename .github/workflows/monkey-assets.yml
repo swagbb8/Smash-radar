@@ -29,8 +29,10 @@ jobs:
         run: |
           python3 MONKEYS_LIFE/tools/fetch_polyhaven.py catalog
           if [ -n "$IDS" ]; then python3 MONKEYS_LIFE/tools/fetch_polyhaven.py get "$IDS" "$RES"; fi
-          # GitHub refuses files over 100 MB: drop them and say so
-          find out -type f -size +95M -printf '::warning::too big for GitHub, skipped: %p (%s bytes)\n' -delete
+          # GitHub refuses files over 100 MB: cut them into parts (join again with `cat file.part-* > file`)
+          find out -type f -size +90M ! -name '*.part-*' | while read -r f; do
+            echo "::notice::split $f ($(stat -c %s "$f") bytes)"; split -b 80M -d "$f" "$f.part-" && rm "$f"
+          done
           for d in out/*/; do echo "::notice::$(du -sh "$d" | tr '\t' ' ')"; done
           echo "::notice::total $(du -sh out | cut -f1)" 
       - name: Save to the monkey-assets branch

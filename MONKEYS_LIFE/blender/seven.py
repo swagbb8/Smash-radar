@@ -101,7 +101,7 @@ def skin_material():
 
 def eye_material():
     m, T, p = _material('SevenEye'); iris = T.attr('iris')
-    col = T.ramp(iris, [(0.0, lin('#3a2a20')), (0.72, lin('#4a3628')), (0.80, lin('#170e09')), (0.84, lin('#7a4a16')), (0.915, lin('#b06f1e')), (0.94, lin('#3a220c')), (0.953, (0, 0, 0, 1))])
+    col = T.ramp(iris, [(0.0, lin('#3a2a20')), (0.72, lin('#4a3628')), (0.80, lin('#170e09')), (0.84, lin('#5c3a14')), (0.915, lin('#8a571a')), (0.94, lin('#2e1b0a')), (0.953, (0, 0, 0, 1))])
     T.set(p, Base_Color=col, Roughness=0.06, Coat_Weight=1.0, Coat_Roughness=0.02, Specular_IOR_Level=0.8)
     return m
 
@@ -181,6 +181,9 @@ def build(fur=True, fur_count=190000, subdiv=1):
     for key in ('skin', 'eye', 'teeth', 'tongue'): me.materials.append(mats[key])
     me.polygons.foreach_set('material_index', b['part'].astype(np.int32))
     body = bpy.data.objects.new('SevenBody', me); bpy.context.scene.collection.objects.link(body); body.add_rest_position_attribute = True
+    body.shape_key_add(name='Basis')
+    for name, off in b['shapes'].items():
+        sk = body.shape_key_add(name=name); sk.data.foreach_set('co', (V + off).reshape(-1).astype(np.float32)); sk.value = 0.0
     # skeleton straight from the joints (no third-party rig file)
     ad = bpy.data.armatures.new('SevenRig'); arm = bpy.data.objects.new('Seven', ad); bpy.context.scene.collection.objects.link(arm)
     bpy.context.view_layer.objects.active = arm; arm.select_set(True); bpy.ops.object.mode_set(mode='EDIT')
@@ -267,3 +270,11 @@ def device_power(seven, value, frame=None, light=15.0):
     """0 = dead, 1 = awake. Drives the glowing traces in the skin and the light they cast."""
     node = seven['mats']['skin'].node_tree.nodes['DevicePower']; node.outputs[0].default_value = value; seven['glow'].data.energy = light * value
     if frame is not None: node.outputs[0].keyframe_insert('default_value', frame=frame); seven['glow'].data.keyframe_insert('energy', frame=frame)
+
+
+def face(seven, frame=None, **values):
+    """Set face shapes, e.g. face(seven, Blink=1, JawOpen=0.3)."""
+    kb = seven['body'].data.shape_keys.key_blocks
+    for k, v in values.items():
+        kb[k].value = v
+        if frame is not None: kb[k].keyframe_insert('value', frame=frame)
