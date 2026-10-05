@@ -1,0 +1,14 @@
+# Checks which GitHub runner pools are picking up jobs right now (used when renders sit in the queue).
+name: Runner probe
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 3
+    steps:
+      - run: echo "picked up on ${{ matrix.os }}" && nproc && free -g | head -2 && python3 --version
