@@ -28,7 +28,7 @@ def lamp(name, kind, loc, energy, colour, size=1.0, target=(0, 0, 1.0)):
 def stage(sc):
     w = bpy.data.worlds.new('Studio'); w.use_nodes = True; w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.012, 0.014, 0.016, 1); w.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.0; sc.world = w
     bpy.ops.mesh.primitive_plane_add(size=40); floor = bpy.context.object; m = bpy.data.materials.new('Floor'); m.use_nodes = True; p = m.node_tree.nodes['Principled BSDF']; p.inputs['Base Color'].default_value = (0.02, 0.022, 0.022, 1); p.inputs['Roughness'].default_value = 0.85; p.inputs['Specular IOR Level'].default_value = 0.1; floor.data.materials.append(m)
-    lamp('Key', 'AREA', (1.5, -2.6, 2.4), 210, (1.0, 0.92, 0.82), 1.0); lamp('Fill', 'AREA', (-2.8, -1.6, 1.2), 14, (0.55, 0.7, 1.0), 3.0); lamp('Rim', 'AREA', (-1.6, 2.4, 2.2), 420, (0.62, 0.8, 1.0), 0.8)
+    lamp('Key', 'AREA', (1.2, -2.8, 1.5), 230, (1.0, 0.92, 0.82), 1.1); lamp('Fill', 'AREA', (-2.8, -1.6, 1.2), 16, (0.55, 0.7, 1.0), 3.0); lamp('Rim', 'AREA', (-1.6, 2.4, 2.2), 430, (0.62, 0.8, 1.0), 0.8)
 
 CAMS = {  # (position, look-at, focal length mm) in metres
     'front': ((0, -5.2, 0.95), (0, 0, 0.78), 60), 'side': ((5.2, -0.2, 0.95), (0, 0, 0.78), 60), 'three': ((2.4, -3.6, 1.15), (0, 0, 0.72), 55),

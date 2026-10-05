@@ -200,7 +200,12 @@ def build(fur=True, fur_count=190000, subdiv=1):
     body.parent = arm; body.modifiers.new('Armature', 'ARMATURE').object = arm
     if subdiv:
         sub = body.modifiers.new('Smooth', 'SUBSURF'); sub.levels = 0; sub.render_levels = subdiv
-    arm.scale = (SCALE, SCALE, SCALE); out = dict(arm=arm, body=body, data=b, mats=mats, fur=None)
+    # the device is also a real light: it throws blue onto his fur and face when it wakes
+    ld = bpy.data.lights.new('DeviceGlow', 'POINT'); ld.color = (0.16, 0.50, 1.0); ld.energy = 0.0; ld.shadow_soft_size = 0.03
+    glow = bpy.data.objects.new('DeviceGlow', ld); bpy.context.scene.collection.objects.link(glow); glow.parent = arm; glow.parent_type = 'BONE'; glow.parent_bone = 'LeftForeArm'
+    fb = ad.bones['LeftForeArm']; c_rest = Vector(b['marks']['device']) + Vector((0, 0, 6.5))                    # just above the plate, in rest space
+    glow.matrix_parent_inverse = Matrix.Identity(4); glow.location = (fb.matrix_local.inverted() @ c_rest) - Vector((0, fb.length, 0))
+    arm.scale = (SCALE, SCALE, SCALE); out = dict(arm=arm, body=body, data=b, mats=mats, fur=None, glow=glow)
     if fur:
         pts, rad, uv = fur_strands(b, fur_count); out['fur'] = _fur_object('SevenFur', body, arm, pts, rad, uv, mats['fur']); out['strands'] = len(pts)
     return out
@@ -258,6 +263,7 @@ def ground(seven, z=0.0):
     seven['arm'].location.z += z - float(wz.min()); bpy.context.view_layer.update(); return float(wz.min())
 
 
-def device_power(seven, value, frame=None):
-    node = seven['mats']['skin'].node_tree.nodes['DevicePower']; node.outputs[0].default_value = value
-    if frame is not None: node.outputs[0].keyframe_insert('default_value', frame=frame)
+def device_power(seven, value, frame=None, light=15.0):
+    """0 = dead, 1 = awake. Drives the glowing traces in the skin and the light they cast."""
+    node = seven['mats']['skin'].node_tree.nodes['DevicePower']; node.outputs[0].default_value = value; seven['glow'].data.energy = light * value
+    if frame is not None: node.outputs[0].keyframe_insert('default_value', frame=frame); seven['glow'].data.keyframe_insert('energy', frame=frame)
