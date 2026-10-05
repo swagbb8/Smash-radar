@@ -23,6 +23,8 @@ def still():
     r = subprocess.run([sys.executable, os.path.join(HERE, tool + '.py'), out, *shlex.split(os.environ.get('ML_ARGS', ''))], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     tail = [l for l in r.stdout.splitlines() if not l.startswith('Fra:')][-25:]; print('\n'.join(tail))
     if r.returncode or not os.path.exists(out): print('::error::' + ' | '.join(tail[-6:])[:900]); sys.exit(1)
+    done = [l for l in tail if l.startswith('rendered ')]                    # the timing line, kept where the sandbox can read it (it cannot fetch logs)
+    if done: print('::notice::' + done[-1].replace(out, name)); open(os.path.join('out', name + '.txt'), 'w').write(done[-1].replace(out, name) + '\n')
 
 
 if __name__ == '__main__': {'plan': plan, 'still': still}[sys.argv[1]]()

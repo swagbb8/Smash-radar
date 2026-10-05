@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import seven as S
 import poses
 import finish
+import machine
 
 def arg(name, default=None):
     a = sys.argv; return a[a.index(name) + 1] if name in a and a.index(name) + 1 < len(a) else default
@@ -77,5 +78,6 @@ if __name__ == '__main__':
         nt = sv['mats']['fur'].node_tree; d_ = nt.nodes.new('ShaderNodeBsdfDiffuse'); d_.inputs['Color'].default_value = (0.01, 0.008, 0.007, 1); nt.links.new(d_.outputs[0], [n for n in nt.nodes if n.bl_idname == 'ShaderNodeOutputMaterial'][0].inputs['Surface'])
     if arg('--onelight') == '1': [bpy.data.objects.remove(o) for o in list(bpy.data.objects) if o.type == 'LIGHT' and o.name != 'Key']
     if arg('--hairmodel'): [setattr(n, 'model', arg('--hairmodel')) for n in sv['mats']['fur'].node_tree.nodes if n.bl_idname == 'ShaderNodeBsdfHairPrincipled']
+    dev = machine.pick(sc, arg('--device')); t1 = time.time()
     sc.render.filepath = os.path.abspath(out); bpy.ops.render.render(write_still=True)
-    print(f'rendered {out} in {time.time() - t0:.0f}s, strands {sv.get("strands", 0)}')
+    print(f'rendered {out} in {time.time() - t0:.0f}s (render {time.time() - t1:.0f}s) on {dev}, strands {sv.get("strands", 0)}')
