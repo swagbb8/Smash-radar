@@ -8,6 +8,7 @@ Rest space: centimetres, +X = his left, -Y = forward, +Z = up, T-pose, feet on z
 """
 import numpy as np
 import basemesh as bm
+import device
 from basemesh import smoothstep, gauss, NBODY
 
 # MakeHuman face sliders, pushed toward an ape (values above 1 leave the human range on purpose)
@@ -246,11 +247,9 @@ def build(muscle=1.0, weight=0.58):
     # how far the hair stands off the skin, and how much it hangs (hanging only where "down" stays down when he moves: head, trunk, legs)
     lift = 0.30 + 0.16 * side_h * (w_head > 0.5) + 0.12 * shoulder + 0.06 * smoothstep((w_arm + w_fore - 0.4) / 0.4)
     hang = np.clip((w_head > 0.5) * 1.0 + w_torso + w_neck + smoothstep((w_leg - 0.4) / 0.4), 0, 1)
-    # --- the device: a plate under the skin on top of his left forearm
-    ex, wx = J['LeftForeArm'][0], J['LeftHand'][0]; u = (x - ex) / (wx - ex); c = np.array([ex + 0.56 * (wx - ex), J['LeftForeArm'][1], J['LeftForeArm'][2]])
-    dev_u = (u - 0.56) / 0.21; dev_v = (y - c[1]) / 3.4; on_top = smoothstep((N[:, 2] - 0.25) / 0.4) * (x > 0) * smoothstep((w_fore - 0.4) / 0.3)
-    device = np.clip(1 - np.maximum(np.abs(dev_u), np.abs(dev_v)) ** 4, 0, 1) * on_top * body
-    fur = fur * (1 - 0.78 * smoothstep(device / 0.3)); length = length * (1 - 0.5 * smoothstep(device / 0.3))          # the hair is thin and short over the plate, so it shows
+    # --- the device in his left forearm (device.py): the skin dips under it, scars around it, and grows no hair there
+    dc = device.coords(dict(V=P, N=N, W=Wk, bones=list(d['bones']), ids=ids, J=J)); P[:, 2] -= 0.75 * dc['inside']
+    fur = fur * (1 - dc['bare']); length = length * (1 - 0.45 * smoothstep((2.6 - dc['d']) / 1.6) * dc['on'])
     tails = {}
     for n in d['bones']:
         kids = [k for k in d['bones'] if d['parent'][k] == n]
@@ -266,9 +265,9 @@ def build(muscle=1.0, weight=0.58):
     for s_, name in (('l', 'LeftEye'), ('r', 'RightEye')):
         bones.append(name); parent[name] = 'Head'; J[name] = eye[s_].copy(); tails[name] = eye[s_] + np.array([0, -2.5, 0])
     return dict(V=P, F=faces, UV=uvs, W=Wk, bones=bones, parent=parent, J=J, tails=tails, part=part, N=N, ids=ids, shapes=shapes,
-                masks=dict(bare=bare, fur=fur, length=length, device=device, face=face * body, ear=is_ear * body, grey=grey, lift=lift, hang=hang, palm=palm * body, sole=sole * body, nostril=L['nostril'][ids], muzzle=L['muzzle'][ids]),
-                flow=flow, dev_uv=np.stack([dev_u, dev_v], 1), stature=float(top),
-                marks=dict(eye=eye, eye_r=eye_r, eye_z=eye_z, lips=np.array([0, lips[:, 1].min(), np.median(lips[:, 2])]), chin_z=chin_z, top=top, device=c))
+                masks=dict(bare=bare, fur=fur, length=length, device=dc['inside'], dev_ring=dc['ring'], dev_on=dc['on'], face=face * body, ear=is_ear * body, grey=grey, lift=lift, hang=hang, palm=palm * body, sole=sole * body, nostril=L['nostril'][ids], muzzle=L['muzzle'][ids]),
+                flow=flow, dev_uv=np.stack([dc['u'], dc['v']], 1), stature=float(top),
+                marks=dict(eye=eye, eye_r=eye_r, eye_z=eye_z, lips=np.array([0, lips[:, 1].min(), np.median(lips[:, 2])]), chin_z=chin_z, top=top))
 
 
 if __name__ == '__main__':

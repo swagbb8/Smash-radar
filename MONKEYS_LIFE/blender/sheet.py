@@ -17,6 +17,7 @@ VIEWS = {
     'head': [('front', (0, -1.6, 0.0), 170), ('three', (0.95, -1.3, 0.04), 170), ('side', (1.6, -0.06, 0.0), 170), ('low', (0.55, -1.35, -0.45), 170)],
     'body': [('front', (0, -5.4, 0.1), 60), ('three', (3.2, -4.3, 0.3), 60), ('side', (5.4, -0.2, 0.1), 60), ('back', (-2.2, 4.9, 0.4), 60)],
     'hands': [('lhand', (0.2, -0.9, 0.45), 80), ('device', (0.05, -0.55, 0.75), 70), ('foot', (0.6, -1.0, 0.3), 70)],
+    'device': [('device', (0.0, -0.06, 0.62), 80), ('device', (0.28, -0.42, 0.34), 80), ('device', (-0.5, -0.5, 0.25), 60)],
 }
 
 
@@ -38,14 +39,14 @@ if __name__ == '__main__':
     sv = S.build(fur=flag('--fur'), fur_count=int(arg('--strands', 450000)), subdiv=int(arg('--subdiv', 2)))
     pname = arg('--pose', 'tpose')
     if pname != 'tpose': poses.apply(sv, pname)
-    S.ground(sv); S.device_power(sv, float(arg('--power', 0))); S.face(sv, Blink=float(arg('--blink', 0)), JawOpen=float(arg('--jaw', 0)), BrowUp=float(arg('--brow', 0)))
+    S.ground(sv); S.device_power(sv, float(arg('--power', 0)), wave=float(arg('--wave', -10))); S.face(sv, Blink=float(arg('--blink', 0)), JawOpen=float(arg('--jaw', 0)), BrowUp=float(arg('--brow', 0)))
     if flag('--clay'): clay(sv)
     kind = arg('--views', 'head'); T = targets(sv); tiles = []
     cd = bpy.data.cameras.new('Cam'); cam = bpy.data.objects.new('Cam', cd); sc.collection.objects.link(cam); sc.camera = cam; cd.sensor_width = 36
-    for name, off, fl in VIEWS[kind]:
+    for vi, (name, off, fl) in enumerate(VIEWS[kind]):
         tgt = T.get(name, T['head' if kind == 'head' else 'body']); cd.lens = fl
         cam.location = tgt + Vector(off); cam.rotation_euler = (tgt - cam.location).to_track_quat('-Z', 'Y').to_euler()
-        path = os.path.abspath(out).replace('.png', f'_{name}.png'); sc.render.filepath = path; bpy.ops.render.render(write_still=True); tiles.append(path)
+        path = os.path.abspath(out).replace('.png', f'_{vi}{name}.png'); sc.render.filepath = path; bpy.ops.render.render(write_still=True); tiles.append(path)
     from PIL import Image
     ims = [Image.open(p).convert('RGB') for p in tiles]; w, h = ims[0].size; sheet = Image.new('RGB', (w * len(ims), h))
     for i, im in enumerate(ims): sheet.paste(im, (i * w, 0))

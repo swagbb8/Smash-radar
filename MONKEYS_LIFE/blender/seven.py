@@ -9,6 +9,7 @@ import bpy
 import numpy as np
 from mathutils import Vector, Quaternion, Matrix
 import ape
+import device
 import skinpaint
 
 SCALE = 0.01
@@ -94,23 +95,52 @@ def skin_material(maps):
     disp = T.node('ShaderNodeDisplacement'); disp.space = 'OBJECT'; disp.inputs['Midlevel'].default_value = 0.0; disp.inputs['Scale'].default_value = 1.0
     T.link(T.math('MULTIPLY', T.math('MULTIPLY', T.math('SUBTRACT', ih.outputs['Color'], 0.5), skinpaint.HRANGE), paint), disp.inputs['Height'])
     T.link(disp.outputs['Displacement'], nt.nodes['Material Output'].inputs['Displacement']); m.displacement_method = 'BOTH'
-    # the device: a plate under the skin, a scar around it, cracked circuit lines that can glow
-    dev = T.attr('device'); du = T.attr('dev_u'); dv = T.attr('dev_v'); comb = T.node('ShaderNodeCombineXYZ'); T.link(du, comb.inputs[0]); T.link(dv, comb.inputs[1])
-    brick = T.node('ShaderNodeTexBrick'); T.link(comb.outputs[0], brick.inputs['Vector']); brick.inputs['Scale'].default_value = 3.2; brick.inputs['Mortar Size'].default_value = 0.014; brick.inputs['Color1'].default_value = (0, 0, 0, 1); brick.inputs['Color2'].default_value = (0, 0, 0, 1); brick.inputs['Mortar'].default_value = (1, 1, 1, 1)
-    cells = T.node('ShaderNodeTexVoronoi', feature='DISTANCE_TO_EDGE', distance='CHEBYCHEV'); cells.inputs['Scale'].default_value = 2.3; T.link(comb.outputs[0], cells.inputs['Vector'])
-    traces = T.math('MAXIMUM', brick.outputs['Fac'], T.math('LESS_THAN', cells.outputs['Distance'], 0.018))
-    crack = T.node('ShaderNodeTexVoronoi', feature='DISTANCE_TO_EDGE'); crack.inputs['Scale'].default_value = 1.15; crack.inputs['Randomness'].default_value = 1.0; T.link(comb.outputs[0], crack.inputs['Vector'])
-    cracks = T.math('LESS_THAN', crack.outputs['Distance'], 0.03)
-    plate = T.math('GREATER_THAN', dev, 0.35); edge = T.math('MULTIPLY', T.math('GREATER_THAN', dev, 0.12), T.math('LESS_THAN', dev, 0.35))      # scar ring around the plate
-    glow_mask = T.math('MULTIPLY', plate, T.math('MAXIMUM', T.math('MULTIPLY', traces, T.math('SUBTRACT', 1.0, cracks)), 0.0))
+    # the device (device.py): scar tissue hugging the frame, a seam up the arm, circuit lines under the skin that glow when it wakes
+    du = T.attr('dev_u'); dv = T.attr('dev_v'); on = T.attr('dev_on'); comb = T.node('ShaderNodeCombineXYZ')
+    T.link(T.math('ADD', T.math('DIVIDE', du, 2 * device.SKIN_U * device.A), 0.5), comb.inputs[0]); T.link(T.math('ADD', T.math('DIVIDE', dv, 2 * device.SKIN_V * device.B), 0.5), comb.inputs[1])
+    dimg = bpy.data.images.load(device.maps()['skin'], check_existing=True); dimg.colorspace_settings.name = 'Non-Color'; dn = nt.nodes.new('ShaderNodeTexImage'); dn.image = dimg; dn.extension = 'EXTEND'; T.link(comb.outputs[0], dn.inputs['Vector'])
+    sep = T.node('ShaderNodeSeparateColor'); T.link(dn.outputs['Color'], sep.inputs[0]); traces = T.math('MULTIPLY', sep.outputs[0], on); scar = T.math('MULTIPLY', sep.outputs[1], on); halo = T.math('MULTIPLY', sep.outputs[2], on)
     power = T.node('ShaderNodeValue'); power.name = power.label = 'DevicePower'; power.outputs[0].default_value = 0.0
-    base = T.mix(T.math('MULTIPLY', plate, 0.55), base, lin('#0b0d10')); base = T.mix(edge, base, lin('#3b2623')); base = T.mix(T.math('MULTIPLY', plate, cracks), base, lin('#020203'))
-    emis = T.math('MULTIPLY', glow_mask, power.outputs[0]); under = T.math('MULTIPLY', T.math('MULTIPLY', plate, 0.012), power.outputs[0])      # faint blue under the skin when it wakes
+    wave = T.node('ShaderNodeValue'); wave.name = wave.label = 'DeviceWave'; wave.outputs[0].default_value = -10.0           # cm from the frame: where a pulse running out along the lines has got to
+    base = T.mix(T.math('MULTIPLY', scar, 0.85), base, T.mix(blotch, lin('#7d5b55'), lin('#a07a70'))); base = T.mix(T.math('MULTIPLY', traces, 0.6), base, lin('#0c1218'))
+    rough = T.mix(scar, rough, (0.36, 0.36, 0.36, 1))
+    far = T.math('MAXIMUM', T.math('MAXIMUM', T.math('SUBTRACT', T.math('ABSOLUTE', du), device.A), T.math('SUBTRACT', T.math('ABSOLUTE', dv), device.B)), 0.0)      # how far out along the arm
+    front = T.math('SUBTRACT', far, wave.outputs[0]); pulse = T.math('POWER', 2.718, T.math('MULTIPLY', T.math('MULTIPLY', front, front), -1.0 / (1.4 * 1.4)))
+    level = T.math('ADD', T.math('MULTIPLY', power.outputs[0], 0.10), pulse)                                              # a dim steady glow when it is awake, bright where the pulse is passing
+    emis = T.math('MULTIPLY', T.math('ADD', traces, T.math('MULTIPLY', halo, 0.35)), level)
     T.set(p, Base_Color=base, Roughness=rough, Specular_IOR_Level=0.35, Subsurface_Weight=0.10, Subsurface_Scale=0.003, Normal=bump.outputs['Normal'],
-          Emission_Color=lin('#1f8dff'), Emission_Strength=T.math('MULTIPLY', T.math('ADD', emis, under), 22.0))
+          Emission_Color=lin('#2f9dff'), Emission_Strength=T.math('MULTIPLY', emis, 5.0))
     p.inputs['Subsurface Radius'].default_value = (1.0, 0.35, 0.2)
-    h2 = T.math('ADD', height, T.math('MULTIPLY', plate, 0.9)); T.link(h2, bump.inputs['Height'])        # the plate stands a little proud of the arm
+    h2 = T.math('ADD', height, T.math('ADD', T.math('MULTIPLY', scar, T.math('ADD', 1.6, T.math('MULTIPLY', fine, 1.2))), T.math('MULTIPLY', traces, 0.9))); T.link(h2, bump.inputs['Height'])      # scar and wires stand proud
     return m
+
+
+def device_object(b, arm):
+    """The thing itself: a worn metal frame and a shattered screen, set into the top of his left forearm and moving with it."""
+    V, F, M, uv, wear, fuv = device.mesh(b); me = bpy.data.meshes.new('SevenDevice'); me.from_pydata([tuple(q) for q in V], [], F); me.update()
+    for p_ in me.polygons: p_.use_smooth = True
+    loops = np.empty(len(me.loops), np.int32); me.loops.foreach_get('vertex_index', loops)
+    me.uv_layers.new(name='GlassUV').data.foreach_set('uv', uv[loops].reshape(-1)); me.uv_layers.new(name='FrameUV').data.foreach_set('uv', fuv[loops].reshape(-1))
+    me.attributes.new('wear', 'FLOAT', 'POINT').data.foreach_set('value', wear)
+    # frame: dark brushed metal, bright where the edges have worn
+    mf, T, p = _material('DeviceFrame'); nt = T.nt; obj = T.node('ShaderNodeTexCoord').outputs['Object']
+    mp = T.node('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (0.6, 14.0, 14.0); T.link(obj, mp.inputs['Vector']); brushed = T.noise(3.0, 4.0, 0.6, mp.outputs['Vector']); grime = T.noise(0.5, 4.0, 0.6, obj)
+    wear_ = T.math('MULTIPLY', T.attr('wear'), T.math('ADD', 0.4, grime), clamp=True)
+    T.set(p, Base_Color=T.mix(T.math('MULTIPLY', wear_, 0.6), T.mix(grime, lin('#15171a'), lin('#2a2d31')), lin('#6d7176')), Metallic=1.0, Roughness=T.math('ADD', 0.30, T.math('MULTIPLY', brushed, 0.28)))
+    bm_ = T.node('ShaderNodeBump'); bm_.inputs['Strength'].default_value = 0.25; bm_.inputs['Distance'].default_value = 0.02; T.link(brushed, bm_.inputs['Height']); T.link(bm_.outputs['Normal'], p.inputs['Normal'])
+    # glass: black, cracked from one hit, the dead display under it still giving a faint pulse
+    mg, G, pg = _material('DeviceGlass'); ng = G.nt; img = _image(ng, device.maps()['glass'], uv='GlassUV'); img.interpolation = 'Linear'
+    sep = G.node('ShaderNodeSeparateColor'); G.link(img.outputs['Color'], sep.inputs[0]); crack, crush, disp = sep.outputs[0], sep.outputs[1], sep.outputs[2]
+    broken = G.math('MAXIMUM', crack, G.math('MULTIPLY', crush, 0.9), clamp=True)
+    power = G.node('ShaderNodeValue'); power.name = power.label = 'DevicePower'; power.outputs[0].default_value = 0.0
+    lit = G.math('MULTIPLY', G.math('ADD', disp, G.math('MULTIPLY', crack, 0.10)), power.outputs[0])
+    G.set(pg, Base_Color=G.mix(G.math('MULTIPLY', broken, 0.55), lin('#030405'), lin('#9fa6ad')), Roughness=G.math('ADD', 0.05, G.math('MULTIPLY', broken, 0.55)), Specular_IOR_Level=0.6, Coat_Weight=G.math('SUBTRACT', 1.0, broken), Coat_Roughness=0.03,
+          Emission_Color=lin('#3aa8ff'), Emission_Strength=G.math('MULTIPLY', lit, 7.0))
+    bg = G.node('ShaderNodeBump'); bg.inputs['Strength'].default_value = 0.6; bg.inputs['Distance'].default_value = 0.012; G.link(G.math('MULTIPLY', broken, -1.0), bg.inputs['Height']); G.link(bg.outputs['Normal'], pg.inputs['Normal'])
+    me.materials.append(mf); me.materials.append(mg); me.polygons.foreach_set('material_index', np.array(M, np.int32))
+    ob = bpy.data.objects.new('SevenDevice', me); bpy.context.scene.collection.objects.link(ob); ob.vertex_groups.new(name='LeftForeArm').add(list(range(len(V))), 1.0, 'REPLACE')
+    ob.parent = arm; ob.modifiers.new('Armature', 'ARMATURE').object = arm
+    return ob, (mf, mg)
 
 
 def eye_materials():
@@ -291,12 +321,13 @@ def build(fur=True, fur_count=450000, subdiv=2, paint_size=2048):
     body.parent = arm; body.modifiers.new('Armature', 'ARMATURE').object = arm
     if subdiv:
         sub = body.modifiers.new('Smooth', 'SUBSURF'); sub.levels = 0; sub.render_levels = subdiv
-    # the device is also a real light: it throws blue onto his fur and face when it wakes
-    ld = bpy.data.lights.new('DeviceGlow', 'POINT'); ld.color = (0.16, 0.50, 1.0); ld.energy = 0.0; ld.shadow_soft_size = 0.03
+    # the device, and the light it throws: a small blue panel just above the screen, shining away from the arm
+    dev, dmats = device_object(b, arm); mats['frame'], mats['glass'] = dmats
+    ld = bpy.data.lights.new('DeviceGlow', 'AREA'); ld.shape = 'RECTANGLE'; ld.size = 2 * (device.A - device.FRAME); ld.size_y = 2 * (device.B - device.FRAME); ld.color = (0.20, 0.55, 1.0); ld.energy = 0.0; ld.spread = math.radians(150)
     glow = bpy.data.objects.new('DeviceGlow', ld); bpy.context.scene.collection.objects.link(glow); glow.parent = arm; glow.parent_type = 'BONE'; glow.parent_bone = 'LeftForeArm'
-    fb = ad.bones['LeftForeArm']; c_rest = Vector(b['marks']['device']) + Vector((0, 0, 6.5))                    # just above the plate, in rest space
-    glow.matrix_parent_inverse = Matrix.Identity(4); glow.location = (fb.matrix_local.inverted() @ c_rest) - Vector((0, fb.length, 0))
-    out = dict(arm=arm, body=body, data=b, mats=mats, fur=None, glow=glow, eyes=eyes(b, arm)); arm.scale = (SCALE, SCALE, SCALE)
+    fb = ad.bones['LeftForeArm']; c_rest = Vector(device.layout(b)['c']) + Vector((0, 0, 0.9)); rest = fb.matrix_local.inverted()
+    glow.matrix_parent_inverse = Matrix.Identity(4); glow.location = (rest @ c_rest) - Vector((0, fb.length, 0)); glow.rotation_euler = (rest.to_3x3() @ Matrix.Rotation(math.pi, 3, 'X')).to_euler()   # an area light shines down its -Z: turn it to face +Z in rest space
+    out = dict(arm=arm, body=body, data=b, mats=mats, fur=None, glow=glow, eyes=eyes(b, arm), device=dev); arm.scale = (SCALE, SCALE, SCALE)
     if fur:
         pts, rad, uv, fa = fur_strands(b, fur_count); out['fur'] = _fur_object('SevenFur', body, arm, pts, rad, uv, fa, mats['fur']); out['strands'] = len(pts)
     return out
@@ -354,10 +385,15 @@ def ground(seven, z=0.0):
     seven['arm'].location.z += z - float(wz.min()); bpy.context.view_layer.update(); return float(wz.min())
 
 
-def device_power(seven, value, frame=None, light=15.0):
-    """0 = dead, 1 = awake. Drives the glowing traces in the skin and the light they cast."""
-    node = seven['mats']['skin'].node_tree.nodes['DevicePower']; node.outputs[0].default_value = value; seven['glow'].data.energy = light * value
-    if frame is not None: node.outputs[0].keyframe_insert('default_value', frame=frame); seven['glow'].data.keyframe_insert('energy', frame=frame)
+def device_power(seven, value, frame=None, light=4.5, wave=None):
+    """value: 0 = dead, 1 = awake (the display under the cracked glass, a dim glow in the lines under his skin, the light it casts).
+    wave: how far (cm) a pulse of light has run out along those lines; None or a negative number = no pulse."""
+    seven['glow'].data.energy = light * value
+    for node in [seven['mats'][k].node_tree.nodes['DevicePower'] for k in ('skin', 'glass')]:
+        node.outputs[0].default_value = value
+        if frame is not None: node.outputs[0].keyframe_insert('default_value', frame=frame)
+    wn = seven['mats']['skin'].node_tree.nodes['DeviceWave']; wn.outputs[0].default_value = -10.0 if wave is None else wave
+    if frame is not None: seven['glow'].data.keyframe_insert('energy', frame=frame); wn.outputs[0].keyframe_insert('default_value', frame=frame)
 
 
 def face(seven, frame=None, **values):
