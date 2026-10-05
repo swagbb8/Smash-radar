@@ -1,0 +1,1 @@
+rendered sw_Ar in 214s on cpu x4
