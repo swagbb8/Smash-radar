@@ -1,43 +1,33 @@
 # Monkey's Life — renders still pictures of Seven (look development) on several runners at once and keeps them on the
-# branch `monkey-renders`. Input: a JSON list, one entry per picture: [{"name": "face", "args": "--fur --cam face"}]
+# branch `monkey-renders`. One job per picture; free text only ever reaches the scripts through environment variables.
 name: Monkey look
 on:
   workflow_dispatch:
     inputs:
-      jobs:
-        description: 'JSON list of {"name", "args"} (arguments of MONKEYS_LIFE/blender/studio.py)'
+      matrix:
+        description: 'JSON: {"include": [{"name": "face", "args": "--fur --cam face", "tool": "studio|sheet|swamp", "os": "ubuntu-24.04"}]}'
         required: true
       assets:
         description: 'Fetch the scene assets branch too (yes/no)'
         default: 'no'
       os:
-        description: 'Runner (ubuntu-22.04, macos-15 = Apple chip with a graphics card, windows-latest)'
-        default: 'ubuntu-22.04'
+        description: 'Runner for jobs that do not name one (ubuntu-22.04, ubuntu-24.04, macos-15, windows-latest)'
+        default: 'ubuntu-24.04'
       device:
         description: 'auto / cpu / gpu'
         default: 'auto'
 permissions:
   contents: write
 jobs:
-  plan:
-    runs-on: ubuntu-22.04
-    outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: plan
-        env: { ML_JOBS: '${{ inputs.jobs }}' }
-        run: python3 MONKEYS_LIFE/blender/ci.py plan
   render:
-    needs: plan
-    runs-on: ${{ inputs.os || 'ubuntu-22.04' }}
+    runs-on: ${{ matrix.os || inputs.os || 'ubuntu-24.04' }}
     timeout-minutes: 90
     defaults:
       run:
         shell: bash
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+      matrix: ${{ fromJson(inputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -59,14 +49,15 @@ jobs:
         run: python MONKEYS_LIFE/blender/ci.py still
       - name: Save to the monkey-renders branch (each picture as soon as it is done)
         if: ${{ always() }}
+        env: { ML_NAME: '${{ matrix.name }}' }
         run: |
           [ -n "$(ls out 2>/dev/null)" ] || exit 0
           url="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           for try in 1 2 3 4 5 6 7 8; do
             rm -rf keep && (git clone -q --depth 1 -b monkey-renders "$url" keep 2>/dev/null || (mkdir keep && cd keep && git init -q -b monkey-renders && git remote add origin "$url"))
             cp out/* keep/ && cd keep && git config user.name "monkey-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A && (git diff --cached --quiet || git commit -qm "${{ matrix.name }} (run ${{ github.run_number }})")
+            git add -A && (git diff --cached --quiet || git commit -qm "$ML_NAME (run ${{ github.run_number }})")
             if git push -q origin monkey-renders 2>/dev/null; then echo saved; exit 0; fi
             cd .. && sleep $((RANDOM % 7 + 2))
           done
-          echo "::error::could not save ${{ matrix.name }}"; exit 1
+          echo "::error::could not save $ML_NAME"; exit 1

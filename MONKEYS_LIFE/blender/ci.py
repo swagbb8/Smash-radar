@@ -9,16 +9,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def plan():
-    jobs = json.loads(os.environ.get('ML_JOBS') or '[]'); inc = []
-    for i, j in enumerate(jobs):
-        name = re.sub(r'[^A-Za-z0-9_-]+', '-', str(j.get('name') or f'still{i}'))[:60]; inc.append(dict(name=name, args=str(j.get('args', '')), tool=str(j.get('tool', 'studio'))))
-    if not inc: sys.exit('ML_JOBS is empty')
-    with open(os.environ.get('GITHUB_OUTPUT', '/dev/stdout'), 'a') as f: f.write('matrix=' + json.dumps({'include': inc}) + '\n')
+    """(kept for hand use) ML_JOBS: a JSON list of jobs -> the matrix object the workflow wants as its `matrix` input"""
+    jobs = json.loads(os.environ.get('ML_JOBS') or '[]'); print(json.dumps({'include': [dict(name=str(j.get('name') or f'still{i}'), args=str(j.get('args', '')), tool=str(j.get('tool', 'studio'))) for i, j in enumerate(jobs)]}))
 
 
 def still():
-    name = os.environ['ML_NAME']; tool = os.environ.get('ML_TOOL') or 'studio'
-    if tool not in ('studio', 'sheet', 'shot'): sys.exit('unknown tool')
+    name = re.sub(r'[^A-Za-z0-9_-]+', '-', os.environ['ML_NAME'])[:60]; tool = os.environ.get('ML_TOOL') or 'studio'
+    if tool not in ('studio', 'sheet', 'swamp'): sys.exit('unknown tool')
     os.makedirs('out', exist_ok=True); out = os.path.abspath(os.path.join('out', name + '.png'))
     r = subprocess.run([sys.executable, os.path.join(HERE, tool + '.py'), out, *shlex.split(os.environ.get('ML_ARGS', ''))], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     tail = [l for l in r.stdout.splitlines() if not l.startswith('Fra:')][-25:]; print('\n'.join(tail))

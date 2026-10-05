@@ -164,6 +164,9 @@ def device_object(b, arm):
     wear_ = T.math('MULTIPLY', T.attr('wear'), T.math('ADD', 0.4, grime), clamp=True)
     T.set(p, Base_Color=T.mix(T.math('MULTIPLY', wear_, 0.6), T.mix(grime, lin('#15171a'), lin('#2a2d31')), lin('#6d7176')), Metallic=1.0, Roughness=T.math('ADD', 0.30, T.math('MULTIPLY', brushed, 0.28)))
     bm_ = T.node('ShaderNodeBump'); bm_.inputs['Strength'].default_value = 0.25; bm_.inputs['Distance'].default_value = 0.02; T.link(brushed, bm_.inputs['Height']); T.link(bm_.outputs['Normal'], p.inputs['Normal'])
+    rest = T.node('ShaderNodeAttribute', attribute_name='rest_position').outputs['Vector']; mud, thick, wet = _mud(T, rest); mudcol = T.mix(wet, lin(MUD_DRY), lin(MUD_WET))
+    fb = [l.from_socket for l in p.inputs['Base Color'].links][0]; fr = [l.from_socket for l in p.inputs['Roughness'].links][0]
+    T.link(T.mix(mud, fb, mudcol), p.inputs['Base Color']); T.link(T.mix(mud, fr, T.mix(wet, (0.85, 0.85, 0.85, 1), (0.30, 0.30, 0.30, 1))), p.inputs['Roughness']); T.link(T.math('SUBTRACT', 1.0, mud), p.inputs['Metallic'])
     # glass: black, cracked from one hit, the dead display under it still giving a faint pulse
     mg, G, pg = _material('DeviceGlass'); ng = G.nt; img = _image(ng, device.maps()['glass'], uv='GlassUV'); img.interpolation = 'Linear'
     sep = G.node('ShaderNodeSeparateColor'); G.link(img.outputs['Color'], sep.inputs[0]); crack, crush, disp = sep.outputs[0], sep.outputs[1], sep.outputs[2]
@@ -173,8 +176,12 @@ def device_object(b, arm):
     G.set(pg, Base_Color=G.mix(G.math('MULTIPLY', broken, 0.55), lin('#030405'), lin('#9fa6ad')), Roughness=G.math('ADD', 0.05, G.math('MULTIPLY', broken, 0.55)), Specular_IOR_Level=0.6, Coat_Weight=G.math('SUBTRACT', 1.0, broken), Coat_Roughness=0.03,
           Emission_Color=lin('#3aa8ff'), Emission_Strength=G.math('MULTIPLY', lit, 7.0))
     bg = G.node('ShaderNodeBump'); bg.inputs['Strength'].default_value = 0.6; bg.inputs['Distance'].default_value = 0.012; G.link(G.math('MULTIPLY', broken, -1.0), bg.inputs['Height']); G.link(bg.outputs['Normal'], pg.inputs['Normal'])
+    restg = G.node('ShaderNodeAttribute', attribute_name='rest_position').outputs['Vector']; mud, thick, wet = _mud(G, restg); mudcol = G.mix(wet, lin(MUD_DRY), lin(MUD_WET)); smear = G.math('MULTIPLY', mud, G.math('ADD', 0.55, G.math('MULTIPLY', thick, 0.45)))
+    gb = [l.from_socket for l in pg.inputs['Base Color'].links][0]; gr = [l.from_socket for l in pg.inputs['Roughness'].links][0]; ge = [l.from_socket for l in pg.inputs['Emission Strength'].links][0]; gc = [l.from_socket for l in pg.inputs['Coat Weight'].links][0]
+    G.link(G.mix(smear, gb, mudcol), pg.inputs['Base Color']); G.link(G.mix(smear, gr, G.mix(wet, (0.85, 0.85, 0.85, 1), (0.30, 0.30, 0.30, 1))), pg.inputs['Roughness'])
+    G.link(G.math('MULTIPLY', ge, G.math('SUBTRACT', 1.0, G.math('MULTIPLY', smear, 0.92))), pg.inputs['Emission Strength']); G.link(G.math('MULTIPLY', gc, G.math('SUBTRACT', 1.0, smear)), pg.inputs['Coat Weight'])     # mud dulls the glass and hides the light under it
     me.materials.append(mf); me.materials.append(mg); me.polygons.foreach_set('material_index', np.array(M, np.int32))
-    ob = bpy.data.objects.new('SevenDevice', me); bpy.context.scene.collection.objects.link(ob); ob.vertex_groups.new(name='LeftForeArm').add(list(range(len(V))), 1.0, 'REPLACE')
+    ob = bpy.data.objects.new('SevenDevice', me); bpy.context.scene.collection.objects.link(ob); ob.add_rest_position_attribute = True; ob.vertex_groups.new(name='LeftForeArm').add(list(range(len(V))), 1.0, 'REPLACE')
     ob.parent = arm; ob.modifiers.new('Armature', 'ARMATURE').object = arm
     return ob, (mf, mg)
 
@@ -377,6 +384,11 @@ def build(fur=True, fur_count=450000, subdiv=2, paint_size=2048, wet=0.0):
     out = dict(arm=arm, body=body, data=b, mats=mats, fur=None, glow=glow, eyes=eyes(b, arm), device=dev); arm.scale = (SCALE, SCALE, SCALE)
     if fur:
         pts, rad, uv, fa = fur_strands(b, fur_count, wet=wet); out['fur'] = _fur_object('SevenFur', body, arm, pts, rad, uv, fa, mats['fur']); out['strands'] = len(pts)
+    coll = bpy.data.collections.new('Seven'); bpy.context.scene.collection.children.link(coll); out['collection'] = coll               # everything that is him, for lamps that light only him
+    for o in (arm, body, out['eyes'], dev, glow, out['fur']):
+        if o is None: continue
+        for c in list(o.users_collection): c.objects.unlink(o)
+        coll.objects.link(o)
     return out
 
 

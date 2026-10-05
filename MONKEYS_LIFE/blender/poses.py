@@ -30,7 +30,33 @@ POSES['study'] = {  # sitting back on his haunches, left forearm held level acro
     'RightShoulder': (-0.92, -0.3, -0.2), 'RightArm': (-0.26, -0.30, -0.92), 'RightForeArm': (0.20, -0.70, -0.68), 'RightHand': (0.35, -0.85, -0.38),
     'LeftUpLeg': (0.62, -0.74, 0.25), 'LeftLeg': (-0.08, -0.12, -0.99), 'LeftFoot': (0.30, -0.95, -0.08),
 }
-CURL = {'knuckle': (0.9, 1.5, 1.2), 'arm': (0.35, 0.5, 0.4), 'look': (0.45, 0.6, 0.5), 'study': (0.4, 0.55, 0.45)}       # how far each finger joint curls (radians)
+# ---- waking in the mud (ARISE)
+POSES['prone'] = {   # face down where he fell, head turned to his left, right hand up by his face, left arm (the one with the device) trailing back under the mud
+    'Hips': (0, -1, 0.03), 'Spine': (0, -1, 0.02), 'Spine1': (0, -1, 0.04), 'Spine2': (0, -0.99, 0.10), 'Neck': (0.10, -0.97, 0.18),
+    'Head': ((0.20, -0.95, 0.22), 0.0, ((0, -1, 0), (1.0, -0.15, 0.25))),
+    'RightShoulder': (-0.85, -0.50, 0.0), 'RightArm': (-0.70, -0.70, -0.10), 'RightForeArm': (0.25, -0.96, -0.05), 'RightHand': (0.35, -0.93, 0.0),
+    'LeftShoulder': (0.90, -0.20, 0.0), 'LeftArm': (0.55, 0.80, -0.20), 'LeftForeArm': ((0.20, 0.97, -0.10), 0.0, ((0, 0, 1), (0.3, 0.0, -0.95))), 'LeftHand': (0.10, 0.99, -0.05),
+    'LeftUpLeg': (0.28, 0.95, -0.10), 'LeftLeg': (0.10, 0.99, 0.05), 'LeftFoot': (0.15, 0.90, -0.40),
+    'RightUpLeg': (-0.40, 0.90, -0.10), 'RightLeg': (0.10, 0.99, 0.05), 'RightFoot': (-0.15, 0.90, -0.40),
+}
+POSES['headup'] = dict(POSES['prone'], **{   # the same, head lifted off the mud and brought round to the front
+    'Spine2': (0, -0.97, 0.22), 'Neck': (0.04, -0.80, 0.60), 'Head': ((0.05, -0.45, 0.89), 0.0, ((0, -1, 0), (0.35, -0.90, -0.2)))})
+POSES['pushup'] = {  # chest off the ground on straight shaking arms, hips still down
+    'Hips': (0, -0.95, 0.30), 'Spine': (0, -0.89, 0.45), 'Spine1': (0, -0.81, 0.58), 'Spine2': (0, -0.71, 0.70), 'Neck': (0, -0.62, 0.78), 'Head': (0.0, -0.38, 0.92),
+    'LeftShoulder': (0.92, -0.35, -0.10), 'LeftArm': (0.24, -0.34, -0.91), 'LeftForeArm': (0.05, -0.14, -0.99), 'LeftHand': (0.05, -0.95, -0.30),
+    'LeftUpLeg': (0.30, 0.90, -0.30), 'LeftLeg': (0.10, 0.99, 0.05), 'LeftFoot': (0.15, 0.90, -0.40),
+}
+POSES['quad'] = {    # on hands and knees
+    'Hips': (0, -0.90, 0.44), 'Spine': (0, -0.92, 0.39), 'Spine1': (0, -0.94, 0.34), 'Spine2': (0, -0.94, 0.33), 'Neck': (0, -0.72, 0.69), 'Head': (0, -0.30, 0.95),
+    'LeftShoulder': (0.93, -0.25, -0.26), 'LeftArm': (0.18, -0.22, -0.96), 'LeftForeArm': (0.03, -0.18, -0.98), 'LeftHand': (0.0, -0.80, -0.60),
+    'LeftUpLeg': (0.30, -0.42, -0.86), 'LeftLeg': (0.02, 0.93, -0.36), 'LeftFoot': (0.10, 0.85, -0.52),
+}
+POSES['sit'] = {     # sat back on his haunches, hunched, hands hanging between his knees
+    'Hips': (0, 0.20, 0.98), 'Spine': (0, -0.02, 1.0), 'Spine1': (0, -0.20, 0.98), 'Spine2': (0, -0.32, 0.95), 'Neck': (0, -0.45, 0.89), 'Head': (0, -0.18, 0.98),
+    'LeftShoulder': (0.92, -0.36, -0.12), 'LeftArm': (0.30, -0.32, -0.90), 'LeftForeArm': (-0.05, -0.62, -0.78), 'LeftHand': (-0.05, -0.75, -0.66),
+    'LeftUpLeg': (0.62, -0.74, 0.25), 'LeftLeg': (-0.08, -0.12, -0.99), 'LeftFoot': (0.30, -0.95, -0.08),
+}
+CURL = {'prone': (0.5, 0.7, 0.5), 'headup': (0.5, 0.7, 0.5), 'pushup': (0.15, 0.2, 0.15), 'quad': (0.8, 1.3, 1.0), 'sit': (0.5, 0.7, 0.5), 'knuckle': (0.9, 1.5, 1.2), 'arm': (0.35, 0.5, 0.4), 'look': (0.45, 0.6, 0.5), 'study': (0.4, 0.55, 0.45)}       # how far each finger joint curls (radians)
 
 
 def apply(seven, name):

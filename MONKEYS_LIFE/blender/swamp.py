@@ -48,7 +48,7 @@ def ground_z(x, y, L):
     for t in L['trees']:
         d2 = (x - t['x']) ** 2 + (y - t['y']) ** 2; near = d2 < 49.0
         if near.any(): z = z + np.where(near, 0.46 * np.exp(-d2 / (2.4 * t['r'] + 0.7) ** 2), 0.0)
-    bx, by = L['bank']; z = z + 0.34 * np.exp(-(((x - bx) ** 2 + (y - by) ** 2) / 1.8 ** 2))
+    bx, by = L['bank']; z = z + 0.47 * np.exp(-(((x - bx) ** 2 + (y - by) ** 2) / 1.9 ** 2))
     return z
 
 
@@ -63,6 +63,56 @@ def _pbr(T, asset, size, vec, blend=0.3):
         T.link(mp.outputs['Vector'], n.inputs['Vector']); out[k] = n.outputs['Color']
     nm = T.node('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 1.0; T.link(out['nor'], nm.inputs['Color'])
     return out['diff'], out.get('rough'), nm.outputs['Normal']
+
+
+def zone_field():
+    """In a character pass only the scenery close to Seven is rendered; further out the camera sees a hole, through which
+    the plate shows. This node group says how much to render at a point (1 near him .. 0 far). ZX, ZY = centre,
+    R0 = fully rendered inside, R1 = held out beyond. Defaults render everything (that is what a plate wants).
+    Only rays straight from the camera find the hole: in reflections, shadows and bounced light the swamp is all there."""
+    g = bpy.data.node_groups.get('SwampZone')
+    if g: return g
+    g = bpy.data.node_groups.new('SwampZone', 'ShaderNodeTree'); g.interface.new_socket('Show', in_out='OUTPUT', socket_type='NodeSocketFloat'); T = NT(g); go = T.node('NodeGroupOutput')
+    vals = {}
+    for name, v in (('ZX', 0.0), ('ZY', 0.0), ('R0', 1e6), ('R1', 2e6)):
+        n = T.node('ShaderNodeValue'); n.name = n.label = name; n.outputs[0].default_value = v; vals[name] = n.outputs[0]
+    pos = T.node('ShaderNodeSeparateXYZ'); T.link(T.node('ShaderNodeNewGeometry').outputs['Position'], pos.inputs[0])
+    dx = T.math('SUBTRACT', pos.outputs['X'], vals['ZX']); dy = T.math('SUBTRACT', pos.outputs['Y'], vals['ZY']); d = T.math('SQRT', T.math('ADD', T.math('MULTIPLY', dx, dx), T.math('MULTIPLY', dy, dy)))
+    m_ = T.node('ShaderNodeMapRange', interpolation_type='SMOOTHSTEP'); T.link(d, m_.inputs['Value']); T.link(vals['R1'], m_.inputs['From Min']); T.link(vals['R0'], m_.inputs['From Max'])
+    cam = T.node('ShaderNodeLightPath').outputs['Is Camera Ray']
+    T.link(T.math('MAXIMUM', m_.outputs['Result'], T.math('SUBTRACT', 1.0, cam)), go.inputs['Show'])
+    return g
+
+
+def set_zone(center=None, r0=2.4, r1=3.4):
+    """center=None: render everything (plates). Otherwise the (x, y) the character pass is built around."""
+    g = zone_field(); v = lambda n: g.nodes[n].outputs[0]
+    if center is None: v('R0').default_value = 1e6; v('R1').default_value = 2e6
+    else: v('ZX').default_value = center[0]; v('ZY').default_value = center[1]; v('R0').default_value = r0; v('R1').default_value = r1
+
+
+def _zoned(m):
+    """Wrap a material's surface so the camera sees a hole wherever the zone says so. Leaves cut out with an alpha
+    texture stay cut out (otherwise the whole card would punch a square hole in whatever is behind it)."""
+    if not m.use_nodes or m.get('zoned'): return m
+    nt = m.node_tree; outs = [n for n in nt.nodes if n.bl_idname == 'ShaderNodeOutputMaterial' and n.inputs['Surface'].is_linked]
+    if not outs: return m
+    out = ([n for n in outs if n.is_active_output] or outs)[0]; src = out.inputs['Surface'].links[0].from_socket; alpha = None
+    if src.node.bl_idname == 'ShaderNodeBsdfPrincipled' and src.node.inputs['Alpha'].is_linked:
+        l = src.node.inputs['Alpha'].links[0]; alpha = l.from_socket; nt.links.remove(l); src.node.inputs['Alpha'].default_value = 1.0
+    grp = nt.nodes.new('ShaderNodeGroup'); grp.node_tree = zone_field(); hold = nt.nodes.new('ShaderNodeHoldout'); mx = nt.nodes.new('ShaderNodeMixShader')
+    nt.links.new(grp.outputs['Show'], mx.inputs[0]); nt.links.new(hold.outputs[0], mx.inputs[1]); nt.links.new(src, mx.inputs[2]); res = mx.outputs[0]
+    if alpha is not None:
+        clear = nt.nodes.new('ShaderNodeBsdfTransparent'); cut = nt.nodes.new('ShaderNodeMixShader'); nt.links.new(alpha, cut.inputs[0]); nt.links.new(clear.outputs[0], cut.inputs[1]); nt.links.new(res, cut.inputs[2]); res = cut.outputs[0]
+    nt.links.new(res, out.inputs['Surface']); m['zoned'] = 1; return m
+
+
+def zone_all(skip=('LeafScreen', 'SwampAir')):
+    """Every scenery material gets the zone switch. Call once the swamp is built and before Seven is."""
+    n = 0
+    for m in bpy.data.materials:
+        if m.name not in skip and m.use_nodes and not m.get('zoned'): _zoned(m); n += 1
+    return n
 
 
 def mud_material():
@@ -150,11 +200,11 @@ def water():
 def _trunk(seed, height=30.0, nth=72):
     """One swamp tree as a unit trunk (radius 1 at chest height; scale it per tree): flared, buttressed foot, lumpy bark, a slight lean."""
     rng = np.random.default_rng(seed); zs = np.concatenate([np.linspace(-0.9, 3.0, 30), np.linspace(3.3, 9.0, 12), np.linspace(10.0, height, 10)]); th = np.linspace(0, 2 * np.pi, nth, endpoint=False)
-    nb = int(rng.integers(4, 8)); ang = np.linspace(0, 2 * np.pi, nb, endpoint=False) + rng.uniform(-0.35, 0.35, nb) + rng.uniform(0, 6.28); amp = rng.uniform(0.7, 2.1, nb); tall = rng.uniform(0.8, 2.4, nb); sharp = rng.uniform(14, 44, nb)
+    nb = int(rng.integers(4, 8)); ang = np.linspace(0, 2 * np.pi, nb, endpoint=False) + rng.uniform(-0.35, 0.35, nb) + rng.uniform(0, 6.28); amp = rng.uniform(0.5, 1.6, nb); tall = rng.uniform(0.55, 1.7, nb); sharp = rng.uniform(7, 26, nb); wav = rng.uniform(0, 6.28, nb)
     lean = rng.normal(0, 0.012, 2); sway = rng.uniform(0, 6.28, 2); V = []
     for z in zs:
         r = (1 - 0.42 * max(z, 0) / height) + 0.30 * math.exp(-max(z + 0.3, 0) / 0.55)
-        fin = sum(a * math.exp(-(max(z, -0.2) / t_) ** 2) * np.maximum(0, np.cos(th - an)) ** s_ for a, t_, s_, an in zip(amp, tall, sharp, ang))
+        fin = sum(a * math.exp(-(max(z, -0.2) / t_) ** 1.6) * np.maximum(0, np.cos(th - an - 0.16 * math.sin(z * 1.9 + w_))) ** s_ for a, t_, s_, an, w_ in zip(amp, tall, sharp, ang, wav))      # root flanges: they wander as they climb
         lump = 0.07 * (bm.noise3(np.stack([np.cos(th) * 1.3, np.sin(th) * 1.3, np.full(nth, z * 0.5)], 1), 0.9, seed) - 0.5) * 2
         rr = r * (1 + fin) * (1 + lump); cx = lean[0] * z * z * 0.2 + 0.05 * math.sin(z * 0.25 + sway[0]) * min(z, 6) / 6 * (z > 0); cy = lean[1] * z * z * 0.2 + 0.05 * math.sin(z * 0.21 + sway[1]) * min(z, 6) / 6 * (z > 0)
         V.append(np.stack([cx + rr * np.cos(th), cy + rr * np.sin(th), np.full(nth, z)], 1))
@@ -247,7 +297,7 @@ def plants(L, coll, rng):
     n = 9000; x = rng.uniform(-40, 40, n); y = rng.uniform(-24, 60, n); z = ground_z(x, y, L); d0 = np.hypot(x, y)
     keep = (z > -0.03) & (rng.random(n) < np.clip(1.25 - d0 / 45.0, 0.12, 1.0)); out = []
     for xi, yi, zi in zip(x[keep], y[keep], z[keep]):
-        if math.hypot(xi - 0.0, yi - 0.2) < 1.5: continue                                    # keep the spot he lies on clear
+        if math.hypot(xi - L['bank'][0], yi - (L['bank'][1] - 0.3)) < 1.6: continue             # keep the spot he lies on clear
         g = rng.choice(['fern', 'leaf', 'shrub', 'weed'], p=[0.36, 0.30, 0.10, 0.24]); name = rng.choice(groups[g]); src = kinds[name]; ob = bpy.data.objects.new('P_' + name, src.data); coll.objects.link(ob)
         sc_ = {'fern': rng.uniform(0.8, 1.5), 'leaf': rng.uniform(0.9, 1.9), 'shrub': rng.uniform(0.7, 1.3), 'weed': rng.uniform(1.5, 3.5)}[g]
         ob.location = (xi, yi, zi - 0.02); ob.rotation_euler = (rng.normal(0, 0.06), rng.normal(0, 0.06), rng.uniform(0, 6.28)); ob.scale = (sc_,) * 3; out.append(ob)
@@ -318,7 +368,7 @@ def _gobo(name, light, dist, size, scale, open_=0.5, sc=None):
     ob.visible_camera = False; ob.visible_diffuse = False; ob.visible_glossy = False; ob.visible_transmission = False; ob.visible_volume_scatter = False; return ob
 
 
-def sky(sc, ambient=0.05, gap=16000.0, sun=60000.0, tint=(0.62, 0.92, 0.78)):
+def sky(sc, ambient=0.05, gap=16000.0, sun=60000.0, far=None, tint=(0.62, 0.92, 0.78)):
     """Lit the way a film crew would light a wood: almost nothing from the sky itself (the roof is shut), a pool of cold
     daylight falling through one gap above the water, and the low sun slanting in from ahead-left in a few warm shafts,
     both broken up by leaf-cut screens. Everything further off is left to fall away into the dark."""
@@ -329,13 +379,13 @@ def sky(sc, ambient=0.05, gap=16000.0, sun=60000.0, tint=(0.62, 0.92, 0.78)):
     out = dict(world=w)
     out['gap'] = _area('SkyGap', (0.5, 4.5, 20.0), (0.5, 3.0, 0.0), gap, (0.74, 0.95, 0.86), 5.0, sc, spread=60.0)
     out['sun'] = _area('SunShafts', (-15.0, 27.0, 19.0), (0.5, 2.0, 0.3), sun, (1.0, 0.84, 0.58), 1.6, sc, spread=24.0)
-    out['far'] = _area('FarGlow', (6.0, 48.0, 18.0), (2.0, 32.0, 0.0), gap * 3.0, (0.60, 0.90, 0.80), 12.0, sc, spread=80.0)        # a second, dimmer gap deep in the trees: something for the rows to stand against
+    out['far'] = _area('FarGlow', (6.0, 48.0, 18.0), (2.0, 32.0, 0.0), gap * 3.0 if far is None else far, (0.60, 0.90, 0.80), 12.0, sc, spread=80.0)        # a second, dimmer gap deep in the trees: something for the rows to stand against
     bpy.context.view_layer.update()
     out['gobos'] = [_gobo('GapScreen', out['gap'], 4.0, 6.0, 1.0, 0.62, sc), _gobo('SunScreen', out['sun'], 6.0, 5.0, 1.0, 0.62, sc), _gobo('FarScreen', out['far'], 4.0, 12.0, 1.0, 0.62, sc)]
     return out
 
 
-def build(sc, seed=4, parts=('ground', 'water', 'trees', 'canopy', 'vines', 'plants', 'grass', 'branch', 'fog'), fog_density=0.010):
+def build(sc, seed=4, parts=('ground', 'water', 'trees', 'canopy', 'vines', 'plants', 'grass', 'branch', 'fog'), fog_density=0.010, light=None):
     t0 = time.time(); L = layout(seed); coll = bpy.data.collections.new('Swamp'); sc.collection.children.link(coll); rng = np.random.default_rng(seed + 100); out = dict(layout=L)
     if 'ground' in parts: out['ground'] = terrain(L)
     if 'water' in parts: out['water'] = water()
@@ -346,7 +396,7 @@ def build(sc, seed=4, parts=('ground', 'water', 'trees', 'canopy', 'vines', 'pla
     if 'grass' in parts: out['grass'] = grass(L, coll, rng)
     if 'branch' in parts: out['branch'] = branch(L, coll)
     if 'fog' in parts: out['fog'] = fog(sc, coll, fog_density)
-    out['sky'] = sky(sc); sc.cycles.transparent_max_bounces = 24; sc.cycles.volume_bounces = 0
+    out['sky'] = sky(sc, **(light or {})); sc.cycles.transparent_max_bounces = 24; sc.cycles.volume_bounces = 0; zone_all()
     print(f'swamp built in {time.time() - t0:.1f}s: {len(L["trees"])} trees, {len(out.get("plants", []))} plants, {len(out.get("grass", []))} tufts', flush=True); return out
 
 
@@ -354,10 +404,14 @@ def build(sc, seed=4, parts=('ground', 'water', 'trees', 'canopy', 'vines', 'pla
 CAMS = {'wide': ((0.6, -7.5, 1.5), (0.0, 6.0, 1.6), 28), 'low': ((1.2, -3.2, 0.22), (0.0, 3.0, 0.9), 24), 'up': ((0.3, 0.4, 0.9), (0.6, 2.5, 12.0), 20), 'bank': ((3.2, -2.4, 1.1), (0.0, 0.6, 0.3), 35), 'far': ((0.0, -18.0, 6.0), (0.0, 20.0, 2.0), 30)}
 
 if __name__ == '__main__':
-    import studio
+    import studio, machine
     arg, flag = studio.arg, studio.flag; out = sys.argv[1]; t0 = time.time(); sc = studio.reset()
     w, h = (int(v) for v in arg('--size', '960x402').split('x')); sc.render.resolution_x = w; sc.render.resolution_y = h
-    S_ = build(sc, int(arg('--seed', 4)), parts=tuple(arg('--parts', 'ground,water,trees,canopy,vines,plants,grass,branch,fog').split(',')), fog_density=float(arg('--fogd', 0.010)))
-    pos, look, fl = CAMS[arg('--cam', 'wide')]; cd = bpy.data.cameras.new('Cam'); cd.lens = fl; cd.sensor_width = 36; cd.clip_end = 400; cam = bpy.data.objects.new('Cam', cd); sc.collection.objects.link(cam); sc.camera = cam
-    cam.location = pos; cam.rotation_euler = (Vector(look) - Vector(pos)).to_track_quat('-Z', 'Y').to_euler()
-    sc.render.filepath = os.path.abspath(out); bpy.ops.render.render(write_still=True); print(f'rendered {out} in {time.time() - t0:.0f}s')
+    light = {k: float(arg('--' + k)) for k in ('ambient', 'gap', 'sun', 'far') if arg('--' + k) is not None}
+    S_ = build(sc, int(arg('--seed', 4)), parts=tuple(arg('--parts', 'ground,water,trees,canopy,vines,plants,grass,branch,fog').split(',')), fog_density=float(arg('--fogd', 0.010)), light=light)
+    pos, look, fl = CAMS[arg('--cam', 'wide')]; v3 = lambda t: tuple(float(v) for v in t.split(','))
+    if arg('--pos'): pos = v3(arg('--pos'))
+    if arg('--look'): look = v3(arg('--look'))
+    cd = bpy.data.cameras.new('Cam'); cd.lens = float(arg('--lens', fl)); cd.sensor_width = 36; cd.clip_end = 400; cam = bpy.data.objects.new('Cam', cd); sc.collection.objects.link(cam); sc.camera = cam
+    cam.location = pos; cam.rotation_euler = (Vector(look) - Vector(pos)).to_track_quat('-Z', 'Y').to_euler(); dev = machine.pick(sc, arg('--device'))
+    sc.render.filepath = os.path.abspath(out); bpy.ops.render.render(write_still=True); print(f'rendered {out} in {time.time() - t0:.0f}s on {dev}')
