@@ -23,7 +23,7 @@ FACE = {
 }
 for side in 'lr':
     FACE.update({f'{side}-ear-scale-incr': 1.0, f'{side}-ear-wing-incr': 1.0, f'{side}-ear-scale-vert-incr': 0.4, f'{side}-ear-shape-round': 0.7, f'{side}-ear-flap-incr': 0.6, f'{side}-ear-lobe-decr': 1.0,
-                 f'{side}-eye-scale-decr': 0.5, f'{side}-eye-trans-in': 0.7, f'{side}-eye-push1-in': 0.6, f'{side}-eye-push2-in': 0.6, f'{side}-eye-bag-incr': 0.7, f'{side}-eye-eyefold-down': 0.5,
+                 f'{side}-eye-scale-incr': 0.5, f'{side}-eye-trans-in': 0.45, f'{side}-eye-height2-incr': 0.6, f'{side}-eye-push1-in': 0.6, f'{side}-eye-push2-in': 0.6, f'{side}-eye-bag-incr': 0.7, f'{side}-eye-eyefold-down': 0.5,
                  f'{side}-cheek-bones-incr': 0.8, f'{side}-cheek-volume-decr': 0.6, f'{side}-cheek-inner-decr': 0.4})
 
 # ape proportions as per-bone scale along world X, Y, Z in the T-pose (arms run along X, legs and spine along Z, feet along Y)
@@ -58,7 +58,7 @@ def _sculpt_head(V, wh):
     # 1. skull: lower it and slope it straight back from the brow
     up = np.maximum(0, z - zb); t = smoothstep(up / (L['top'] - zb)); dz = -up * 0.13 * (0.4 + 0.6 * front); dy = 0.30 * up * front * (1 - 0.35 * t)
     # 2. brow ridge: one heavy bar across both eyes
-    brow = gauss(z - (zb - 0.5), 1.15) * smoothstep((7.4 - ax) / 2.4) * front; dy -= 1.35 * brow; dz += 0.2 * brow
+    brow = gauss(z - (zb - 0.5), 1.15) * smoothstep((7.4 - ax) / 2.4) * front; dy -= 1.15 * brow; dz += 0.3 * brow
     # 3. muzzle: the whole lower face comes forward as one rounded snout, widest at the mouth
     zm = L['lips_z'] + 1.0; span = (L['eye_z'] - 1.6) - L['chin_z']
     vert = smoothstep((L['eye_z'] - 1.2 - z) / 3.2) * smoothstep((z - (L['chin_z'] - 1.5)) / 3.0)      # from under the eyes to the chin
@@ -84,7 +84,7 @@ def _sculpt_head(V, wh):
     nose_i = bm.target('nose-volume-incr')[0]; nc = out[nose_i]; tip = nc[np.argmin(nc[:, 1])]; nostril = np.zeros(len(V))
     for sgn in (1, -1):
         c = tip + np.array([sgn * 1.0, 0.45, -0.15]); r = np.sqrt(((out - c) * np.array([1.0, 0.8, 1.5])) ** 2).sum(1) if False else np.linalg.norm((out - c) * np.array([1.0, 0.8, 1.5]), axis=1)
-        g_ = gauss(r, 0.40) * (wh > 0.6); out[:, 1] += 0.7 * g_; nostril = np.maximum(nostril, g_)
+        g_ = gauss(r, 0.62) * (wh > 0.6); out[:, 1] += 0.85 * g_; nostril = np.maximum(nostril, np.clip(g_ * 1.5, 0, 1))
     L['nostril'] = nostril; L['muzzle'] = m * k
     return out, L
 
@@ -143,6 +143,7 @@ def build(muscle=1.0, weight=0.58):
     length += 3.6 * smoothstep((w_arm - 0.3) / 0.5) + 2.4 * smoothstep((w_fore - 0.3) / 0.5)    # shaggy arms
     shoulder = gauss(z - J['LeftArm'][2], 11.0) * smoothstep((ax - 4) / 10) * (w_head < 0.3); length += 3.4 * shoulder
     length = np.where(w_hand > 0.5, 1.6, length); length = np.where(w_foot > 0.5, 1.5, length); length += 0.6 * smoothstep((w_leg - 0.4) / 0.4)
+    length = np.minimum(length, 8.5)
     # --- which way the hair lies (unit vectors in the T-pose): down the body, along the arms toward the elbow, back over the skull
     flow = np.tile(np.array([0.0, 0.25, -1.0]), (len(P), 1))
     sgn = np.sign(x)[:, None]; elbow = J['LeftForeArm'][0]
@@ -172,7 +173,11 @@ def build(muscle=1.0, weight=0.58):
         else:
             p = d['parent'][n]; v = J[n] - J[p] if p else np.array([0, 0, 1.0]); L_ = np.linalg.norm(v) or 1.0
             tails[n] = J[n] + (np.array([0, 0, 12.0]) if n == 'Head' else np.array([0, -8.0, 0]) if n.endswith('ToeBase') else v / L_ * max(2.0, L_ * 0.7))
-    return dict(V=P, F=faces, UV=uvs, W=Wk, bones=d['bones'], parent=d['parent'], J=J, tails=tails, part=part, N=N, ids=ids,
+    bones = list(d['bones']); parent = dict(d['parent']); Wk = np.concatenate([Wk, np.zeros((len(P), 2), np.float32)], 1)
+    for col, (s_, name) in enumerate((('l', 'LeftEye'), ('r', 'RightEye'))):
+        gi = np.array([remap[v] for v in G[f'helper-{s_}-eye']]); Wk[gi, :] = 0; Wk[gi, len(d['bones']) + col] = 1
+        bones.append(name); parent[name] = 'Head'; J[name] = eye[s_].copy(); tails[name] = eye[s_] + np.array([0, -2.5, 0])
+    return dict(V=P, F=faces, UV=uvs, W=Wk, bones=bones, parent=parent, J=J, tails=tails, part=part, N=N, ids=ids,
                 masks=dict(bare=bare, fur=fur, length=length, device=device, iris=iris, face=face * body, ear=is_ear.astype(float), palm=palm * body, sole=sole * body, nostril=L['nostril'][ids], muzzle=L['muzzle'][ids]),
                 flow=flow, dev_uv=np.stack([dev_u, dev_v], 1), stature=float(top),
                 marks=dict(eye=eye, eye_z=eye_z, lips=np.array([0, lips[:, 1].min(), np.median(lips[:, 2])]), chin_z=chin_z, top=top, device=c))

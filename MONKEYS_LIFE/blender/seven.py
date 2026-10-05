@@ -82,18 +82,18 @@ def skin_material():
     bump = T.node('ShaderNodeBump'); bump.inputs['Strength'].default_value = 0.55; bump.inputs['Distance'].default_value = 0.004; T.link(height, bump.inputs['Height'])
     # the device: a plate under the skin, a scar around it, cracked circuit lines that can glow
     dev = T.attr('device'); du = T.attr('dev_u'); dv = T.attr('dev_v'); comb = T.node('ShaderNodeCombineXYZ'); T.link(du, comb.inputs[0]); T.link(dv, comb.inputs[1])
-    brick = T.node('ShaderNodeTexBrick'); T.link(comb.outputs[0], brick.inputs['Vector']); brick.inputs['Scale'].default_value = 3.2; brick.inputs['Mortar Size'].default_value = 0.035; brick.inputs['Color1'].default_value = (0, 0, 0, 1); brick.inputs['Color2'].default_value = (0, 0, 0, 1); brick.inputs['Mortar'].default_value = (1, 1, 1, 1)
+    brick = T.node('ShaderNodeTexBrick'); T.link(comb.outputs[0], brick.inputs['Vector']); brick.inputs['Scale'].default_value = 3.2; brick.inputs['Mortar Size'].default_value = 0.014; brick.inputs['Color1'].default_value = (0, 0, 0, 1); brick.inputs['Color2'].default_value = (0, 0, 0, 1); brick.inputs['Mortar'].default_value = (1, 1, 1, 1)
     cells = T.node('ShaderNodeTexVoronoi', feature='DISTANCE_TO_EDGE', distance='CHEBYCHEV'); cells.inputs['Scale'].default_value = 2.3; T.link(comb.outputs[0], cells.inputs['Vector'])
-    traces = T.math('MAXIMUM', brick.outputs['Fac'], T.math('LESS_THAN', cells.outputs['Distance'], 0.035))
+    traces = T.math('MAXIMUM', brick.outputs['Fac'], T.math('LESS_THAN', cells.outputs['Distance'], 0.018))
     crack = T.node('ShaderNodeTexVoronoi', feature='DISTANCE_TO_EDGE'); crack.inputs['Scale'].default_value = 1.15; crack.inputs['Randomness'].default_value = 1.0; T.link(comb.outputs[0], crack.inputs['Vector'])
     cracks = T.math('LESS_THAN', crack.outputs['Distance'], 0.03)
     plate = T.math('GREATER_THAN', dev, 0.35); edge = T.math('MULTIPLY', T.math('GREATER_THAN', dev, 0.12), T.math('LESS_THAN', dev, 0.35))      # scar ring around the plate
     glow_mask = T.math('MULTIPLY', plate, T.math('MAXIMUM', T.math('MULTIPLY', traces, T.math('SUBTRACT', 1.0, cracks)), 0.0))
     power = T.node('ShaderNodeValue'); power.name = power.label = 'DevicePower'; power.outputs[0].default_value = 0.0
-    base = T.mix(T.math('MULTIPLY', plate, 0.55), base, lin('#0b0d10')); base = T.mix(edge, base, lin('#6b4a44')); base = T.mix(T.math('MULTIPLY', plate, cracks), base, lin('#020203'))
-    emis = T.math('MULTIPLY', glow_mask, power.outputs[0]); under = T.math('MULTIPLY', T.math('MULTIPLY', plate, 0.06), power.outputs[0])      # faint blue under the skin when it wakes
+    base = T.mix(T.math('MULTIPLY', plate, 0.55), base, lin('#0b0d10')); base = T.mix(edge, base, lin('#3b2623')); base = T.mix(T.math('MULTIPLY', plate, cracks), base, lin('#020203'))
+    emis = T.math('MULTIPLY', glow_mask, power.outputs[0]); under = T.math('MULTIPLY', T.math('MULTIPLY', plate, 0.012), power.outputs[0])      # faint blue under the skin when it wakes
     T.set(p, Base_Color=base, Roughness=T.math('ADD', 0.62, T.math('MULTIPLY', fine, 0.25)), Specular_IOR_Level=0.22, Subsurface_Weight=0.12, Subsurface_Scale=0.004, Normal=bump.outputs['Normal'],
-          Emission_Color=lin('#39a7ff'), Emission_Strength=T.math('MULTIPLY', T.math('ADD', emis, under), 14.0))
+          Emission_Color=lin('#1f8dff'), Emission_Strength=T.math('MULTIPLY', T.math('ADD', emis, under), 22.0))
     p.inputs['Subsurface Radius'].default_value = (1.0, 0.35, 0.2)
     h2 = T.math('ADD', height, T.math('MULTIPLY', plate, 0.9)); T.link(h2, bump.inputs['Height'])        # the plate stands a little proud of the arm
     return m
@@ -101,7 +101,7 @@ def skin_material():
 
 def eye_material():
     m, T, p = _material('SevenEye'); iris = T.attr('iris')
-    col = T.ramp(iris, [(0.0, lin('#2a1c14')), (0.80, lin('#33211a')), (0.845, lin('#120b07')), (0.875, lin('#7a4a16')), (0.935, lin('#a86a1c')), (0.955, lin('#3a220c')), (0.965, (0, 0, 0, 1))])
+    col = T.ramp(iris, [(0.0, lin('#3a2a20')), (0.72, lin('#4a3628')), (0.80, lin('#170e09')), (0.84, lin('#7a4a16')), (0.915, lin('#b06f1e')), (0.94, lin('#3a220c')), (0.953, (0, 0, 0, 1))])
     T.set(p, Base_Color=col, Roughness=0.06, Coat_Weight=1.0, Coat_Roughness=0.02, Specular_IOR_Level=0.8)
     return m
 
@@ -207,27 +207,43 @@ def build(fur=True, fur_count=190000, subdiv=1):
 
 
 # ------------------------------------------------------------------------------------------------ posing
-def aim(arm, bone, direction, twist=0.0):
-    """Point a bone along a direction given in the rig's own space (+X his left, -Y forward, +Z up), then twist it about itself."""
+def aim(arm, bone, direction, twist=0.0, face=None):
+    """Point a bone along a direction given in the rig's own space (+X his left, -Y forward, +Z up), then twist it about itself.
+    face=(side, toward): instead of a fixed twist, roll the bone until the side of the limb that pointed along `side` in the
+    T-pose (e.g. (0, 0, 1) = the top of the forearm, where the device is) points as nearly as it can toward `toward`."""
     pb = arm.pose.bones[bone]; rest = pb.bone.matrix_local.to_3x3()
     M0 = (pb.parent.matrix.to_3x3() @ pb.parent.bone.matrix_local.to_3x3().inverted() @ rest) if pb.parent else rest
-    y0 = (M0 @ Vector((0, 1, 0))).normalized(); q = y0.rotation_difference(Vector(direction).normalized())
-    pb.rotation_mode = 'QUATERNION'; pb.rotation_quaternion = (M0.inverted() @ q.to_matrix() @ M0).to_quaternion() @ Quaternion((0, 1, 0), twist)
+    y0 = (M0 @ Vector((0, 1, 0))).normalized(); d = Vector(direction).normalized(); q = y0.rotation_difference(d)
+    R = (M0.inverted() @ q.to_matrix() @ M0).to_quaternion()
+    if face is not None:
+        side_local = rest.inverted() @ Vector(face[0]); cur = (q.to_matrix() @ M0 @ side_local); want = Vector(face[1]).normalized()
+        a = cur - d * cur.dot(d); b_ = want - d * want.dot(d)
+        if a.length > 1e-4 and b_.length > 1e-4: twist += math.atan2(d.dot(a.normalized().cross(b_.normalized())), a.normalized().dot(b_.normalized()))
+    pb.rotation_mode = 'QUATERNION'; pb.rotation_quaternion = R @ Quaternion((0, 1, 0), twist)
     bpy.context.view_layer.update()
 
 
+def _unpack(v):
+    """(dir) | (dir, twist) | (dir, twist, face) -> dir, twist, face"""
+    if not isinstance(v[0], (tuple, list, Vector)): return v, 0.0, None
+    return v[0], (v[1] if len(v) > 1 else 0.0), (v[2] if len(v) > 2 else None)
+
+
 def pose(seven, spec, order=None):
-    """spec: {bone: (direction) or (direction, twist)}; 'Left*' entries are mirrored onto the right side unless given."""
-    arm = seven['arm']; names = order or [n for n in _depth_order(arm)]
-    full = dict(spec)
+    """spec: {bone: dir | (dir, twist) | (dir, twist, (side, toward))}; 'Left*' entries are mirrored to the right unless given."""
+    arm = seven['arm']; names = order or [n for n in _depth_order(arm)]; full = dict(spec); mx = lambda v: (-v[0], v[1], v[2])
     for k, v in spec.items():
-        if k.startswith('Left'):
-            r = 'Right' + k[4:]
-            if r not in full:
-                d, tw = (v if isinstance(v[0], (tuple, list, Vector)) else (v, 0.0)); full[r] = ((-d[0], d[1], d[2]), -tw)
+        if k.startswith('Left') and 'Right' + k[4:] not in full:
+            d, tw, face = _unpack(v); full['Right' + k[4:]] = (mx(d), -tw, (mx(face[0]), mx(face[1])) if face else None)
     for n in names:
-        if n not in full: continue
-        v = full[n]; d, tw = (v if isinstance(v[0], (tuple, list, Vector)) else (v, 0.0)); aim(arm, n, d, tw)
+        if n in full: d, tw, face = _unpack(full[n]); aim(arm, n, d, tw, face)
+
+
+def look_at(seven, point):
+    """Turn both eyes toward a point given in world space (metres)."""
+    arm = seven['arm']; inv = arm.matrix_world.inverted()
+    for n in ('LeftEye', 'RightEye'):
+        pb = arm.pose.bones[n]; target = inv @ Vector(point); aim(arm, n, target - pb.head)
 
 
 def _depth_order(arm):

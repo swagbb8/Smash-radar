@@ -29,7 +29,10 @@ jobs:
         run: |
           python3 MONKEYS_LIFE/tools/fetch_polyhaven.py catalog
           if [ -n "$IDS" ]; then python3 MONKEYS_LIFE/tools/fetch_polyhaven.py get "$IDS" "$RES"; fi
-          du -sh out; ls out | head -80
+          # GitHub refuses files over 100 MB: drop them and say so
+          find out -type f -size +95M -printf '::warning::too big for GitHub, skipped: %p (%s bytes)\n' -delete
+          for d in out/*/; do echo "::notice::$(du -sh "$d" | tr '\t' ' ')"; done
+          echo "::notice::total $(du -sh out | cut -f1)" 
       - name: Save to the monkey-assets branch
         run: |
           cd out && git init -q -b monkey-assets && git config user.name "monkey-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

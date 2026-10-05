@@ -28,11 +28,11 @@ def lamp(name, kind, loc, energy, colour, size=1.0, target=(0, 0, 1.0)):
 def stage(sc):
     w = bpy.data.worlds.new('Studio'); w.use_nodes = True; w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.012, 0.014, 0.016, 1); w.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.0; sc.world = w
     bpy.ops.mesh.primitive_plane_add(size=40); floor = bpy.context.object; m = bpy.data.materials.new('Floor'); m.use_nodes = True; p = m.node_tree.nodes['Principled BSDF']; p.inputs['Base Color'].default_value = (0.02, 0.022, 0.022, 1); p.inputs['Roughness'].default_value = 0.85; p.inputs['Specular IOR Level'].default_value = 0.1; floor.data.materials.append(m)
-    lamp('Key', 'AREA', (1.6, -2.8, 2.5), 520, (1.0, 0.93, 0.84), 1.2); lamp('Fill', 'AREA', (-2.8, -1.6, 1.2), 45, (0.62, 0.74, 1.0), 3.0); lamp('Rim', 'AREA', (-1.4, 2.6, 2.3), 700, (0.72, 0.85, 1.0), 0.9)
+    lamp('Key', 'AREA', (1.5, -2.6, 2.4), 210, (1.0, 0.92, 0.82), 1.0); lamp('Fill', 'AREA', (-2.8, -1.6, 1.2), 14, (0.55, 0.7, 1.0), 3.0); lamp('Rim', 'AREA', (-1.6, 2.4, 2.2), 420, (0.62, 0.8, 1.0), 0.8)
 
 CAMS = {  # (position, look-at, focal length mm) in metres
     'front': ((0, -5.2, 0.95), (0, 0, 0.78), 60), 'side': ((5.2, -0.2, 0.95), (0, 0, 0.78), 60), 'three': ((2.4, -3.6, 1.15), (0, 0, 0.72), 55),
-    'face': ((0.38, -1.25, 1.02), (0, -0.28, 0.9), 85), 'arm': ((0.9, -1.4, 0.9), (0.45, -0.3, 0.45), 70), 'back': ((-2.0, 4.2, 1.2), (0, 0, 0.75), 55),
+    'face': ((0.38, -1.25, 1.02), (0, -0.28, 0.9), 85), 'hero': ((0.95, -1.75, 0.92), (0.05, -0.2, 0.62), 70), 'arm': ((0.9, -1.4, 0.9), (0.45, -0.3, 0.45), 70), 'back': ((-2.0, 4.2, 1.2), (0, 0, 0.75), 55),
 }
 
 def camera(sc, name, target=None):
@@ -47,6 +47,9 @@ if __name__ == '__main__':
     S.ground(sv); S.device_power(sv, float(arg('--power', 0)))
     cam = arg('--cam', 'front'); head = sv['arm'].matrix_world @ sv['arm'].pose.bones['Head'].head
     camera(sc, cam, target=tuple(head + Vector((0, 0, 0.08))) if cam == 'face' else None)
+    if pname == 'look':
+        dev = sv['arm'].matrix_world @ (sv['arm'].pose.bones['LeftForeArm'].head.lerp(sv['arm'].pose.bones['LeftHand'].head, 0.56)); S.look_at(sv, dev)
+        if cam == 'hero': mid = head.lerp(dev, 0.5); sc.camera.data.lens = 50; sc.camera.location = mid + Vector((0.85, -1.75, 0.38)); sc.camera.rotation_euler = (mid - sc.camera.location).to_track_quat('-Z', 'Y').to_euler()
     if cam == 'face': sc.camera.location = head + Vector((0.42, -1.25, 0.1)); sc.camera.rotation_euler = ((head + Vector((0, -0.05, 0.07))) - sc.camera.location).to_track_quat('-Z', 'Y').to_euler()
     sc.render.filepath = os.path.abspath(out); bpy.ops.render.render(write_still=True)
     print(f'rendered {out} in {time.time() - t0:.0f}s, strands {sv.get("strands", 0)}')
