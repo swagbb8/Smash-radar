@@ -1,0 +1,1 @@
+rendered bench_lin_cpu in 56s (render 44s) on cpu x4, strands 404496
