@@ -56,9 +56,9 @@ if __name__ == '__main__':
     S.ground(sv); S.device_power(sv, float(arg('--power', 0)), wave=float(arg('--wave', -10))); S.mud(float(arg('--mud', 0)), float(arg('--mudwet', 1))); S.face(sv, Blink=float(arg('--blink', 0)), JawOpen=float(arg('--jaw', 0)), BrowUp=float(arg('--brow', 0)))
     cam = arg('--cam', 'front'); head = sv['arm'].matrix_world @ sv['arm'].pose.bones['Head'].head
     camera(sc, cam, target=tuple(head + Vector((0, 0, 0.08))) if cam == 'face' else None)
-    if pname == 'look':
+    if pname in ('look', 'study'):
         dev = sv['arm'].matrix_world @ (sv['arm'].pose.bones['LeftForeArm'].head.lerp(sv['arm'].pose.bones['LeftHand'].head, 0.56)); S.look_at(sv, dev)
-        if cam == 'hero': mid = head.lerp(dev, 0.5); sc.camera.data.lens = 50; sc.camera.location = mid + Vector((0.85, -1.75, 0.38)); sc.camera.rotation_euler = (mid - sc.camera.location).to_track_quat('-Z', 'Y').to_euler()
+        if cam == 'hero': mid = head.lerp(dev, 0.45); sc.camera.data.lens = 55; sc.camera.location = mid + (Vector((0.78, -1.62, 0.06)) if pname == 'study' else Vector((0.85, -1.75, 0.38))); sc.camera.rotation_euler = (mid - sc.camera.location).to_track_quat('-Z', 'Y').to_euler()
     if cam == 'face':
         sc.camera.location = head + Vector((0.42, -1.25, 0.1)); sc.camera.rotation_euler = ((head + Vector((0, -0.05, 0.07))) - sc.camera.location).to_track_quat('-Z', 'Y').to_euler()
         if arg('--gaze', 'lens') == 'lens': S.look_at(sv, tuple(sc.camera.location))                 # he looks straight down the lens
@@ -66,7 +66,7 @@ if __name__ == '__main__':
         dev = sv['arm'].matrix_world @ (sv['arm'].pose.bones['LeftForeArm'].head.lerp(sv['arm'].pose.bones['LeftHand'].head, 0.5)); sc.camera.data.lens = 85
         sc.camera.location = dev + Vector((0.16, -0.50, 0.42)); sc.camera.rotation_euler = (dev - sc.camera.location).to_track_quat('-Z', 'Y').to_euler(); head = dev
     if arg('--mood', 'night') != 'flat':                                                   # a small light by the lens puts the glint in his eyes
-        c = sc.camera; M = c.matrix_world.to_3x3(); lamp('Eye', 'AREA', tuple(c.location + M @ Vector((0.22, 0.30, 0.0))), float(arg('--eyelight', 7)), (1.0, 0.97, 0.92), 0.30, target=tuple(head + Vector((0, 0, 0.06))))
+        bpy.context.view_layer.update(); c = sc.camera; M = c.matrix_world.to_3x3(); lamp('Eye', 'AREA', tuple(c.location + M @ Vector((0.30, -0.04, 0.0))), float(arg('--eyelight', 14)), (1.0, 0.97, 0.92), 0.45, target=tuple(head + Vector((0, 0, 0.06))))
     if arg('--crop'):                                                                       # --crop x0,y0,x1,y1 as fractions of the frame: render just that part, for quick checks
         x0, y0, x1, y1 = (float(v) for v in arg('--crop').split(',')); sc.render.use_border = True; sc.render.use_crop_to_border = True; sc.render.border_min_x, sc.render.border_min_y, sc.render.border_max_x, sc.render.border_max_y = x0, y0, x1, y1
     if arg('--finish', '1') == '1' and sc.cycles.use_denoising: finish.mark_fur(sv.get('fur')); finish.setup(sc, bloom=float(arg('--bloom', 0.0)), fur_raw=float(arg('--furraw', 0.85)))

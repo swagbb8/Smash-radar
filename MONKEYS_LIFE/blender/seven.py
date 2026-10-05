@@ -197,7 +197,7 @@ def eye_materials():
     comb = I.node('ShaderNodeCombineXYZ'); I.link(I.math('MULTIPLY', I.math('DIVIDE', ix, safe), 5.5), comb.inputs[0]); I.link(I.math('MULTIPLY', I.math('DIVIDE', iy, safe), 5.5), comb.inputs[1]); I.link(I.math('MULTIPLY', rho, 1.4), comb.inputs[2])
     fibre = I.noise(3.0, 6.0, 0.7, comb.outputs[0]); fine = I.noise(11.0, 3.0, 0.6, comb.outputs[0])
     pu = ape.EYE['pupil']
-    base = I.ramp(rho, [(0.0, (0, 0, 0, 1)), (pu, (0, 0, 0, 1)), (pu + 0.035, lin('#180b04')), (pu + 0.15, lin('#6e4313')), (0.72, lin('#55320f')), (0.90, lin('#231207')), (0.985, lin('#060302'))])
+    base = I.ramp(rho, [(0.0, (0, 0, 0, 1)), (pu, (0, 0, 0, 1)), (pu + 0.035, lin('#1c0d05')), (pu + 0.15, lin('#8a5518')), (0.72, lin('#6a3f12')), (0.90, lin('#2a1608')), (0.985, lin('#060302'))])
     streak = I.math('ADD', 0.45, I.math('MULTIPLY', I.math('ADD', fibre, I.math('MULTIPLY', fine, 0.5)), 0.75))
     mul = I.node('ShaderNodeMix', data_type='RGBA', blend_type='MULTIPLY'); mul.inputs[0].default_value = 1.0; I.link(base, mul.inputs[6]); I.link(streak, mul.inputs[7])
     I.set(p, Base_Color=mul.outputs[2], Roughness=0.55, Specular_IOR_Level=0.15)
@@ -372,7 +372,7 @@ def build(fur=True, fur_count=450000, subdiv=2, paint_size=2048, wet=0.0):
     dev, dmats = device_object(b, arm); mats['frame'], mats['glass'] = dmats
     ld = bpy.data.lights.new('DeviceGlow', 'AREA'); ld.shape = 'RECTANGLE'; ld.size = 2 * (device.A - device.FRAME); ld.size_y = 2 * (device.B - device.FRAME); ld.color = (0.20, 0.55, 1.0); ld.energy = 0.0; ld.spread = math.radians(150)
     glow = bpy.data.objects.new('DeviceGlow', ld); bpy.context.scene.collection.objects.link(glow); glow.parent = arm; glow.parent_type = 'BONE'; glow.parent_bone = 'LeftForeArm'
-    fb = ad.bones['LeftForeArm']; c_rest = Vector(device.layout(b)['c']) + Vector((0, 0, 0.9)); rest = fb.matrix_local.inverted()
+    fb = ad.bones['LeftForeArm']; c_rest = Vector(device.layout(b)['c']) + Vector((0, 0, 3.2)); rest = fb.matrix_local.inverted()
     glow.matrix_parent_inverse = Matrix.Identity(4); glow.location = (rest @ c_rest) - Vector((0, fb.length, 0)); glow.rotation_euler = (rest.to_3x3() @ Matrix.Rotation(math.pi, 3, 'X')).to_euler()   # an area light shines down its -Z: turn it to face +Z in rest space
     out = dict(arm=arm, body=body, data=b, mats=mats, fur=None, glow=glow, eyes=eyes(b, arm), device=dev); arm.scale = (SCALE, SCALE, SCALE)
     if fur:
@@ -432,7 +432,7 @@ def ground(seven, z=0.0):
     seven['arm'].location.z += z - float(wz.min()); bpy.context.view_layer.update(); return float(wz.min())
 
 
-def device_power(seven, value, frame=None, light=4.5, wave=None):
+def device_power(seven, value, frame=None, light=1.3, wave=None):
     """value: 0 = dead, 1 = awake (the display under the cracked glass, a dim glow in the lines under his skin, the light it casts).
     wave: how far (cm) a pulse of light has run out along those lines; None or a negative number = no pulse."""
     seven['glow'].data.energy = light * value

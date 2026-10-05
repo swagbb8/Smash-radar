@@ -206,12 +206,12 @@ def build(muscle=1.0, weight=0.58):
     G = d['groups']; eye = {s: V[G[f'helper-{s}-eye']].mean(0) for s in 'lr'}; eye_r = float(np.mean([np.linalg.norm(V[G[f'helper-{s}-eye']] - eye[s], axis=1).mean() for s in 'lr'])); eye_z = (eye['l'][2] + eye['r'][2]) / 2; eye_y = min(eye['l'][1], eye['r'][1])
     lip_i = bm.target('mouth-upperlip-volume-decr')[0]; lips = V[lip_i]; chin_z = V[bm.target('chin-prominent-incr')[0]][:, 2].min(); top = V[:NBODY, 2].max()      # V is already on the ground here
     hs = eye_r / 1.58; mouth_z = float(np.median(lips[:, 2]))
-    ear = np.maximum(region('l-ear-trans-up', len(V)), region('r-ear-trans-up', len(V)))[ids]; is_ear = smoothstep((ear - 0.25) / 0.5)
+    ear = np.maximum(region('l-ear-trans-up', len(V)), region('r-ear-trans-up', len(V)))[ids]; is_ear = smoothstep((ear - 0.62) / 0.33)                # the flap itself; the skin round it grows hair
     w_torso = Wk[:, bi['Spine']] + Wk[:, bi['Spine1']] + Wk[:, bi['Spine2']] + Wk[:, bi['Hips']]; w_neck = Wk[:, bi['Neck']]
     # --- bare skin: the face from the brow ridge to the chin (the cheeks and temples are hairy), ears, palms, soles
     fy = smoothstep((eye_y + 4.6 * hs - y) / (2.6 * hs))
     wide = (4.9 + 0.5 * smoothstep((eye_z - 1.8 * hs - z) / (2.6 * hs))) * hs
-    face = fy * smoothstep((z - (chin_z - 0.2)) / 1.6) * smoothstep(((eye_z + 3.0 * hs) - z) / (1.2 * hs)) * smoothstep((wide - ax) / (1.5 * hs)) * (w_head > 0.5)
+    face = fy * smoothstep((z - (chin_z - 0.2)) / 1.6) * smoothstep(((eye_z + 4.3 * hs) - z) / (2.7 * hs)) * smoothstep((wide + 0.7 * hs - ax) / (2.4 * hs)) * (w_head > 0.5)      # hair thins out gradually onto the brow and cheeks: no hard hairline
     palm = smoothstep((w_hand - 0.5) / 0.3) * smoothstep((-N[:, 2] - 0.15) / 0.45)                 # T-pose: palms face down
     sole = smoothstep((w_foot - 0.5) / 0.3) * smoothstep((2.4 - z) / 1.4)
     bare = np.clip(np.maximum.reduce([face, is_ear, palm, sole]), 0, 1) * body
@@ -249,7 +249,9 @@ def build(muscle=1.0, weight=0.58):
     hang = np.clip((w_head > 0.5) * 1.0 + w_torso + w_neck + smoothstep((w_leg - 0.4) / 0.4), 0, 1)
     # --- the device in his left forearm (device.py): the skin dips under it, scars around it, and grows no hair there
     dc = device.coords(dict(V=P, N=N, W=Wk, bones=list(d['bones']), ids=ids, J=J)); P[:, 2] -= 0.75 * dc['inside']
-    fur = fur * (1 - dc['bare']); length = length * (1 - 0.45 * smoothstep((2.6 - dc['d']) / 1.6) * dc['on'])
+    fur = fur * (1 - dc['bare']) * (1 - 0.5 * smoothstep((3.5 - dc['d']) / 2.5) * dc['on']); length = length * (1 - 0.6 * smoothstep((4.0 - dc['d']) / 3.0) * dc['on'])
+    away = np.stack([np.sign(dc['u']) * np.maximum(np.abs(dc['u']) - device.A * 0.6, 0), np.sign(dc['v']) * np.maximum(np.abs(dc['v']) - device.B * 0.6, 0) * 0.0 + (P[:, 1] - J['LeftForeArm'][1]) * 0.6, np.zeros(len(P))], 1)      # round the device the hair is brushed away from it
+    an = np.linalg.norm(away, axis=1, keepdims=True); wdev = (smoothstep((5.0 - dc['d']) / 3.5) * dc['on'])[:, None]; flow = flow * (1 - wdev) + away / np.maximum(an, 1e-6) * wdev; flow /= np.linalg.norm(flow, axis=1, keepdims=True) + 1e-9
     tails = {}
     for n in d['bones']:
         kids = [k for k in d['bones'] if d['parent'][k] == n]

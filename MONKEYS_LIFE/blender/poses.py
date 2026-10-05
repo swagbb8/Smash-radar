@@ -24,7 +24,13 @@ POSES['look'] = {   # squatting, left forearm held across his chest like someone
     'RightShoulder': (-0.92, -0.3, -0.2), 'RightArm': (-0.34, -0.20, -0.92), 'RightForeArm': (-0.10, -0.50, -0.86), 'RightHand': (0.0, -0.85, -0.5),
     'LeftUpLeg': (0.66, -0.70, 0.27), 'LeftLeg': (-0.10, -0.10, -0.99), 'LeftFoot': (0.32, -0.94, -0.08),
 }
-CURL = {'knuckle': (0.9, 1.5, 1.2), 'arm': (0.35, 0.5, 0.4), 'look': (0.45, 0.6, 0.5)}       # how far each finger joint curls (radians)
+POSES['study'] = {  # sitting back on his haunches, left forearm held level across his body, head bowed to stare at the thing in it
+    'Hips': (0, 0.22, 0.97), 'Spine': (0, 0.02, 1.0), 'Spine1': (0, -0.16, 0.99), 'Spine2': (0, -0.26, 0.96), 'Neck': (0.04, -0.48, 0.88), 'Head': (0.10, -0.50, 0.86),
+    'LeftShoulder': (0.90, -0.42, 0.02), 'LeftArm': (0.36, -0.52, -0.78), 'LeftForeArm': ((-0.80, -0.58, 0.14), 0.0, ((0, 0, 1), (0.30, -0.50, 0.81))), 'LeftHand': ((-0.86, -0.50, -0.08), 0.0, ((0, 0, 1), (0.3, -0.5, 0.81))),
+    'RightShoulder': (-0.92, -0.3, -0.2), 'RightArm': (-0.26, -0.30, -0.92), 'RightForeArm': (0.20, -0.70, -0.68), 'RightHand': (0.35, -0.85, -0.38),
+    'LeftUpLeg': (0.62, -0.74, 0.25), 'LeftLeg': (-0.08, -0.12, -0.99), 'LeftFoot': (0.30, -0.95, -0.08),
+}
+CURL = {'knuckle': (0.9, 1.5, 1.2), 'arm': (0.35, 0.5, 0.4), 'look': (0.45, 0.6, 0.5), 'study': (0.4, 0.55, 0.45)}       # how far each finger joint curls (radians)
 
 
 def apply(seven, name):
