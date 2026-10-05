@@ -67,6 +67,19 @@ Owner: Ash (non-technical, iPhone, wants short answers). Repo: `swagbb8/Smash-ra
 Ash sometimes re-sends a message, which rewinds the conversation: earlier tool work stays on disk / in git but
 disappears from context. Always `git log --oneline -15` and read this file before writing code.
 
+## State on Oct 5 2026 (paused: Ash moved to the monkey show, see MONKEYS_LIFE/NOTES.md)
+- Live at https://swagbb8.github.io/Smash-radar/ (site) and /studio/ (app). Engine runs 4×/day; each file is published as soon as it is
+  finished (`cli.mjs cycle` + `publish.sh`), and studio requests are picked up within ~2 minutes even during a long run. Verified in
+  Actions: settings request from Ash (handle SMASHNEWS3) applied and answered; 1-file run of the new loop succeeded.
+- Ash's reaction to the money explanation: "I dont wanna do anything". Told him plainly that zero-effort money is not real; the least
+  possible is one 15-minute setup (auto-posting needs one login to a posting tool; a payout account needs an adult owner). He did not
+  choose; do not push it. OpusClip connector is connected (trial plan, no social accounts linked).
+- OpenAlex answers on some runner addresses and returns 429 on others (shared keyless budget); `OPENALEX_API_KEY` is supported if
+  ever added. `sources/crossref.mjs` works on runners but is NOT wired into `gather` (results include low-tier journals; needs a
+  citation floor first). arXiv, ERIC, Wikipedia pageviews and Google News answer keyless; DOAJ 403, OpenAIRE times out.
+- Not built (the Money page says so where relevant, check before claiming): monthly collection PDF (the Money row for it describes it
+  as if it exists — fix or build), short video, trending signals, picture desk v2, unit tests.
+
 ## Next steps (keep updated)
 1. Public website (`engine/site.mjs`): article page per file (deterministic from claims/quotes), index, search, RSS, sitemap, money slots
    (tips, Amazon tag, AdSense, product, newsletter) → then the Money page streams switch on.
