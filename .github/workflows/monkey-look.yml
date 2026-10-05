@@ -42,7 +42,7 @@ jobs:
       - name: Scene assets
         if: ${{ inputs.assets == 'yes' }}
         run: |
-          git clone -q --depth 1 -b monkey-assets "https://github.com/${{ github.repository }}.git" MONKEYS_LIFE/assets/scene
+          rm -rf MONKEYS_LIFE/assets/scene && git clone -q --depth 1 -b monkey-assets "https://github.com/${{ github.repository }}.git" MONKEYS_LIFE/assets/scene
           find MONKEYS_LIFE/assets/scene -name '*.part-00' | while read -r f; do b="${f%.part-00}"; cat "$b".part-* > "$b" && rm "$b".part-*; done
       - name: Render ${{ matrix.name }}
         env: { ML_NAME: '${{ matrix.name }}', ML_ARGS: '${{ matrix.args }}', ML_TOOL: '${{ matrix.tool }}', ML_DEVICE: '${{ inputs.device }}' }

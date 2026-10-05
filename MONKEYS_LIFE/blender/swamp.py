@@ -204,7 +204,7 @@ def _trunk(seed, height=30.0, nth=72):
     lean = rng.normal(0, 0.012, 2); sway = rng.uniform(0, 6.28, 2); V = []
     for z in zs:
         r = (1 - 0.42 * max(z, 0) / height) + 0.30 * math.exp(-max(z + 0.3, 0) / 0.55)
-        fin = sum(a * math.exp(-(max(z, -0.2) / t_) ** 1.6) * np.maximum(0, np.cos(th - an - 0.16 * math.sin(z * 1.9 + w_))) ** s_ for a, t_, s_, an, w_ in zip(amp, tall, sharp, ang, wav))      # root flanges: they wander as they climb
+        fin = sum(a * math.exp(-(max(z, 0.0) / t_) ** 1.6) * np.maximum(0, np.cos(th - an - 0.16 * math.sin(z * 1.9 + w_))) ** s_ for a, t_, s_, an, w_ in zip(amp, tall, sharp, ang, wav))      # root flanges: they wander as they climb
         lump = 0.07 * (bm.noise3(np.stack([np.cos(th) * 1.3, np.sin(th) * 1.3, np.full(nth, z * 0.5)], 1), 0.9, seed) - 0.5) * 2
         rr = r * (1 + fin) * (1 + lump); cx = lean[0] * z * z * 0.2 + 0.05 * math.sin(z * 0.25 + sway[0]) * min(z, 6) / 6 * (z > 0); cy = lean[1] * z * z * 0.2 + 0.05 * math.sin(z * 0.21 + sway[1]) * min(z, 6) / 6 * (z > 0)
         V.append(np.stack([cx + rr * np.cos(th), cy + rr * np.sin(th), np.full(nth, z)], 1))

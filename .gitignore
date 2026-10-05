@@ -9,5 +9,5 @@ __pycache__/
 *.pyc
 
 MONKEYS_LIFE/assets/seven/
-MONKEYS_LIFE/assets/scene/
+MONKEYS_LIFE/assets/scene
 out/
