@@ -1,0 +1,36 @@
+# Monkey's Life — fetches CC0 scene assets (plants, rocks, ground, sky light) from Poly Haven and keeps them on the
+# branch `monkey-assets`, so renders never depend on a download working.
+name: Monkey assets
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: 'Poly Haven asset ids, space separated (empty = only list what exists)'
+        default: ''
+      res:
+        description: 'Texture size'
+        default: '1k'
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep what was fetched before
+        run: |
+          mkdir -p out
+          if git fetch -q --depth 1 origin monkey-assets 2>/dev/null; then git archive FETCH_HEAD | tar -x -C out; fi
+      - name: Fetch
+        env:
+          IDS: ${{ inputs.ids }}
+          RES: ${{ inputs.res }}
+        run: |
+          python3 MONKEYS_LIFE/tools/fetch_polyhaven.py catalog
+          if [ -n "$IDS" ]; then python3 MONKEYS_LIFE/tools/fetch_polyhaven.py get "$IDS" "$RES"; fi
+          du -sh out; ls out | head -80
+      - name: Save to the monkey-assets branch
+        run: |
+          cd out && git init -q -b monkey-assets && git config user.name "monkey-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "assets $(date -u +%FT%TZ)" && git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" monkey-assets
