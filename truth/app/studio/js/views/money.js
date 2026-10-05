@@ -16,8 +16,8 @@ export const STREAMS = [
     steps: ['Join Amazon Associates (free) and list your website.', 'Paste your tracking tag below. It ends in -20.', 'Amazon closes accounts that make no sales in the first 180 days, so join once people are reading.'] },
   { key: 'adsense', name: 'Ads on the website', what: 'Google places ads in the articles and pays per view and click.', field: 'Your AdSense publisher ID', hint: 'ca-pub-0000000000000000', ok: (v) => /^ca-pub-\d{10,20}$/.test(v),
     steps: ['Google only accepts sites on their own domain. Buy one (about $12 a year) and add it under Settings.', 'Apply at adsense.google.com. Approval takes days to weeks and needs a good number of articles.', 'Paste your publisher ID below.'] },
-  { key: 'product', name: 'The monthly collection', what: 'Each month the engine binds that month’s files into one PDF you can sell.', field: 'Link to your product page', hint: 'https://yourname.gumroad.com/l/truth', ok: isUrl,
-    steps: ['Download this month’s PDF from the list below once it exists.', 'Create a product on Gumroad or Ko-fi Shop, upload the PDF, set a price.', 'Paste the product link below. A “Get the collection” button appears on the website.'] },
+  { key: 'product', name: 'Something to sell', what: 'A “Get the collection” button on the website that links to a product of yours.', field: 'Link to your product page', hint: 'https://yourname.gumroad.com/l/truth', ok: isUrl,
+    steps: ['Make a product on Gumroad or Ko-fi Shop: a PDF of your best files, a print, anything you own.', 'Paste the product link below.', 'The app does not make the product for you yet. A monthly collection PDF is planned, not built.'] },
   { key: 'newsletter', name: 'Email briefing', what: 'A sign-up button on the website. A list you own is the one audience no algorithm can take away.', field: 'Link to your sign-up page', hint: 'https://yourname.beehiiv.com/subscribe', ok: isUrl,
     steps: ['Start a free newsletter (beehiiv, Substack or Buttondown).', 'Paste its sign-up link below.', 'The website publishes a feed of every new file that those services can send out for you.'] },
 ];
