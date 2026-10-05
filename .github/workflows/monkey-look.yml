@@ -46,17 +46,16 @@ jobs:
       - name: Render ${{ matrix.name }}
         env: { ML_NAME: '${{ matrix.name }}', ML_ARGS: '${{ matrix.args }}', ML_TOOL: '${{ matrix.tool }}' }
         run: python MONKEYS_LIFE/blender/ci.py still
-      - uses: actions/upload-artifact@v4
-        with: { name: 'still-${{ matrix.name }}', path: out, retention-days: 2 }
-  keep:
-    needs: render
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { pattern: 'still-*', merge-multiple: true, path: out }
-      - name: Save to the monkey-renders branch
+      - name: Save to the monkey-renders branch (each picture as soon as it is done)
+        if: ${{ always() }}
         run: |
-          cd out && ls -la && git init -q -b monkey-renders && git config user.name "monkey-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          echo "run ${{ github.run_number }} $(date -u +%FT%TZ)" > RUN.txt
-          git add -A && git commit -qm "look ${{ github.run_number }}" && git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" monkey-renders
+          [ -n "$(ls out 2>/dev/null)" ] || exit 0
+          url="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          for try in 1 2 3 4 5 6 7 8; do
+            rm -rf keep && (git clone -q --depth 1 -b monkey-renders "$url" keep 2>/dev/null || (mkdir keep && cd keep && git init -q -b monkey-renders && git remote add origin "$url"))
+            cp out/* keep/ && cd keep && git config user.name "monkey-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A && (git diff --cached --quiet || git commit -qm "${{ matrix.name }} (run ${{ github.run_number }})")
+            if git push -q origin monkey-renders 2>/dev/null; then echo saved; exit 0; fi
+            cd .. && sleep $((RANDOM % 7 + 2))
+          done
+          echo "::error::could not save ${{ matrix.name }}"; exit 1
