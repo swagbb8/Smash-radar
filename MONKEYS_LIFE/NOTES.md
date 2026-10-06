@@ -23,8 +23,19 @@ shattered it fit the size of my palm i never seen anything like it"
 Then: smash cut to black, title card MONKEY'S LIFE — Episode 1 — "ARISE".
 Not decided by Ash (ask before adding): narration of these words by a voice; any text on the device's screen (kept abstract).
 
+## WHERE THINGS STAND (update this first; the session gets cut off without warning)
+- Oct 6 02:10 UTC: rough cut in progress at `preview` quality. Plates started (run 37402948112); frames are started per shot once
+  its plate branch exists: `python cloud.py frames` (it only starts what is missing; `python cloud.py status` shows the gaps).
+  Then: `python cloud.py fetch <dir>` → `python post.py unpack <dir> <frames>` → `python sound.py <wav>` →
+  `python post.py film <frames> <mp4> --size 1280x536 --sound <wav>` → look at it → send to Ash (he has waited hours: send the rough
+  cut even if imperfect, say it is a rough cut, then do the HD pass with `--quality final`).
+- Ash has been sent stills: portrait, full body, device close-up, s03 frame, and (Oct 6) p_s08 / p_s07 / p_s14 test frames.
+- s02_eyes (close on his face in the mud) is OUT of the cut: the face read as a pale featureless mask. s03 now opens with 1.5 s of
+  him lying still instead (`Rise.lead`). To bring s02 back it needs look-dev (less sheen on wet mud, tighter on the upper eye).
+- Usage limits and auth errors have stopped the session several times ("Go" from Ash = carry on). Keep commits small and frequent.
+
 ## The film (cut list = EDL in blender/post.py, about 76 s, 2.39:1, 24 fps)
-black → s01_wake (through his eyes: grass, focus pull, eyelids) → s02_eyes (his face in the mud, an eye opens) → s03_rise (pushes up,
+black → s01_wake (through his eyes: grass, focus pull, eyelids) → [s02_eyes: out for now] → s03_rise (lies still, pushes up,
 sits) → s04_look (through his eyes: looking round the wood) → s05_stand (knee-deep, "standing tall", looks up) → s06_up (through his
 eyes: sun in the leaves, the branch) → s07_jump (from behind: leap, one hand catches) → s08_arm (close: the other arm stops in front
 of his face, the device; he freezes; fingers slip) → s09_fall (drops, splash) → s10_under (drawn in post) → s12_pull (bursts up, two
@@ -47,7 +58,7 @@ Shots: `shots.py` (Stage = swamp + Seven; one class per shot: `setup` camera / l
 `render.py`: `plate`, `frames`, `still`, `sheet` (fast clay contact sheet), `witness` (shot camera + 5 cameras round him; `--real 1`
 real fur, `--on Eyes --dist 0.3` close). `finish.py` compositor (plate under, fur kept un-denoised, bloom).
 Finishing: `post.py` (EDL, 2D camera moves and shake, grade, vignette, grain, eyelids for s01, the under-water seconds, title card in
-Bebas Neue (OFL, assets/fonts), `film` → mp4, `unpack` chunk videos → frames), `sound.py` (whole soundtrack synthesized from sines and
+Bebas Neue (OFL, assets/fonts), `film` → mp4, `unpack` chunk videos → frames), `cloud.py` (status / plates / frames / fetch: drives the cloud render from the cut list), `sound.py` (whole soundtrack synthesized from sines and
 noise, cues taken from the EDL; nobody has listened to it: the sandbox cannot play audio).
 
 ## Cloud (GitHub Actions; gh GraphQL is blocked here → start runs with scratch `dispatch.py`, i.e. REST workflow_dispatch)
