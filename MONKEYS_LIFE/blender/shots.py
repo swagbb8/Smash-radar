@@ -23,6 +23,7 @@ FPS = 24
 QUALITY = {   # size of the frame, samples per pixel (frames, plate), fur strands, body subdivision
     'draft':   dict(size=(480, 200), samples=12, plate_samples=24, fur=70000, subdiv=1, noise=0.05, fur_raw=0.0),
     'preview': dict(size=(768, 322), samples=48, plate_samples=96, fur=220000, subdiv=2, noise=0.02, fur_raw=0.12),
+    'hd':      dict(size=(1280, 536), samples=72, plate_samples=160, fur=320000, subdiv=2, noise=0.012, fur_raw=0.22),      # what the film is delivered at: ~3 min a frame on a runner
     'final':   dict(size=(1280, 536), samples=112, plate_samples=224, fur=405000, subdiv=2, noise=0.008, fur_raw=0.45),
 }
 
