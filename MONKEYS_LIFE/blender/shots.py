@@ -67,7 +67,17 @@ class Stage:
 
     def clear_lamps(self):
         for ob in self.lamps: bpy.data.objects.remove(ob, do_unlink=True)
-        self.lamps = []
+        self.lamps = []; self.spare(())
+
+    def spare(self, names=('SkyGap', 'SunShafts', 'FarGlow')):
+        """Keep the set's own lamps off Seven (they go on lighting the ground, the water and the plate exactly as before), so a
+        close shot of him can be lit by its own lamps alone. spare(()) gives the set light back to him."""
+        if not self.sv: return
+        coll = bpy.data.collections.get('NotSeven')
+        if coll is None:
+            coll = bpy.data.collections.new('NotSeven'); coll.children.link(self.sv['collection']); coll.collection_children[0].light_linking.link_state = 'EXCLUDE'
+        for o in self.sc.objects:
+            if o.type == 'LIGHT' and o.name in ('SkyGap', 'SunShafts', 'FarGlow'): o.light_linking.receiver_collection = coll if o.name in names else None
 
     def clear_around(self, point, radius):
         """Take out the grass and plants standing within `radius` of a point (after sightline, which starts the list afresh)."""
@@ -148,24 +158,26 @@ def _wake_keys(st):
 
 
 class Eyes(Shot):
-    """ECU: a face caked in black mud, lying in the grass. An eye opens in it."""
-    name = 's02_eyes'; dur = 5.0; zone = (1.6, 2.4); move = dict(zoom=(1.16, 1.0), drift=(0.0, 0.0), shake=0.0010)
+    """Very close: a face on its side in black mud. The one eye that is clear of it opens."""
+    name = 's02_eyes'; dur = 5.0; zone = (1.2, 1.9); move = dict(zoom=(1.10, 1.0), drift=(0.0, 0.0), shake=0.0008)
 
     def setup(self, st):
-        self.K = _wake_keys(st); A = st.actor; A.apply(self.K['prone']); bpy.context.view_layer.update(); self.eye = eye = A.point('Eyes')
-        aim = eye + Vector((0.0, 0.035, -0.015)); st.camera(tuple(aim + Vector((-0.92, -0.10, 0.02))), tuple(aim), lens=75, fstop=3.2, focus=(eye - (aim + Vector((-0.92, -0.10, 0.02)))).length); st.sightline(tuple(eye), 0.22, 0.45, 0.0); st.clear_around(eye, 0.55)
-        st.clear_lamps(); st.lamp('Key', tuple(eye + Vector((-1.3, -0.9, 0.75))), tuple(eye), 26, (0.78, 0.95, 0.88), 0.9); st.lamp('EyeLight', tuple(eye + Vector((-0.9, 0.25, 0.20))), tuple(eye), 3, (0.9, 1.0, 0.95), 0.3)
-        st.lamp('Edge', tuple(eye + Vector((0.6, 0.5, 0.9))), tuple(eye), 60, (1.0, 0.86, 0.62), 0.5)
+        self.K = _wake_keys(st); A = st.actor; A.apply(self.K['prone']); bpy.context.view_layer.update(); self.eye = eye = A.point('RightEye'); arm = st.sv['arm']; pb = arm.pose.bones['Head']
+        R = arm.matrix_world.to_3x3().normalized() @ pb.matrix.to_3x3() @ pb.bone.matrix_local.to_3x3().inverted(); face = (R @ Vector((0, -1, 0))).normalized(); crown = (R @ Vector((0, 0, 1))).normalized(); self.face = face
+        aim = A.point('Eyes') + Vector((0, 0, 0.009)) - crown * 0.006; cam = aim + face * 0.46 + Vector((0, 0, 0.05)) + crown * 0.02
+        st.camera(tuple(cam), tuple(aim), lens=70, fstop=8.0, focus=(eye + face * 0.012 - cam).dot((aim - cam).normalized())); st.sightline(tuple(eye), 0.25, 0.35, 0.0); st.clear_around(eye, 0.6)
+        st.clear_lamps(); st.spare(); st.lamp('Key', tuple(eye + face * 0.50 + Vector((0, 0, 0.22)) - crown * 0.22), tuple(eye), 9.0, (0.80, 0.95, 0.92), 0.35)       # the set's lamps are kept off him here: at this distance they bleach wet mud to a mask
+        st.lamp('Edge', tuple(eye - face * 0.45 + Vector((0, 0, 0.55)) - crown * 0.5), tuple(eye), 9, (1.0, 0.84, 0.60), 0.3); st.lamp('EyeLight', tuple(cam + Vector((0, 0, 0.07)) - crown * 0.08), tuple(eye), 2.2, (0.9, 1.0, 0.95), 0.10)
         self.track = anim.Track([(0.0, self.K['prone']), (4.2, self.K['prone']), (5.6, self.K['headup'], 'in')], A)
 
     def center(self, st): return (self.eye.x, self.eye.y)
 
     def frame(self, st, t):
-        A = st.actor; A.apply(self.track.at(t)); A.alive(t, breath=1.3, rate=0.24, restless=0.2)
-        lid = anim.curve(t, [(0.0, 1.0), (0.7, 1.0), (1.0, 0.72), (1.25, 0.95), (1.6, 0.6), (2.3, 0.10)], 'inout'); lid = max(lid, anim.blinks(t, [2.75, 3.05, 4.1]))
-        A.face(Blink=lid, BrowDown=anim.curve(t, [(0, 0.0), (2.3, 0.0), (3.2, 0.55), (5, 0.7)]), BrowUp=0.0)
-        yaw, pitch = anim.saccades(t, [(0.0, (-58, 2)), (2.5, (-70, 6)), (3.2, (-40, 10)), (3.7, (-78, -6)), (4.3, (-55, 12))])
-        A.gaze_dir(yaw, pitch); S.mud(0.86, 1.0); S.device_power(st.sv, 0.0); S.device_cake(1.0)
+        A = st.actor; A.apply(self.track.at(t)); A.alive(t, breath=1.3, rate=0.24, restless=0.15)
+        lid = anim.curve(t, [(0.0, 1.0), (0.7, 1.0), (1.0, 0.72), (1.25, 0.95), (1.6, 0.6), (2.3, 0.06)], 'inout'); lid = max(lid, anim.blinks(t, [2.75, 3.05, 4.1]))
+        A.face(Blink=lid, BrowDown=anim.curve(t, [(0, 0.0), (2.3, 0.0), (3.2, 0.5), (5, 0.65)]), BrowUp=0.0)
+        yaw, pitch = anim.saccades(t, [(0.0, (0, 0)), (2.5, (-12, 4)), (3.2, (16, 8)), (3.7, (-20, -6)), (4.3, (4, 10))])
+        A.gaze(tuple(self.eye + self.face * 1.5 + Vector((0, 0, 0.03 * pitch)) + Vector((-self.face.y, self.face.x, 0)) * (0.026 * yaw))); S.mud(0.62, 1.0); S.device_power(st.sv, 0.0); S.device_cake(1.0)
 
 
 class Rise(Shot):

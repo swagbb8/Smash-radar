@@ -106,7 +106,8 @@ def main():
         from mathutils import Vector
         f = st.cam.matrix_world.to_3x3() @ Vector((0, 0, -1)); st.lamp('Flat', tuple(st.cam.location + Vector((0, 0, 0.15))), tuple(st.cam.location + f * 1.0), float(arg('--flat')), (1, 1, 1), 0.5)
     print(f'stage ready in {time.time() - t0:.0f}s', flush=True)
-    if mode in ('plate', 'still') and not (mode == 'still' and os.path.exists(plate)):
+    if arg('--noplate') == '1' and mode == 'still': plate = None                                # just him (and the ground round him) over black: quickest way to judge his look
+    if mode in ('plate', 'still') and plate and not (mode == 'still' and os.path.exists(plate)):
         shot.frame(st, 0.0); st.plate_mode(fog=shot.fog); sc.render.filepath = plate; t1 = time.time(); bpy.ops.render.render(write_still=True); _save_png(bpy, sc, plate); print(f'plate in {time.time() - t1:.0f}s', flush=True)
     if mode == 'plate': return
     st.char_mode(plate, shot.center(st), *shot.zone, bloom=shot.bloom)
