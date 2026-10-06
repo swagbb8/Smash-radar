@@ -116,7 +116,7 @@ def lids(img, t):
     img = np.clip(img * gain, 0, 1)
     if op >= 1.25: return img
     y, x = np.mgrid[0:H, 0:W].astype(np.float32); u = (x - W / 2) / (W / 2); arch = 1.0 - 0.42 * u * u; half = op * H * 0.60 * arch; d = np.abs(y - H * 0.50) - half; soft = H * (0.10 + 0.10 * op)
-    m = np.clip(1.0 - d / soft, 0, 1); m = m * m * (3 - 2 * m); return img * m[:, :, None]
+    m = np.clip(1.0 - d / soft, 0, 1); m = m * m * (3 - 2 * m) * min(1.0, op / 0.05); return img * m[:, :, None]                                  # shut means black
 
 
 _bub = None
@@ -174,8 +174,8 @@ def timeline():
     return out, T
 
 
-def film(frames_dir, out, size=(1280, 536), sound=None, only=None, label=False, crf=15):
-    W, H = size; tl, total = timeline(); src = {}; n = int(round(total * FPS)); f1 = ImageFont.truetype(FONT, int(22 * W / 1280))
+def film(frames_dir, out, size=(1280, 536), sound=None, only=None, label=False, crf=22, to=None):
+    W, H = size; tl, total = timeline(); src = {}; n = int(round(min(total, to or total) * FPS)); f1 = ImageFont.truetype(FONT, int(22 * W / 1280))
     tmp = out if not sound else out.replace('.mp4', '_silent.mp4')
     ff = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-', '-c:v', 'libx264', '-preset', 'slow', '-crf', str(crf), '-pix_fmt', 'yuv420p', '-movflags', '+faststart', tmp], stdin=subprocess.PIPE)
     wrote = 0
@@ -196,7 +196,7 @@ def film(frames_dir, out, size=(1280, 536), sound=None, only=None, label=False, 
                 img = move(raw, size, z, dx, dy, roll=0.12 * wobble(t, 5.0, 1.1) * (m['shake'] / 0.0015))
                 if name == 's01_wake': img = lids(img, t)
                 img = grade(img)
-        if name not in ('black',): img = grain(img * vignette(size, 0.30 if name != 'title' else 0.12), i, 0.020 if name != 'title' else 0.012)
+        if name not in ('black',): img = grain(img * vignette(size, 0.30 if name != 'title' else 0.12), i, 0.016 if name != 'title' else 0.010)
         fade = min(1.0, max(0.0, (T - 1.6) / 0.01 + 1.0))                                              # the film starts on black; pieces cut hard
         im8 = np.clip(img * fade * 255.0 + np.random.default_rng(i + 7).uniform(0, 1, img.shape), 0, 255).astype(np.uint8)
         if label: im = Image.fromarray(im8); ImageDraw.Draw(im).text((8, 6), f'{name} {t:5.2f}', font=f1, fill=(255, 255, 0)); im8 = np.asarray(im)
@@ -222,4 +222,4 @@ if __name__ == '__main__':
     if sys.argv[1] == 'contact': contact(sys.argv[2], sys.argv[3], float(arg('--every', 1.0)), int(arg('--cols', 6)), int(arg('--tile', 320)), float(arg('--from', 0.0)), float(arg('--to')) if arg('--to') else None); sys.exit(0)
     if sys.argv[1] == 'unpack': unpack(sys.argv[2], sys.argv[3])
     elif sys.argv[1] == 'film':
-        size = tuple(int(v) for v in arg('--size', '1280x536').split('x')); film(sys.argv[2], sys.argv[3], size, sound=arg('--sound'), only=arg('--only'), label=arg('--label') == '1', crf=int(arg('--crf', 15)))
+        size = tuple(int(v) for v in arg('--size', '1280x536').split('x')); film(sys.argv[2], sys.argv[3], size, sound=arg('--sound'), only=arg('--only'), label=arg('--label') == '1', crf=int(arg('--crf', 22)), to=float(arg('--to')) if arg('--to') else None)
