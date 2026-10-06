@@ -19,11 +19,17 @@ FONT = os.path.join(ROOT, 'assets', 'fonts', 'BebasNeue-Regular.ttf')
 # what plays when: (piece, from second, to second) in that piece's own time
 EDL = [
     ('black', 0.0, 1.6),
-    ('s01_wake', 0.0, 6.5), ('s03_rise', 0.0, 10.5), ('s04_look', 0.0, 7.5), ('s05_stand', 0.0, 5.5), ('s06_up', 0.0, 5.0),                     # (s02_eyes, the close shot of his face in the mud, is not in the cut yet)
+    ('s01_wake', 0.0, 6.5), ('s02_eyes', 0.0, 5.0), ('s03_rise', 0.75, 10.5), ('s04_look', 0.0, 7.5), ('s05_stand', 0.0, 5.5), ('s06_up', 0.0, 5.0),
     ('s07_jump', 0.0, 2.7), ('s08_arm', 0.0, 4.4), ('s09_fall', 0.0, 1.9), ('s10_under', 0.0, 2.4), ('s12_pull', 0.0, 3.6),
     ('s13_study', 0.0, 4.7), ('s14_device', 0.3, 2.1), ('s13_study', 6.5, 9.0), ('s15_wide', 0.0, 5.0),
     ('black', 0.0, 0.7), ('title', 0.0, 4.6), ('black', 0.0, 1.2),
 ]
+def without_eyes():
+    """The cut without the close shot of his eyes (s02): the rise then plays from its very start, where he lies still."""
+    global EDL
+    EDL = [e for e in EDL if e[0] != 's02_eyes']; EDL = [('s03_rise', 0.0, e[2]) if e[0] == 's03_rise' else e for e in EDL]
+
+
 # the slow move laid over each shot: zoom from..to, drift (frame widths, x and y), hand-held shake (frame widths)
 MOVES = {
     's01_wake': dict(zoom=(1.0, 1.0), drift=(0, 0), shake=0.0006), 's02_eyes': dict(zoom=(1.10, 1.0), drift=(0, 0), shake=0.0010), 's03_rise': dict(zoom=(1.0, 1.07), drift=(0.0, -0.010), shake=0.0016),
@@ -200,6 +206,7 @@ def film(frames_dir, out, size=(1280, 536), sound=None, only=None, label=False, 
 
 
 if __name__ == '__main__':
+    if arg('--eyes', '1') == '0': without_eyes()
     if sys.argv[1] == 'unpack': unpack(sys.argv[2], sys.argv[3])
     elif sys.argv[1] == 'film':
         size = tuple(int(v) for v in arg('--size', '1280x536').split('x')); film(sys.argv[2], sys.argv[3], size, sound=arg('--sound'), only=arg('--only'), label=arg('--label') == '1', crf=int(arg('--crf', 15)))

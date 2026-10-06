@@ -356,9 +356,9 @@ def _study(st, K, t, light=1.6):
     dev, nrm = A.device(); touch = 5.6
     if t > 3.9:                                                                              # the right hand comes across, one finger out
         A.curl('Right', (0.9, 1.3, 1.0), index=(0.06, 0.10, 0.06)); bpy.context.view_layer.update(); rest = A.point('RightTip'); w = anim.ease((t - 3.9) / (touch - 3.9), 'inout') if t < touch else 1.0
-        east = st.branch['along']; hover = dev + nrm * 0.05 + east * 0.02; goal = dev + nrm * 0.006; tip = rest.lerp(hover, anim.ease(w / 0.8, 'inout')) if w < 0.8 else hover.lerp(goal, anim.ease((w - 0.8) / 0.2, 'in'))
-        if t > touch + 0.12: tip = goal.lerp(hover + nrm * 0.04, anim.ease((t - touch - 0.12) / 0.35, 'out'))            # he snatches it back
-        A.touch('Right', tuple(tip), tuple(-nrm * 0.80 - east * 0.55 + Vector((0, 0, -0.10))), pole=(east.x * 0.5, east.y * 0.5, -1.0))
+        east = st.branch['along']; hover = dev + nrm * 0.05 + east * 0.03; goal = dev + nrm * 0.006; tip = rest.lerp(hover, anim.ease(w / 0.8, 'inout')) if w < 0.8 else hover.lerp(goal, anim.ease((w - 0.8) / 0.2, 'in'))
+        if t > touch + 0.12: tip = goal.lerp(hover + nrm * 0.03 + east * 0.07, anim.ease((t - touch - 0.12) / 0.35, 'out'))            # he snatches it back
+        A.touch('Right', tuple(tip), tuple(-east * 0.92 - nrm * 0.30 + Vector((0, 0, -0.05))), pole=(east.x * 0.7, east.y * 0.7, -1.0))      # the hand comes in low from his right, so the arm never crosses his face
     power = anim.curve(t, [(0, 0.30), (1.0, 0.28), (1.6, 0.42), (2.4, 0.3), (3.4, 0.45), (4.6, 0.32), (touch, 0.4), (touch + 0.08, 1.0), (9.0, 1.0)]) + (0.06 * math.sin(t * 9.0) if t > touch else 0.0)
     S.device_power(st.sv, power, light=light, wave=(t - touch) * 26.0 if t >= touch else None)
     A.face(Blink=anim.blinks(t, [0.9, 2.7, 4.4]), BrowUp=anim.curve(t, [(0, 0.0), (touch, 0.1), (touch + 0.15, 0.9), (9, 0.7)]), BrowDown=anim.curve(t, [(0, 0.7), (2.0, 0.45), (touch, 0.2), (touch + 0.1, 0.0)]), JawOpen=anim.curve(t, [(0, 0.35), (2.0, 0.15), (touch, 0.1), (touch + 0.2, 0.3), (9, 0.22)]))

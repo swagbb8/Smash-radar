@@ -271,4 +271,6 @@ def build(out):
     return x
 
 
-if __name__ == '__main__': build(sys.argv[1])
+if __name__ == '__main__':
+    if '--eyes' in sys.argv and sys.argv[sys.argv.index('--eyes') + 1] == '0': post.without_eyes()
+    build(sys.argv[1])
