@@ -19,7 +19,7 @@ FONT = os.path.join(ROOT, 'assets', 'fonts', 'BebasNeue-Regular.ttf')
 # what plays when: (piece, from second, to second) in that piece's own time
 EDL = [
     ('black', 0.0, 1.6),
-    ('s01_wake', 0.0, 6.5), ('s02_eyes', 0.0, 5.0), ('s03_rise', 0.0, 9.0), ('s04_look', 0.0, 7.5), ('s05_stand', 0.0, 5.5), ('s06_up', 0.0, 5.0),
+    ('s01_wake', 0.0, 6.5), ('s03_rise', 0.0, 10.5), ('s04_look', 0.0, 7.5), ('s05_stand', 0.0, 5.5), ('s06_up', 0.0, 5.0),                     # (s02_eyes, the close shot of his face in the mud, is not in the cut yet)
     ('s07_jump', 0.0, 2.7), ('s08_arm', 0.0, 4.4), ('s09_fall', 0.0, 1.9), ('s10_under', 0.0, 2.4), ('s12_pull', 0.0, 3.6),
     ('s13_study', 0.0, 4.7), ('s14_device', 0.3, 2.1), ('s13_study', 6.5, 9.0), ('s15_wide', 0.0, 5.0),
     ('black', 0.0, 0.7), ('title', 0.0, 4.6), ('black', 0.0, 1.2),
@@ -32,7 +32,7 @@ MOVES = {
     's12_pull': dict(zoom=(1.04, 1.09), drift=(0.0, 0.010), shake=0.0024), 's13_study': dict(zoom=(1.0, 1.09), drift=(0.005, 0.006), shake=0.0011), 's14_device': dict(zoom=(1.0, 1.07), drift=(0, 0), shake=0.0009),
     's15_wide': dict(zoom=(1.14, 1.0), drift=(0.0, -0.008), shake=0.0007),
 }
-DUR = {'s01_wake': 6.5, 's02_eyes': 5.0, 's03_rise': 9.0, 's04_look': 7.5, 's05_stand': 5.5, 's06_up': 5.0, 's07_jump': 2.7, 's08_arm': 4.4, 's09_fall': 1.9, 's12_pull': 3.6, 's13_study': 9.0, 's14_device': 3.2, 's15_wide': 5.0}
+DUR = {'s01_wake': 6.5, 's02_eyes': 5.0, 's03_rise': 10.5, 's04_look': 7.5, 's05_stand': 5.5, 's06_up': 5.0, 's07_jump': 2.7, 's08_arm': 4.4, 's09_fall': 1.9, 's12_pull': 3.6, 's13_study': 9.0, 's14_device': 3.2, 's15_wide': 5.0}
 
 
 def arg(name, default=None):

@@ -192,7 +192,10 @@ def boom(rng):
 def build(out):
     rng = np.random.default_rng(7); tl, total = post.timeline(); at = {}
     for name, a, b, T in tl: at.setdefault(name, []).append((T, a, b))
-    def cue(shot, t, k=0): T, a, b = at[shot][k]; return T + (t - a)                                # a moment of a shot -> film time
+    def cue(shot, t, k=0):                                                                          # a moment of a shot -> film time
+        if shot == 's03_rise': t += 1.5                                                             # that shot opens with a beat of lying still; its cues are on the action's clock
+        if shot not in at: shot, t = 's03_rise', 0.2 + 0.25 * t                                     # a shot that is out of the cut: its sounds fall in the lying-still beat
+        T, a, b = at[shot][k]; return T + (t - a)
     M = Mix(total + 0.5); air = Mix(total + 0.5); n = M.n; t = np.arange(n) / SR
     wake_t, look_t, up_t, arm_t, fall_t, under_t, pull_t = cue('s01_wake', 0), cue('s04_look', 0), cue('s06_up', 0), cue('s08_arm', 0), cue('s09_fall', 0), cue('s10_under', 0), cue('s12_pull', 0)
     study_t, dev_t, wide_t, title_t = cue('s13_study', 0), cue('s14_device', 0.3), cue('s15_wide', 0), cue('title', 0); cut_t = wide_t + 5.0; touch_t = cue('s14_device', 5.6 - 4.4)

@@ -13,13 +13,13 @@ G = 9.81
 
 
 class Splash:
-    def __init__(self, sc, coll, n=420, seed=5):
+    def __init__(self, sc, coll, n=900, seed=5):
         self.n = n; self.rng = np.random.default_rng(seed); self.bursts = []
         me = bpy.data.meshes.new('Drop'); import bmesh
         bm_ = bmesh.new(); bmesh.ops.create_icosphere(bm_, subdivisions=1, radius=1.0); bm_.to_mesh(me); bm_.free()
         for p_ in me.polygons: p_.use_smooth = True
         m = bpy.data.materials.new('WaterDrop'); m.use_nodes = True; p = m.node_tree.nodes['Principled BSDF']
-        p.inputs['Base Color'].default_value = (0.85, 0.92, 0.88, 1); p.inputs['Roughness'].default_value = 0.03; p.inputs['IOR'].default_value = 1.33; p.inputs['Transmission Weight'].default_value = 0.85; me.materials.append(m)
+        p.inputs['Base Color'].default_value = (0.80, 0.86, 0.80, 1); p.inputs['Roughness'].default_value = 0.12; p.inputs['IOR'].default_value = 1.33; p.inputs['Transmission Weight'].default_value = 0.45; me.materials.append(m)    # churned, aerated water: it catches the light rather than vanishing like glass
         self.obs = []
         for i in range(n):
             ob = bpy.data.objects.new(f'Drop{i:03d}', me); coll.objects.link(ob); ob.hide_render = True; ob.visible_shadow = False; self.obs.append(ob)
@@ -33,7 +33,9 @@ class Splash:
         rad = r.uniform(0.0, 0.32, k) * power ** 0.5
         self.p0[i0:i1] = np.stack([xy[0] + rad * np.cos(ang), xy[1] + rad * np.sin(ang), np.full(k, 0.01)], 1)
         self.v0[i0:i1] = np.stack([out * np.cos(ang) + lean[0], out * np.sin(ang) + lean[1], up], 1); self.t0[i0:i1] = t0 + r.uniform(0.0, 0.07, k)
-        self.size[i0:i1] = np.clip(r.gamma(2.0, 0.006, k), 0.004, 0.035); self.bursts.append((t0, xy, power))
+        self.size[i0:i1] = np.clip(r.gamma(2.0, 0.008, k), 0.005, 0.045)
+        g = max(1, k // 9); self.size[i0:i0 + g] = r.uniform(0.05, 0.11, g) * power ** 0.5; self.v0[i0:i0 + g, :2] *= 0.35; self.v0[i0:i0 + g, 2] = r.uniform(2.8, 4.6, g) * power ** 0.5; self.t0[i0:i0 + g] = t0 + r.uniform(0.0, 0.04, g)      # the gouts: the column that jumps up where he went in
+        self.bursts.append((t0, xy, power))
 
     def frame(self, t):
         for i, ob in enumerate(self.obs[:self.used]):

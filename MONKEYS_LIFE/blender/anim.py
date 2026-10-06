@@ -104,9 +104,13 @@ class Actor:
         self.arm.location = self.arm.location + (Vector(where) - cur) * weight; bpy.context.view_layer.update()
 
     def touch(self, side, tip, along, pole=(0, 0, -1)):
-        """Put the end of that hand's index finger on `tip` (world), the finger coming in along the world direction `along`."""
-        bpy.context.view_layer.update(); d = Vector(along).normalized(); n = self.point(side + 'Tip') - self.point(side + 'Hand'); self.reach(side, Vector(tip) - d * n.length, pole)
-        S.aim(self.arm, side + 'Hand', self.arm.matrix_world.to_3x3().inverted() @ d); bpy.context.view_layer.update()
+        """Put the end of that hand's index finger on `tip` (world), the finger coming in along the world direction `along`.
+        (The finger does not lie on the hand's own line, so the wrist is moved until the fingertip is really there.)"""
+        bpy.context.view_layer.update(); d = Vector(along).normalized(); R = self.arm.matrix_world.to_3x3().inverted(); w = Vector(tip) - d * (self.point(side + 'Tip') - self.point(side + 'Hand')).length
+        for _ in range(4):
+            self.reach(side, w, pole); S.aim(self.arm, side + 'Hand', R @ d); bpy.context.view_layer.update(); err = Vector(tip) - self.point(side + 'Tip')
+            if err.length < 0.002: break
+            w = w + err
 
     def reach(self, side, target, pole=(0, 0, -1)):
         """Bend one arm so its wrist lands on `target` (world), the elbow leaning toward `pole` (a world direction)."""
