@@ -1,1 +1,1 @@
-rendered p_s13 in 301s (4 cores)
+rendered p_s13 in 294s (4 cores)
