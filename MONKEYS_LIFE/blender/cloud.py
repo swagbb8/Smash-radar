@@ -69,11 +69,12 @@ def dispatch(mode, include, q, step=1):
 
 def main():
     cmd = sys.argv[1]; q = arg('--quality', 'preview'); step = int(arg('--step', 1)); chunk = int(arg('--chunk', 28)); only = set(arg('--only').split(',')) if arg('--only') else None
-    T = table(); mp, mf = branches(q)
+    mp, mf = branches(q); T = table() if cmd != 'fetch' else {}
     if cmd == 'status':
         for name, d in T.items():
             pl = [p in mp for p in d['plates']]; got = covered(name, mf, step); miss = [f for f in d['frames'] if f not in got]
             print(f"{name:11s} {d['kind']:5s} plates {sum(pl)}/{len(pl)}   frames {len(d['frames']) - len(miss)}/{len(d['frames'])}" + (f'   missing {runs_of(miss, 10 ** 6)}' if miss and len(miss) < len(d['frames']) else ''))
+        left = sum(len([f for f in d['frames'] if f not in covered(n, mf, step)]) for n, d in T.items()); print('ALL THERE' if not left else f'{left} frames to come')
     elif cmd == 'plates':
         inc = []; seen = set()
         for name, d in T.items():

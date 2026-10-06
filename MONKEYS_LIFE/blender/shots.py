@@ -188,7 +188,7 @@ class Rise(Shot):
         self.K = K = _wake_keys(st); g = st.ground(*BANK)
         st.camera((BANK[0] + 2.75, BANK[1] - 3.55, g + 0.42), (BANK[0] - 0.05, BANK[1] - 0.25, g + 0.47), lens=45, fstop=4.0); st.sightline((BANK[0], BANK[1] - 0.3, g + 0.3), 0.15, 0.85, 0.3)
         st.clear_lamps(); st.lamp('Rim', (BANK[0] - 2.4, BANK[1] + 2.8, 2.6), (BANK[0], BANK[1] - 0.2, 0.6), 700, (1.0, 0.88, 0.66), 1.0)
-        st.lamp('Fill', (BANK[0] + 3.0, BANK[1] - 2.2, 1.6), (BANK[0], BANK[1] - 0.3, 0.6), 70, (0.62, 0.86, 0.90), 1.6); st.lamp('Eye', (BANK[0] + 2.5, BANK[1] - 3.3, 0.8), (BANK[0], BANK[1] - 0.3, 0.8), 14, (0.9, 1.0, 0.95), 0.4)
+        st.lamp('Fill', (BANK[0] + 3.0, BANK[1] - 2.2, 1.6), (BANK[0], BANK[1] - 0.3, 0.6), 100, (0.62, 0.86, 0.90), 1.6); st.lamp('Eye', (BANK[0] + 2.4, BANK[1] - 3.2, 0.50), (BANK[0], BANK[1] - 0.3, 0.8), 70, (0.9, 1.0, 0.95), 0.4)
         self.track = anim.Track([(-1.5, K['prone']), (-0.75, K['prone']), (0.5, K['headup'], 'inout'), (2.9, K['pushup'], 'inout'), (3.4, K['pushup']), (5.4, K['quad'], 'inout'), (7.3, K['sit'], 'settle'), (9.0, K['sit'])], st.actor)
 
     def center(self, st): return (BANK[0], BANK[1] - 0.2)
@@ -213,7 +213,7 @@ class Stand(Shot):
         self.track = anim.Track([(0.0, low), (0.3, low), (1.7, up, 'inout'), (2.6, sunk, 'inout'), (3.5, sunk), (4.9, look, 'inout'), (5.5, look)], A)
         c = Vector((SPOT[0], SPOT[1], 0.0)); cam = c + N * 2.55 + W * 1.75 + Vector((0, 0, 0.22)); st.camera(tuple(cam), tuple(c + Vector((0, 0, 0.62))), lens=32, fstop=5.6); st.sightline(tuple(c + Vector((0, 0, 0.4))), 0.1, 0.5, 0.4)
         st.clear_lamps(); st.lamp('Key', tuple(c + N * 3.5 + W * 3.2 + Vector((0, 0, 3.4))), tuple(c + Vector((0, 0, 0.7))), 420, (1.0, 0.86, 0.62), 1.2); st.lamp('Cool', tuple(c - N * 2.5 - W * 2.5 + Vector((0, 0, 2.5))), tuple(c + Vector((0, 0, 0.7))), 260, (0.6, 0.88, 0.95), 1.4)
-        st.lamp('Eye', tuple(cam + Vector((0.3, 0, 0.5))), tuple(c + Vector((0, 0, 0.9))), 16, (0.9, 1.0, 0.95), 0.4)
+        st.lamp('Eye', tuple(cam + Vector((0.3, 0, 0.25))), tuple(c + Vector((0, 0, 0.9))), 55, (0.9, 1.0, 0.95), 0.4)
 
     def center(self, st): return SPOT
 
@@ -373,11 +373,14 @@ class Study(Shot):
     def setup(self, st):
         self.K = K = _perch_keys(st); A = st.actor; A.apply(K['b']); A.pin('Seat', K['seat']); head = A.point('Head'); N = st.branch['north']; W = -st.branch['along']; c = K['seat'] + Vector((0, 0, 0.40))
         st.camera(tuple(c + N * 2.25 + W * 0.95 + Vector((0, 0, -0.12))), tuple(c + Vector((0, 0, 0.02))), lens=36, fstop=3.5)
-        st.clear_lamps(); st.lamp('Key', tuple(c + N * 2.6 + W * 2.8 + Vector((0, 0, 2.6))), tuple(c), 620, (1.0, 0.86, 0.62), 1.0); st.lamp('Cool', tuple(c - N * 2.2 - W * 1.5 + Vector((0, 0, 1.6))), tuple(c), 420, (0.55, 0.85, 0.95), 1.0)
-        st.lamp('Eye', tuple(c + N * 2.2 + W * 0.6 + Vector((0, 0, 0.2))), tuple(head), 8, (0.9, 1.0, 0.95), 0.35); st.splash.frame(-1.0)
+        st.clear_lamps(); st.lamp('Key', tuple(c + N * 3.0 + W * 2.6 + Vector((0, 0, 1.2))), tuple(c), 520, (1.0, 0.86, 0.62), 1.0); st.lamp('Cool', tuple(c - N * 2.2 - W * 1.5 + Vector((0, 0, 1.6))), tuple(c), 420, (0.55, 0.85, 0.95), 1.0)
+        st.lamp('Eye', tuple(c + N * 2.2 + W * 0.6 + Vector((0, 0, -0.15))), tuple(head), 30, (0.9, 1.0, 0.95), 0.35); st.splash.frame(-1.0); self.bounce = st.lamp('Bounce', tuple(c), tuple(head), 0.0, (0.25, 0.6, 1.0), 0.14)
 
     def center(self, st): return (self.K['seat'].x, self.K['seat'].y)
-    def frame(self, st, t): _study(st, self.K, t)
+
+    def frame(self, st, t):
+        dev, nrm = _study(st, self.K, t); A = st.actor; eye = A.point('Eyes'); b = self.bounce; b.location = dev + nrm * 0.04 + (eye - dev).normalized() * 0.05; b.rotation_euler = (eye - b.location).to_track_quat('-Z', 'Y').to_euler()
+        b.data.energy = 2.6 * st.sv['glow'].data.energy                                              # what the screen throws up into his face (the screen itself faces the camera more than it faces him)
 
 
 class Device(Shot):

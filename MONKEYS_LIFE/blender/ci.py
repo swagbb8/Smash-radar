@@ -92,4 +92,22 @@ def keep():
     print('::error::could not keep ' + br); sys.exit(1)
 
 
-if __name__ == '__main__': {'plan': plan, 'still': still, 'film': film, 'keep': keep}[sys.argv[1]]()
+def assemble():
+    """The last job: wait until every run of frames the cut needs is on its branch, then fetch them, build the sound, cut the film and
+    leave it in keep/ (-> branch monkey-film). ML_QUALITY, ML_SIZE (e.g. 1280x536), ML_WAIT (minutes to wait at most)."""
+    import time
+    q = SAFE(os.environ.get('ML_QUALITY') or 'preview'); size = SAFE(os.environ.get('ML_SIZE') or '1280x536'); wait = int(SAFE(os.environ.get('ML_WAIT') or 330)); t0 = time.time(); py = lambda *a: subprocess.run([sys.executable, *a], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=HERE)
+    while True:
+        r = py('cloud.py', 'status', '--quality', q); last = [l for l in r.stdout.splitlines() if l.strip()][-1] if r.stdout.strip() else '?'; print(time.strftime('%H:%M:%S'), last, flush=True)
+        if 'ALL THERE' in last: break
+        if time.time() - t0 > wait * 60: print('::warning::not every frame arrived in time: cutting the film with what is there'); break
+        time.sleep(240)
+    root = os.path.abspath('film_work'); os.makedirs('keep', exist_ok=True)
+    for a in (('cloud.py', 'fetch', os.path.join(root, 'chunks'), '--quality', q), ('post.py', 'unpack', os.path.join(root, 'chunks'), os.path.join(root, 'frames')), ('sound.py', os.path.join(root, 'arise.wav')),
+              ('post.py', 'film', os.path.join(root, 'frames'), os.path.abspath(os.path.join('keep', f'arise_{q}.mp4')), '--size', size, '--sound', os.path.join(root, 'arise.wav'))):
+        r = py(*a); print('\n'.join(r.stdout.splitlines()[-4:]), flush=True)
+        if r.returncode: print('::error::' + a[0] + ' ' + a[1] + ': ' + ' | '.join(r.stdout.splitlines()[-5:])[:800]); sys.exit(1)
+    open('keep_branch.txt', 'w').write('monkey-film'); print('::notice::film cut: ' + f'arise_{q}.mp4')
+
+
+if __name__ == '__main__': {'plan': plan, 'still': still, 'film': film, 'keep': keep, 'assemble': assemble}[sys.argv[1]]()
