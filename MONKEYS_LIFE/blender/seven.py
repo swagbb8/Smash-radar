@@ -98,7 +98,7 @@ def _mud(T, position):
     n = T.node('ShaderNodeGroup'); n.node_tree = mud_field(); T.link(position, n.inputs['Position']); return n.outputs['Mud'], n.outputs['Thick'], n.outputs['Wet']
 
 
-MUD_WET, MUD_DRY = '#221a12', '#6e5d4a'
+MUD_WET, MUD_DRY = '#2c2116', '#6e5d4a'
 
 
 def _material(name):
@@ -151,9 +151,9 @@ def skin_material(maps):
     # swamp mud over everything: dark and glossy while wet, lumpy where it is caked on
     mud, thick, wet = _mud(T, obj); lumps = T.noise(1.7, 4.0, 0.65, obj); grit = T.noise(14.0, 2.0, 0.5, obj)
     mudcol = T.mix(T.math('MULTIPLY', lumps, 0.8), T.mix(wet, lin(MUD_DRY), lin(MUD_WET)), T.mix(wet, lin('#84735f'), lin('#191611')))
-    sheen = T.ramp(T.noise(0.9, 3.0, 0.6, obj), [(0.42, (0.64, 0.64, 0.64, 1)), (0.66, (0.36, 0.36, 0.36, 1))])                # dull wet earth, a little slicker in places (never a mirror: that reads as rubber)
+    sheen = T.ramp(T.noise(0.9, 3.0, 0.6, obj), [(0.42, (0.74, 0.74, 0.74, 1)), (0.70, (0.46, 0.46, 0.46, 1))])                # dull wet earth, a little slicker in places (never a mirror: that reads as rubber)
     base = T.mix(mud, base, mudcol); rough = T.mix(mud, rough, T.mix(wet, (0.88, 0.88, 0.88, 1), sheen))
-    T.set(p, Base_Color=base, Roughness=rough, Specular_IOR_Level=T.math('ADD', 0.35, T.math('MULTIPLY', T.math('MULTIPLY', mud, wet), 0.15)), Subsurface_Weight=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, mud), 0.10), Subsurface_Scale=0.003, Normal=bump.outputs['Normal'],
+    T.set(p, Base_Color=base, Roughness=rough, Specular_IOR_Level=T.math('SUBTRACT', 0.35, T.math('MULTIPLY', mud, 0.12)), Subsurface_Weight=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, mud), 0.10), Subsurface_Scale=0.003, Normal=bump.outputs['Normal'],
           Emission_Color=lin('#2f9dff'), Emission_Strength=T.math('MULTIPLY', T.math('MULTIPLY', emis, T.math('SUBTRACT', 1.0, T.math('MULTIPLY', thick, 0.85))), 5.0))
     mud_h = T.math('MULTIPLY', thick, T.math('ADD', 0.25, T.math('ADD', T.math('MULTIPLY', lumps, 1.2), T.math('MULTIPLY', grit, 0.35))))          # 0..~1.6: lumpy and gritty
     md = T.math('ADD', T.math('MULTIPLY', T.math('MULTIPLY', T.math('SUBTRACT', ih.outputs['Color'], 0.5), skinpaint.HRANGE), T.math('MULTIPLY', paint, T.math('SUBTRACT', 1.0, T.math('MULTIPLY', thick, 0.7)))), T.math('MULTIPLY', mud_h, 0.22))
@@ -321,7 +321,7 @@ def fur_strands(b, count=450000, k=7, seed=3, wet=0.0):
     ft = fl - (fl * n).sum(1, keepdims=True) * n; ft /= np.linalg.norm(ft, axis=1, keepdims=True) + 1e-9; side = np.cross(n, ft)
     swirl = (bm.noise3(root, 7.0, seed + 3) - 0.5) * 1.5 + rng.normal(0, 0.17, n_); ft = ft * np.cos(swirl)[:, None] + side * np.sin(swirl)[:, None]; side = np.cross(n, ft)
     soak = np.clip(wet * (0.75 + 0.5 * bm.noise3(root, 14.0, seed + 5)), 0, 1)                    # a soaked coat lies flat, sticks together in spikes and shines
-    lift = (np.clip(at(M['lift']) + rng.normal(0, 0.09, n_), 0.10, 0.85) * (1 - 0.55 * soak))[:, None]; d0 = n * lift + ft * (1 - lift); d0 /= np.linalg.norm(d0, axis=1, keepdims=True)
+    lift = (np.clip(at(M['lift']) + rng.normal(0, 0.09, n_), 0.10, 0.85) * (1 - 0.34 * soak))[:, None]; d0 = n * lift + ft * (1 - lift); d0 /= np.linalg.norm(d0, axis=1, keepdims=True)
     hang = at(M['hang'])[:, None]; bend = -n * 0.20 + np.array([0, 0, -0.22]) * hang
     frizz = (side * rng.normal(0, 1, (n_, 1)) + n * rng.normal(0, 0.5, (n_, 1))) * rng.uniform(0.03, 0.22, (n_, 1)) * (1 - 0.7 * soak[:, None])
     t = np.linspace(0, 1, k); pts = root[:, None, :] + L[:, None, None] * (t[None, :, None] * d0[:, None, :] + (t ** 2)[None, :, None] * (bend + frizz)[:, None, :])

@@ -32,7 +32,7 @@ class Stage:
         self.q = dict(QUALITY[quality]); self.quality = quality
         sc = self.sc = studio.reset(); sc.render.resolution_x, sc.render.resolution_y = self.q['size']; sc.cycles.samples = self.q['samples']; sc.cycles.adaptive_threshold = self.q['noise']
         self.set = swamp.build(sc, parts=parts or ('ground', 'water', 'trees', 'canopy', 'vines', 'plants', 'grass', 'branch', 'fog')); self.L = self.set['layout']
-        self.sv = S.build(fur=fur, fur_count=self.q['fur'], subdiv=self.q['subdiv'], wet=1.0) if seven else None
+        self.sv = S.build(fur=fur, fur_count=self.q['fur'], subdiv=self.q['subdiv'], wet=0.8) if seven else None
         if self.sv:
             self.actor = anim.Actor(self.sv); finish.mark_fur(self.sv.get('fur'))
             if fur and self.q['fur'] < 300000: self._thicken(math.sqrt(405000 / self.q['fur']))

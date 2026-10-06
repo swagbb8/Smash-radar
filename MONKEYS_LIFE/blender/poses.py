@@ -31,10 +31,10 @@ POSES['study'] = {  # sitting back on his haunches, left forearm held level acro
     'LeftUpLeg': (0.62, -0.74, 0.25), 'LeftLeg': (-0.08, -0.12, -0.99), 'LeftFoot': (0.30, -0.95, -0.08),
 }
 # ---- waking in the mud (ARISE)
-POSES['prone'] = {   # face down where he fell, right cheek up: head turned to his right, right hand in the mud in front of his face, left arm (the one with the device) trailing back, its top side down in the mud
+POSES['prone'] = {   # face down where he fell, right cheek up: head turned to his right, both arms trailing back along his sides, the left one (with the device) top side down in the mud
     'Hips': (0, -1, 0.03), 'Spine': (0, -1, 0.02), 'Spine1': (0, -1, 0.04), 'Spine2': (0, -0.99, 0.10), 'Neck': (-0.10, -0.97, 0.18),
     'Head': ((-0.20, -0.95, 0.22), 0.0, ((0, -1, 0), (-1.0, -0.15, 0.25))),
-    'RightShoulder': (-0.90, -0.40, 0.0), 'RightArm': (-0.77, 0.63, -0.05), 'RightForeArm': (-0.20, -0.98, -0.02), 'RightHand': (-0.10, -0.99, 0.0),
+    'RightShoulder': (-0.90, -0.20, 0.0), 'RightArm': (-0.50, 0.85, -0.12), 'RightForeArm': (-0.28, 0.95, -0.10), 'RightHand': (-0.15, 0.98, -0.05),
     'LeftShoulder': (0.90, -0.20, 0.0), 'LeftArm': (0.55, 0.80, -0.20), 'LeftForeArm': ((0.20, 0.97, -0.10), 0.0, ((0, 0, 1), (0.3, 0.0, -0.95))), 'LeftHand': (0.10, 0.99, -0.05),
     'LeftUpLeg': (0.28, 0.95, -0.10), 'LeftLeg': (0.10, 0.99, 0.05), 'LeftFoot': (0.15, 0.90, -0.40),
     'RightUpLeg': (-0.40, 0.90, -0.10), 'RightLeg': (0.10, 0.99, 0.05), 'RightFoot': (-0.15, 0.90, -0.40),
