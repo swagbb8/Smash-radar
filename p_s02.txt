@@ -1,1 +1,1 @@
-rendered p_s02 in 436s (4 cores)
+rendered p_s02 in 298s (4 cores)
