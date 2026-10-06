@@ -94,9 +94,10 @@ def vignette(size, amount=0.30):
     return _vig[key]
 
 
-def grade(img, warm=1.0, sat=0.94, contrast=0.22):
-    """The film's look: a little more contrast, cold in the shadows, warm in the lights, colour held back."""
-    x = np.clip(img, 0.0, 1.0); x = x + contrast * (x * x * (3 - 2 * x) - x); l = (x[:, :, :1] * 0.25 + x[:, :, 1:2] * 0.62 + x[:, :, 2:3] * 0.13)
+def grade(img, warm=1.0, sat=0.94, contrast=0.20, lift=0.86):
+    """The film's look: opened up a little (it is watched on a phone, not in a dark room), a little more contrast, cold in the
+    shadows, warm in the lights, colour held back."""
+    x = np.clip(img, 0.0, 1.0) ** lift; x = x + contrast * (x * x * (3 - 2 * x) - x); l = (x[:, :, :1] * 0.25 + x[:, :, 1:2] * 0.62 + x[:, :, 2:3] * 0.13)
     x = l + (x - l) * sat; sh = (1 - l) ** 2; hi = l ** 2
     x = x + sh * np.array([-0.006, 0.003, 0.010], np.float32) * 1.0 + hi * np.array([0.020, 0.006, -0.022], np.float32) * warm
     return np.clip(x, 0.0, 1.0)
@@ -205,8 +206,20 @@ def film(frames_dir, out, size=(1280, 536), sound=None, only=None, label=False, 
     print(f'{out}: {wrote} frames, {wrote / FPS:.1f}s')
 
 
+def contact(mp4, out, every=1.0, cols=6, tile=320, a=0.0, b=None):
+    """Stills from a finished film laid out as a sheet, with their times: the way to look through it without a player."""
+    cap = cv2.VideoCapture(mp4); n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)); fps = cap.get(cv2.CAP_PROP_FPS) or FPS; b = n / fps if b is None else b; tiles = []; t = a
+    while t < b - 1e-6:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(round(t * fps))); ok, fr = cap.read()
+        if not ok: break
+        h = int(fr.shape[0] * tile / fr.shape[1]); fr = cv2.resize(fr, (tile, h), interpolation=cv2.INTER_AREA); cv2.putText(fr, f'{t:.1f}', (4, 14), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 255, 255), 1, cv2.LINE_AA); tiles.append(fr); t += every
+    while len(tiles) % cols: tiles.append(np.zeros_like(tiles[0]))
+    cv2.imwrite(out, np.concatenate([np.concatenate(tiles[i:i + cols], 1) for i in range(0, len(tiles), cols)], 0)); print(f'{out}: {len(tiles)} stills')
+
+
 if __name__ == '__main__':
     if arg('--eyes', '1') == '0': without_eyes()
+    if sys.argv[1] == 'contact': contact(sys.argv[2], sys.argv[3], float(arg('--every', 1.0)), int(arg('--cols', 6)), int(arg('--tile', 320)), float(arg('--from', 0.0)), float(arg('--to')) if arg('--to') else None); sys.exit(0)
     if sys.argv[1] == 'unpack': unpack(sys.argv[2], sys.argv[3])
     elif sys.argv[1] == 'film':
         size = tuple(int(v) for v in arg('--size', '1280x536').split('x')); film(sys.argv[2], sys.argv[3], size, sound=arg('--sound'), only=arg('--only'), label=arg('--label') == '1', crf=int(arg('--crf', 15)))

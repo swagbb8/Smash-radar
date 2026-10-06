@@ -379,8 +379,8 @@ class Study(Shot):
     def center(self, st): return (self.K['seat'].x, self.K['seat'].y)
 
     def frame(self, st, t):
-        dev, nrm = _study(st, self.K, t); A = st.actor; eye = A.point('Eyes'); b = self.bounce; b.location = dev + nrm * 0.04 + (eye - dev).normalized() * 0.05; b.rotation_euler = (eye - b.location).to_track_quat('-Z', 'Y').to_euler()
-        b.data.energy = 2.6 * st.sv['glow'].data.energy                                              # what the screen throws up into his face (the screen itself faces the camera more than it faces him)
+        dev, nrm = _study(st, self.K, t, light=0.9); A = st.actor; eye = A.point('Eyes'); b = self.bounce; b.location = dev + nrm * 0.04 + (eye - dev).normalized() * 0.05; b.rotation_euler = (eye - b.location).to_track_quat('-Z', 'Y').to_euler()
+        b.data.energy = 4.6 * st.sv['glow'].data.energy                                              # what the screen throws up into his face (the screen itself faces the camera more than it faces him)
 
 
 class Device(Shot):
