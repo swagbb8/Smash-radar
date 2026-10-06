@@ -151,9 +151,9 @@ def skin_material(maps):
     # swamp mud over everything: dark and glossy while wet, lumpy where it is caked on
     mud, thick, wet = _mud(T, obj); lumps = T.noise(1.7, 4.0, 0.65, obj); grit = T.noise(14.0, 2.0, 0.5, obj)
     mudcol = T.mix(T.math('MULTIPLY', lumps, 0.8), T.mix(wet, lin(MUD_DRY), lin(MUD_WET)), T.mix(wet, lin('#84735f'), lin('#191611')))
-    sheen = T.ramp(T.noise(0.9, 3.0, 0.6, obj), [(0.42, (0.50, 0.50, 0.50, 1)), (0.62, (0.16, 0.16, 0.16, 1))])                # mostly dull wet earth, with slicks of standing water
+    sheen = T.ramp(T.noise(0.9, 3.0, 0.6, obj), [(0.42, (0.64, 0.64, 0.64, 1)), (0.66, (0.36, 0.36, 0.36, 1))])                # dull wet earth, a little slicker in places (never a mirror: that reads as rubber)
     base = T.mix(mud, base, mudcol); rough = T.mix(mud, rough, T.mix(wet, (0.88, 0.88, 0.88, 1), sheen))
-    T.set(p, Base_Color=base, Roughness=rough, Specular_IOR_Level=T.math('ADD', 0.35, T.math('MULTIPLY', T.math('MULTIPLY', mud, wet), 0.35)), Subsurface_Weight=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, mud), 0.10), Subsurface_Scale=0.003, Normal=bump.outputs['Normal'],
+    T.set(p, Base_Color=base, Roughness=rough, Specular_IOR_Level=T.math('ADD', 0.35, T.math('MULTIPLY', T.math('MULTIPLY', mud, wet), 0.15)), Subsurface_Weight=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, mud), 0.10), Subsurface_Scale=0.003, Normal=bump.outputs['Normal'],
           Emission_Color=lin('#2f9dff'), Emission_Strength=T.math('MULTIPLY', T.math('MULTIPLY', emis, T.math('SUBTRACT', 1.0, T.math('MULTIPLY', thick, 0.85))), 5.0))
     mud_h = T.math('MULTIPLY', thick, T.math('ADD', 0.25, T.math('ADD', T.math('MULTIPLY', lumps, 1.2), T.math('MULTIPLY', grit, 0.35))))          # 0..~1.6: lumpy and gritty
     md = T.math('ADD', T.math('MULTIPLY', T.math('MULTIPLY', T.math('SUBTRACT', ih.outputs['Color'], 0.5), skinpaint.HRANGE), T.math('MULTIPLY', paint, T.math('SUBTRACT', 1.0, T.math('MULTIPLY', thick, 0.7)))), T.math('MULTIPLY', mud_h, 0.22))
@@ -284,11 +284,11 @@ def fur_material():
     rnd = info.outputs['Random']; grey = T.attr('grey'); root = T.node('ShaderNodeAttribute', attribute_name='root').outputs['Vector']
     mud, thick, wet = _mud(T, root); soak = T.attr('wet')                                    # 'wet' per strand: how soaked the coat was when it was groomed
     slick = T.math('MULTIPLY', soak, wet)
-    T.set(hair, Melanin=T.math('SUBTRACT', 1.0, T.math('MULTIPLY', grey, 0.80)), Melanin_Redness=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, grey), 0.22), Roughness=T.math('SUBTRACT', 0.28, T.math('MULTIPLY', slick, 0.13)),
-          Radial_Roughness=0.55, Coat=T.math('MULTIPLY', slick, 0.55), Random_Color=0.12, Random_Roughness=0.3)
+    T.set(hair, Melanin=T.math('SUBTRACT', 1.0, T.math('MULTIPLY', grey, 0.80)), Melanin_Redness=T.math('MULTIPLY', T.math('SUBTRACT', 1.0, grey), 0.22), Roughness=T.math('SUBTRACT', 0.30, T.math('MULTIPLY', slick, 0.05)),
+          Radial_Roughness=0.60, Coat=T.math('MULTIPLY', slick, 0.22), Random_Color=0.12, Random_Roughness=0.3)
     T.link(rnd, hair.inputs['Random'])
     mb = T.node('ShaderNodeBsdfPrincipled'); tone = T.math('ADD', T.math('MULTIPLY', rnd, 0.5), T.math('MULTIPLY', T.noise(0.9, 2.0, 0.5, root), 0.5))
-    T.set(mb, Base_Color=T.mix(tone, T.mix(wet, lin(MUD_DRY), lin(MUD_WET)), T.mix(wet, lin('#84735f'), lin('#191611'))), Roughness=T.math('SUBTRACT', 0.85, T.math('MULTIPLY', wet, 0.42)), Specular_IOR_Level=0.4)
+    T.set(mb, Base_Color=T.mix(tone, T.mix(wet, lin(MUD_DRY), lin(MUD_WET)), T.mix(wet, lin('#84735f'), lin('#191611'))), Roughness=T.math('SUBTRACT', 0.85, T.math('MULTIPLY', wet, 0.28)), Specular_IOR_Level=0.3)
     tipward = T.math('ADD', T.math('MULTIPLY', mud, 0.75), T.math('MULTIPLY', T.math('MULTIPLY', thick, info.outputs['Intercept']), 0.6), clamp=True)   # the outside of the coat is caked first
     mix = T.node('ShaderNodeMixShader'); T.link(tipward, mix.inputs[0]); T.link(hair.outputs['BSDF'], mix.inputs[1]); T.link(mb.outputs['BSDF'], mix.inputs[2]); T.link(mix.outputs[0], out.inputs['Surface'])
     return m

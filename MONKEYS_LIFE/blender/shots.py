@@ -69,6 +69,12 @@ class Stage:
         for ob in self.lamps: bpy.data.objects.remove(ob, do_unlink=True)
         self.lamps = []
 
+    def clear_around(self, point, radius):
+        """Take out the grass and plants standing within `radius` of a point (after sightline, which starts the list afresh)."""
+        c = Vector((point[0], point[1], 0.0))
+        for o in self.sc.objects:
+            if o.name.startswith(('Grass', 'P_')) and not o.hide_render and (Vector((o.location.x, o.location.y, 0.0)) - c).length < radius: o.hide_render = True; self.cleared.append(o)
+
     def sightline(self, target, near=0.10, far=0.50, stop=0.55):
         """Greens are dressed for the camera: take out the grass and plants standing between the lens and `target`
         (a cone `near` wide at the lens, `far` wide at the target, ending `stop` metres short of it)."""
@@ -84,7 +90,7 @@ class Stage:
     def _seven_objects(self): return [o for o in self.sv['collection'].objects] if self.sv else []
 
     def plate_mode(self, fog=True, samples=None):
-        sc = self.sc; sc.render.film_transparent = False; sc.render.use_compositing = False; sc.cycles.samples = samples or self.q['plate_samples']; swamp.set_zone(None); swamp.set_ripple(None)
+        sc = self.sc; sc.render.film_transparent = False; sc.render.use_compositing = False; sc.cycles.samples = samples or self.q['plate_samples']; swamp.set_zone(None); swamp.set_ripple(None); sc.cycles.sample_clamp_direct = 0.0; sc.cycles.sample_clamp_indirect = 10.0
         for o in self._seven_objects(): o.hide_render = True
         for o in self.lamps: o.hide_render = bool(o.light_linking.receiver_collection)             # his own lamps are not part of the plate
         if 'fog' in self.set: self.set['fog'].hide_render = not fog
@@ -105,7 +111,7 @@ class Stage:
 
     def char_mode(self, plate, center, r0=2.2, r1=3.2, bloom=0.3, fur_raw=0.6):
         """Render only Seven and what is close round him, over the plate (an EXR written by plate_mode)."""
-        sc = self.sc; sc.render.film_transparent = True; sc.cycles.samples = self.q['samples']; swamp.set_zone(center, r0, r1)
+        sc = self.sc; sc.render.film_transparent = True; sc.cycles.samples = self.q['samples']; swamp.set_zone(center, r0, r1); sc.cycles.sample_clamp_direct = 8.0; sc.cycles.sample_clamp_indirect = 3.0      # wet hair throws pin-point glints that would sparkle from frame to frame
         for o in self._seven_objects():
             if not o.name.startswith('Drop'): o.hide_render = False
         for o in self.lamps: o.hide_render = False
@@ -147,9 +153,9 @@ class Eyes(Shot):
 
     def setup(self, st):
         self.K = _wake_keys(st); A = st.actor; A.apply(self.K['prone']); bpy.context.view_layer.update(); self.eye = eye = A.point('Eyes')
-        st.camera(tuple(eye + Vector((-0.86, -0.26, 0.05))), tuple(eye + Vector((0.0, -0.035, -0.005))), lens=85, fstop=2.8); st.sightline(tuple(eye), 0.05, 0.22, 0.25)
-        st.clear_lamps(); st.lamp('Key', tuple(eye + Vector((-1.0, -1.1, 1.5))), tuple(eye), 55, (0.78, 0.95, 0.88), 0.9); st.lamp('EyeLight', tuple(eye + Vector((-0.85, -0.5, 0.22))), tuple(eye), 5, (0.9, 1.0, 0.95), 0.35)
-        st.lamp('Edge', tuple(eye + Vector((0.5, 0.9, 0.7))), tuple(eye), 45, (1.0, 0.86, 0.62), 0.5)
+        aim = eye + Vector((0.0, 0.035, -0.015)); st.camera(tuple(aim + Vector((-0.92, -0.10, 0.02))), tuple(aim), lens=75, fstop=3.2, focus=(eye - (aim + Vector((-0.92, -0.10, 0.02)))).length); st.sightline(tuple(eye), 0.22, 0.45, 0.0); st.clear_around(eye, 0.55)
+        st.clear_lamps(); st.lamp('Key', tuple(eye + Vector((-1.3, -0.9, 0.75))), tuple(eye), 26, (0.78, 0.95, 0.88), 0.9); st.lamp('EyeLight', tuple(eye + Vector((-0.9, 0.25, 0.20))), tuple(eye), 3, (0.9, 1.0, 0.95), 0.3)
+        st.lamp('Edge', tuple(eye + Vector((0.6, 0.5, 0.9))), tuple(eye), 60, (1.0, 0.86, 0.62), 0.5)
         self.track = anim.Track([(0.0, self.K['prone']), (4.2, self.K['prone']), (5.6, self.K['headup'], 'in')], A)
 
     def center(self, st): return (self.eye.x, self.eye.y)
@@ -226,7 +232,7 @@ class _Branch(Shot):
 
     def base(self, st):
         H = _hang_keys(st); self.K = H['K']; self.grip = H['grip']; self.grip1 = H['grip1']; self.both = H['both']; N = st.branch['north']; E = st.branch['along']; c = Vector((SPOT[0], SPOT[1], 0.0))
-        st.camera(tuple(c - N * 4.9 + E * 2.3 + Vector((0, 0, 0.46))), tuple(c + N * 0.3 - E * 0.25 + Vector((0, 0, 1.08))), lens=30, fstop=5.6); st.sightline(tuple(c + Vector((0, 0, 0.6))), 0.2, 0.9, 0.5)
+        st.camera(tuple(c - N * 4.9 + E * 2.3 + Vector((0, 0, 0.46))), tuple(c + N * 0.3 - E * 0.15 + Vector((0, 0, 1.02))), lens=38, fstop=5.6); st.sightline(tuple(c + Vector((0, 0, 0.6))), 0.2, 0.9, 0.5)
         st.clear_lamps(); st.lamp('Rim', tuple(c + N * 4.0 - E * 3.0 + Vector((0, 0, 4.2))), tuple(c + Vector((0, 0, 1.2))), 900, (1.0, 0.88, 0.66), 1.2); st.lamp('Fill', tuple(c - N * 4.0 + E * 2.0 + Vector((0, 0, 1.8))), tuple(c + Vector((0, 0, 1.0))), 60, (0.6, 0.86, 0.92), 2.0)
 
     def center(self, st): return (SPOT[0], SPOT[1] + 0.1)
@@ -301,7 +307,7 @@ class Arm(Shot):
     def setup(self, st):
         A = st.actor; N = st.branch['north']; W = -st.branch['along']; H = _hang_keys(st); K = H['K']; self.grip1 = H['grip1']
         A.apply(K['look1']); bpy.context.view_layer.update(); eye = A.point('Eyes'); dev, nrm = A.device(); mid = eye.lerp(dev, 0.55); cam = mid + N * 1.32 + W * 0.22 + Vector((0, 0, 0.24))
-        st.camera(tuple(cam), tuple(mid), lens=50, fstop=3.2, focus=(eye.lerp(dev, 0.5) - cam).length)
+        st.camera(tuple(cam), tuple(mid + Vector((0, 0, 0.035))), lens=46, fstop=3.2, focus=(eye.lerp(dev, 0.5) - cam).length)
         st.clear_lamps(); st.lamp('Key', tuple(mid + N * 1.6 + W * 1.8 + Vector((0, 0, 1.6))), tuple(mid), 120, (1.0, 0.86, 0.62), 0.8); st.lamp('Cool', tuple(mid - N * 1.2 - W * 1.6 + Vector((0, 0, 1.2))), tuple(mid), 110, (0.6, 0.88, 0.95), 0.8)
         st.lamp('Eye', tuple(cam + Vector((0.1, 0, 0.12))), tuple(eye), 5, (0.9, 1.0, 0.95), 0.3)
         self.track = anim.Track([(0.0, K['hang1']), (0.55, K['hang1']), (1.25, K['look1'], 'inout'), (3.3, K['look1']), (4.4, K['slip1'], 'in')], A)
@@ -329,7 +335,7 @@ def _perch_keys(st):
     return dict(a=a, b=b, c=c, seat=seat)
 
 
-def _study(st, K, t):
+def _study(st, K, t, light=1.6):
     """His performance on the branch (the same from every camera): he settles, stares, reaches, touches it. It wakes."""
     A = st.actor; track = anim.Track([(0.0, K['a']), (0.5, K['a']), (1.9, K['b'], 'inout'), (5.9, K['b']), (6.05, K['b']), (8.0, K['c'], 'inout'), (9.0, K['c'])], A); A.apply(track.at(t)); A.pin('Seat', K['seat'])
     A.alive(t, breath=anim.curve(t, [(0, 2.0), (3.0, 1.3), (5.6, 0.5), (9, 0.7)]), rate=0.5, restless=anim.curve(t, [(0, 0.8), (2.5, 0.3), (9, 0.15)])); A.pin('Seat', K['seat'])
@@ -340,7 +346,7 @@ def _study(st, K, t):
         if t > touch + 0.12: tip = goal.lerp(hover + nrm * 0.04, anim.ease((t - touch - 0.12) / 0.35, 'out'))            # he snatches it back
         A.touch('Right', tuple(tip), tuple(-nrm * 0.80 - east * 0.55 + Vector((0, 0, -0.10))), pole=(east.x * 0.5, east.y * 0.5, -1.0))
     power = anim.curve(t, [(0, 0.30), (1.0, 0.28), (1.6, 0.42), (2.4, 0.3), (3.4, 0.45), (4.6, 0.32), (touch, 0.4), (touch + 0.08, 1.0), (9.0, 1.0)]) + (0.06 * math.sin(t * 9.0) if t > touch else 0.0)
-    S.device_power(st.sv, power, light=1.6, wave=(t - touch) * 26.0 if t >= touch else None)
+    S.device_power(st.sv, power, light=light, wave=(t - touch) * 26.0 if t >= touch else None)
     A.face(Blink=anim.blinks(t, [0.9, 2.7, 4.4]), BrowUp=anim.curve(t, [(0, 0.0), (touch, 0.1), (touch + 0.15, 0.9), (9, 0.7)]), BrowDown=anim.curve(t, [(0, 0.7), (2.0, 0.45), (touch, 0.2), (touch + 0.1, 0.0)]), JawOpen=anim.curve(t, [(0, 0.35), (2.0, 0.15), (touch, 0.1), (touch + 0.2, 0.3), (9, 0.22)]))
     A.gaze(tuple(dev)); S.mud(0.40, 1.0); S.device_cake(0.0)
     return dev, nrm
@@ -352,8 +358,8 @@ class Study(Shot):
 
     def setup(self, st):
         self.K = K = _perch_keys(st); A = st.actor; A.apply(K['b']); A.pin('Seat', K['seat']); head = A.point('Head'); N = st.branch['north']; W = -st.branch['along']; c = K['seat'] + Vector((0, 0, 0.40))
-        st.camera(tuple(c + N * 2.25 + W * 0.95 + Vector((0, 0, -0.22))), tuple(c + Vector((0, 0, 0.0))), lens=45, fstop=3.5)
-        st.clear_lamps(); st.lamp('Key', tuple(c + N * 2.6 + W * 2.8 + Vector((0, 0, 2.6))), tuple(c), 260, (1.0, 0.86, 0.62), 1.0); st.lamp('Cool', tuple(c - N * 2.2 - W * 1.5 + Vector((0, 0, 1.6))), tuple(c), 200, (0.55, 0.85, 0.95), 1.0)
+        st.camera(tuple(c + N * 2.25 + W * 0.95 + Vector((0, 0, -0.12))), tuple(c + Vector((0, 0, 0.12))), lens=42, fstop=3.5)
+        st.clear_lamps(); st.lamp('Key', tuple(c + N * 2.6 + W * 2.8 + Vector((0, 0, 2.6))), tuple(c), 620, (1.0, 0.86, 0.62), 1.0); st.lamp('Cool', tuple(c - N * 2.2 - W * 1.5 + Vector((0, 0, 1.6))), tuple(c), 420, (0.55, 0.85, 0.95), 1.0)
         st.lamp('Eye', tuple(c + N * 2.2 + W * 0.6 + Vector((0, 0, 0.2))), tuple(head), 8, (0.9, 1.0, 0.95), 0.35); st.splash.frame(-1.0)
 
     def center(self, st): return (self.K['seat'].x, self.K['seat'].y)
@@ -366,11 +372,11 @@ class Device(Shot):
 
     def setup(self, st):
         self.K = K = _perch_keys(st); A = st.actor; dev, nrm = _study(st, K, 3.5); side = nrm.cross(Vector((0, 0, 1))).normalized()
-        st.camera(tuple(dev + nrm * 0.50 + Vector((0, 0, 0.16)) + side * 0.10), tuple(dev), lens=85, fstop=4.0)
-        st.clear_lamps(); st.lamp('Key', tuple(dev + nrm * 0.9 + Vector((0, 0, 1.4)) - side * 1.2), tuple(dev), 34, (1.0, 0.88, 0.66), 0.7); st.lamp('Cool', tuple(dev + side * 1.4 + Vector((0, 0, 0.5))), tuple(dev), 20, (0.6, 0.88, 0.95), 0.8)
+        st.camera(tuple(dev + nrm * 0.40 + Vector((0, 0, 0.14)) - side * 0.30), tuple(dev + side * 0.012), lens=85, fstop=4.0)
+        st.clear_lamps(); st.lamp('Key', tuple(dev + nrm * 0.9 + Vector((0, 0, 1.4)) - side * 1.2), tuple(dev), 34, (1.0, 0.88, 0.66), 0.7); st.lamp('Cool', tuple(dev + side * 1.4 + Vector((0, 0, 0.5))), tuple(dev), 20, (0.6, 0.88, 0.95), 0.8); self.light = 0.45
 
     def center(self, st): return (self.K['seat'].x, self.K['seat'].y)
-    def frame(self, st, t): _study(st, self.K, self.t0 + t)
+    def frame(self, st, t): _study(st, self.K, self.t0 + t, light=0.45)
 
 
 class Wide(Shot):
@@ -379,7 +385,7 @@ class Wide(Shot):
 
     def setup(self, st):
         self.K = K = _perch_keys(st); c = K['seat']
-        st.camera((0.6, 10.2, 0.42), tuple(c + Vector((-0.25, 0, -0.40))), lens=30, fstop=8.0); st.sightline(tuple(c), 0.3, 0.6, 1.0)
+        st.camera((0.6, 10.2, 0.42), tuple(c + Vector((-0.45, 0, -0.30))), lens=46, fstop=8.0); st.sightline(tuple(c), 0.3, 0.6, 1.0)
         st.clear_lamps(); st.lamp('Rim', tuple(c + Vector((2.5, -3.5, 4.0))), tuple(c), 700, (0.62, 0.88, 0.95), 1.2); st.lamp('Key', tuple(c + Vector((-3.5, 3.5, 3.5))), tuple(c), 380, (1.0, 0.86, 0.62), 1.2)
 
     def center(self, st): return (self.K['seat'].x, self.K['seat'].y)
