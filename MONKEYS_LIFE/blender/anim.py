@@ -57,7 +57,7 @@ class Actor:
             for j, a in enumerate(index if (index is not None and f == 'Index') else c, 1):
                 pb = self.arm.pose.bones[f'{side}Hand{f}{j}']; pb.rotation_quaternion = Quaternion(poses._curl_axis(self.arm, pb), a)
 
-    def key(self, pose, root=(0.0, 0.0), heading=0.0, sink=0.0, z=None, curl=None, lcurl=None, rcurl=None, tweak=None, pitch=0.0, pin=None, reach=None, lindex=None, rindex=None):
+    def key(self, pose, root=(0.0, 0.0), heading=0.0, sink=0.0, z=None, curl=None, lcurl=None, rcurl=None, tweak=None, pitch=0.0, roll=0.0, pin=None, reach=None, lindex=None, rindex=None):
         """A key pose. pose = a name in poses.POSES or a spec dict. root = (x, y) of the rig's origin in the world (metres),
         heading = turn about Z (radians; 0 = facing -Y), pitch = tip about his left-right axis (+ = head forward and down),
         sink = where his lowest point rests (z; negative = in the mud), or give z outright, or pin = (points, world position):
@@ -68,16 +68,16 @@ class Actor:
         if tweak: spec.update(tweak)
         S.pose(self.sv, spec); c = curl or (poses.CURL.get(pose) if isinstance(pose, str) else None) or (0.3, 0.4, 0.3)
         self.curl('Left', lcurl or c, lindex); self.curl('Right', rcurl or c, rindex)
-        self.arm.location = (root[0], root[1], 0.0 if z is None else z); self.arm.rotation_euler = (pitch, 0, heading); bpy.context.view_layer.update()
+        self.arm.location = (root[0], root[1], 0.0 if z is None else z); self.arm.rotation_euler = (pitch, roll, heading); bpy.context.view_layer.update()
         if pin is not None: self.pin(*pin)
         elif z is None: S.ground(self.sv, sink)
         for side, (target, pole) in (reach or {}).items(): self.reach(side, target, pole)
         q = {pb.name: pb.rotation_quaternion.copy() for pb in self.arm.pose.bones}
-        return dict(q=q, loc=self.arm.location.copy(), heading=heading, pitch=pitch)
+        return dict(q=q, loc=self.arm.location.copy(), heading=heading, pitch=pitch, roll=roll)
 
     def apply(self, k):
         for n, q in k['q'].items(): self.arm.pose.bones[n].rotation_quaternion = q
-        self.arm.location = k['loc']; self.arm.rotation_euler = (k.get('pitch', 0.0), 0, k['heading'])
+        self.arm.location = k['loc']; self.arm.rotation_euler = (k.get('pitch', 0.0), k.get('roll', 0.0), k['heading'])
 
     # ---------------------------------------------------------------- contact
     def point(self, name):
@@ -102,6 +102,11 @@ class Actor:
         a branch or a seat on it while the rest of him moves."""
         bpy.context.view_layer.update(); names = [names] if isinstance(names, str) else names; cur = sum((self.point(n) for n in names), Vector()) / len(names)
         self.arm.location = self.arm.location + (Vector(where) - cur) * weight; bpy.context.view_layer.update()
+
+    def touch(self, side, tip, along, pole=(0, 0, -1)):
+        """Put the end of that hand's index finger on `tip` (world), the finger coming in along the world direction `along`."""
+        bpy.context.view_layer.update(); d = Vector(along).normalized(); n = self.point(side + 'Tip') - self.point(side + 'Hand'); self.reach(side, Vector(tip) - d * n.length, pole)
+        S.aim(self.arm, side + 'Hand', self.arm.matrix_world.to_3x3().inverted() @ d); bpy.context.view_layer.update()
 
     def reach(self, side, target, pole=(0, 0, -1)):
         """Bend one arm so its wrist lands on `target` (world), the elbow leaning toward `pole` (a world direction)."""
@@ -153,7 +158,7 @@ class Track:
             g = self.actor.group.get(n, 'spine'); l = lag.get(g, LAG.get(g, 0.0)); w = ease((u - l) / max(1e-6, 1 - l), kind) if l >= 0 else ease(u / max(1e-6, 1 + l), kind)
             q[n] = a['q'][n].slerp(b['q'][n], w)
         w = ease(u, kind); dh = (b['heading'] - a['heading'] + math.pi) % (2 * math.pi) - math.pi; pa, pb_ = a.get('pitch', 0.0), b.get('pitch', 0.0)
-        return dict(q=q, loc=a['loc'].lerp(b['loc'], w), heading=a['heading'] + dh * w, pitch=pa + (pb_ - pa) * w)
+        ra, rb = a.get('roll', 0.0), b.get('roll', 0.0); return dict(q=q, loc=a['loc'].lerp(b['loc'], w), heading=a['heading'] + dh * w, pitch=pa + (pb_ - pa) * w, roll=ra + (rb - ra) * w)
 
 
 def blinks(t, times, close=0.07, hold=0.04, open_=0.16):

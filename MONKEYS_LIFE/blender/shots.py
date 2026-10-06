@@ -90,16 +90,17 @@ class Stage:
         if 'fog' in self.set: self.set['fog'].hide_render = not fog
         sc.render.image_settings.file_format = 'OPEN_EXR'; sc.render.image_settings.color_depth = '16'; sc.render.image_settings.exr_codec = 'ZIP'
 
-    def debug_mode(self, samples=6):
+    def debug_mode(self, samples=6, clay=True):
         """A quick flat look at staging and motion: even light, no mist, no leaves overhead, no plate, Seven in pale clay. Seconds per frame."""
         sc = self.sc; sc.render.film_transparent = False; sc.render.use_compositing = False; sc.cycles.samples = samples; sc.cycles.use_adaptive_sampling = False; sc.cycles.max_bounces = 2; swamp.set_zone(None)
         w = bpy.data.worlds.get('Flat') or bpy.data.worlds.new('Flat'); w.use_nodes = True; w.node_tree.nodes['Background'].inputs['Color'].default_value = (0.6, 0.65, 0.65, 1); w.node_tree.nodes['Background'].inputs['Strength'].default_value = 2.2; sc.world = w
         for o in sc.objects:
             if o.name.startswith(('Crown', 'BigTree', 'SwampAir', 'SkyGap', 'SunShafts', 'FarGlow')): o.hide_render = True
         for o in self.lamps: o.hide_render = True
-        if self.sv and not bpy.data.materials.get('Clay'):
+        if clay and self.sv and not bpy.data.materials.get('Clay'):
             m = bpy.data.materials.new('Clay'); m.use_nodes = True; p_ = m.node_tree.nodes['Principled BSDF']; p_.inputs['Base Color'].default_value = (0.55, 0.36, 0.24, 1); p_.inputs['Roughness'].default_value = 0.6
             me = self.sv['body'].data; me.materials[0] = m
+        if not clay: sc.cycles.max_bounces = 6
         sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_depth = '8'; sc.view_settings.look = 'None'
 
     def char_mode(self, plate, center, r0=2.2, r1=3.2, bloom=0.3, fur_raw=0.6):
@@ -158,7 +159,7 @@ class Eyes(Shot):
         lid = anim.curve(t, [(0.0, 1.0), (0.7, 1.0), (1.0, 0.72), (1.25, 0.95), (1.6, 0.6), (2.3, 0.10)], 'inout'); lid = max(lid, anim.blinks(t, [2.75, 3.05, 4.1]))
         A.face(Blink=lid, BrowDown=anim.curve(t, [(0, 0.0), (2.3, 0.0), (3.2, 0.55), (5, 0.7)]), BrowUp=0.0)
         yaw, pitch = anim.saccades(t, [(0.0, (-58, 2)), (2.5, (-70, 6)), (3.2, (-40, 10)), (3.7, (-78, -6)), (4.3, (-55, 12))])
-        A.gaze_dir(yaw, pitch); S.mud(0.86, 1.0); S.device_power(st.sv, 0.0)
+        A.gaze_dir(yaw, pitch); S.mud(0.86, 1.0); S.device_power(st.sv, 0.0); S.device_cake(1.0)
 
 
 class Rise(Shot):
@@ -179,7 +180,7 @@ class Rise(Shot):
         A.alive(t, breath=1.8, rate=0.45, restless=0.9, tremble={'armL': strain, 'armR': strain * 0.9, 'Spine2': strain * 0.25})
         A.face(Blink=anim.blinks(t, [1.0, 3.9, 6.1, 8.1]), BrowDown=0.55, JawOpen=anim.curve(t, [(0, 0.0), (1.5, 0.25), (3.1, 0.35), (5.3, 0.15), (7.8, 0.1)]))
         yaw, pitch = anim.saccades(t, [(0.0, (0, -10)), (3.3, (0, -25)), (5.8, (20, 0)), (7.6, (-35, 5)), (8.2, (30, 12)), (8.7, (-10, 20))])
-        A.gaze_dir(yaw, pitch); S.mud(anim.curve(t, [(0, 0.86), (4.0, 0.82), (9.0, 0.78)]), 1.0); S.device_power(st.sv, 0.0)
+        A.gaze_dir(yaw, pitch); S.mud(anim.curve(t, [(0, 0.86), (4.0, 0.82), (9.0, 0.78)]), 1.0); S.device_power(st.sv, 0.0); S.device_cake(1.0)
 
 
 class Stand(Shot):
@@ -202,7 +203,21 @@ class Stand(Shot):
         A = st.actor; A.apply(self.track.at(t)); A.alive(t, breath=1.6, rate=0.42, restless=0.8, tremble={'legL': anim.curve(t, [(0, 0.4), (1.2, 1.6), (2.6, 0.5), (5.5, 0.2)]), 'legR': anim.curve(t, [(0, 0.4), (1.2, 1.4), (2.6, 0.5), (5.5, 0.2)])})
         A.face(Blink=anim.blinks(t, [0.8, 2.9, 4.6]), BrowDown=0.45, JawOpen=anim.curve(t, [(0, 0.15), (1.7, 0.25), (3.0, 0.1), (5.0, 0.22)]))
         yaw, pitch = anim.saccades(t, [(0.0, (0, -15)), (1.8, (0, -5)), (2.5, (-8, -40)), (3.3, (25, -5)), (3.8, (-30, 0)), (4.4, (10, 15)), (5.0, (0, 5))])
-        A.gaze_dir(yaw, pitch); S.mud(0.74, 1.0); S.device_power(st.sv, 0.0)
+        A.gaze_dir(yaw, pitch); S.mud(0.74, 1.0); S.device_power(st.sv, 0.0); S.device_cake(1.0)
+
+
+def _hang_keys(st):
+    """Everything to do with hanging from the branch, for the shots that need it: where the hands hold, and the key poses."""
+    A = st.actor; g = st.ground(*SPOT); h = st.branch['heading']; N = st.branch['north']; E = st.branch['along']; grip = st.on_branch(GRIP_X, up=0.012); both = ['LeftPalm', 'RightPalm']; up = Vector((0, 0, 1))
+    grip1 = grip + E * 0.20                                                                       # where the right hand alone has hold (he faces north: his right is east)
+    near = (tuple(grip - E * 0.17 - N * 0.13 - up * 0.26), tuple(-E * 0.7 + N * 0.25 - up * 0.6))     # his left wrist, a hand short of the branch; the elbow out and down
+    K = dict(look=A.key('lookup', root=SPOT, heading=h, sink=g - 0.05), crouch=A.key('crouch', root=SPOT, heading=h, sink=g - 0.05))
+    K['hang'] = A.key('hang', root=SPOT, heading=h, pin=(both, grip)); K['pull'] = A.key('pullup', root=SPOT, heading=h, pin=(both, grip))
+    K['leap'] = A.key('leap', root=SPOT, heading=h, pin=('RightPalm', grip1 - up * 0.30 - N * 0.10)); K['up'] = A.key('leap', root=SPOT, heading=h, pin=(both, grip - up * 0.30 - N * 0.10))
+    one = dict(root=SPOT, heading=h, roll=0.16, pin=('RightPalm', grip1)); K['hang1'] = A.key('hang1', reach={'Left': near}, **one); K['look1'] = A.key('hang1look', **one); K['slip1'] = A.key('hang1look', rcurl=(0.5, 0.8, 0.6), **one)
+    K['fall'] = A.key('hang1look', root=SPOT, heading=h, pin=('RightPalm', grip1), curl=(0.3, 0.4, 0.3), tweak={'RightArm': (-0.35, -0.55, 0.76), 'RightForeArm': (-0.10, -0.50, 0.86), 'LeftArm': (0.55, -0.60, 0.58), 'LeftForeArm': (0.20, -0.60, 0.77),
+                                                                                                         'LeftUpLeg': (0.30, -0.80, -0.50), 'LeftLeg': (0.0, -0.20, -0.98), 'Neck': (0, -0.2, 0.98), 'Head': (0, -0.45, 0.89)})
+    return dict(K=K, grip=grip, grip1=grip1, both=both)
 
 
 class _Branch(Shot):
@@ -210,61 +225,62 @@ class _Branch(Shot):
     plate = 's07_jump'; zone = (2.7, 3.7)
 
     def base(self, st):
-        A = st.actor; g = st.ground(*SPOT); h = st.branch['heading']; self.grip = st.on_branch(GRIP_X, up=0.012); palms = ['LeftPalm', 'RightPalm']; self.palms = palms; self.h = h
-        K = dict(look=A.key('lookup', root=SPOT, heading=h, sink=g - 0.05), crouch=A.key('crouch', root=SPOT, heading=h, sink=g - 0.05))
-        K['hang'] = A.key('hang', root=SPOT, heading=h, pin=(palms, self.grip)); K['pull'] = A.key('pullup', root=SPOT, heading=h, pin=(palms, self.grip))
-        K['leap'] = A.key('leap', root=SPOT, heading=h, pin=(palms, self.grip - Vector((0, 0, 0.30)) - st.branch['north'] * 0.10))
-        K['fall'] = A.key('hang', root=SPOT, heading=h, pin=(palms, self.grip), curl=(0.3, 0.4, 0.3), tweak={'LeftArm': (0.35, -0.55, 0.76), 'LeftForeArm': (0.10, -0.50, 0.86), 'LeftUpLeg': (0.30, -0.80, -0.50), 'LeftLeg': (0.0, -0.20, -0.98), 'Head': (0, -0.45, 0.89)})
-        self.K = K; c = Vector((SPOT[0], SPOT[1], 0.0)); N = st.branch['north']; E = st.branch['along']
-        st.camera(tuple(c - N * 6.1 + E * 0.75 + Vector((0, 0, 0.80))), tuple(c + N * 0.2 + Vector((0, 0, 1.12))), lens=35, fstop=5.6); st.sightline(tuple(c + Vector((0, 0, 0.6))), 0.2, 0.9, 0.5)
+        H = _hang_keys(st); self.K = H['K']; self.grip = H['grip']; self.grip1 = H['grip1']; self.both = H['both']; N = st.branch['north']; E = st.branch['along']; c = Vector((SPOT[0], SPOT[1], 0.0))
+        st.camera(tuple(c - N * 4.9 + E * 2.3 + Vector((0, 0, 0.46))), tuple(c + N * 0.3 - E * 0.25 + Vector((0, 0, 1.08))), lens=30, fstop=5.6); st.sightline(tuple(c + Vector((0, 0, 0.6))), 0.2, 0.9, 0.5)
         st.clear_lamps(); st.lamp('Rim', tuple(c + N * 4.0 - E * 3.0 + Vector((0, 0, 4.2))), tuple(c + Vector((0, 0, 1.2))), 900, (1.0, 0.88, 0.66), 1.2); st.lamp('Fill', tuple(c - N * 4.0 + E * 2.0 + Vector((0, 0, 1.8))), tuple(c + Vector((0, 0, 1.0))), 60, (0.6, 0.86, 0.92), 2.0)
 
     def center(self, st): return (SPOT[0], SPOT[1] + 0.1)
 
-    def swing(self, st, k, pitch, sag=0.0):
-        A = st.actor; kk = dict(k); kk['pitch'] = pitch; A.apply(kk); A.pin(self.palms, self.grip - Vector((0, 0, sag)))
+    def hold(self, st, sag=0.0, one=False):
+        """Put the hand(s) back on the branch (after anything that moved his body)."""
+        st.actor.pin('RightPalm' if one else self.both, (self.grip1 if one else self.grip) - Vector((0, 0, sag)))
+
+    def swing(self, st, k, pitch, sag=0.0, one=False):
+        kk = dict(k); kk['pitch'] = pitch; st.actor.apply(kk); self.hold(st, sag, one)
 
 
 class Jump(_Branch):
-    """From behind: he coils, leaps, and catches the branch. He hangs there, swinging, black against the lit mist."""
-    name = 's07_jump'; dur = 3.4; plate = None; move = dict(zoom=(1.0, 1.05), drift=(0.0, 0.006), shake=0.0022)
+    """From behind: he coils, leaps, and gets one hand on the branch. He swings there, black against the lit mist, the other arm coming up."""
+    name = 's07_jump'; dur = 2.7; plate = None; move = dict(zoom=(1.0, 1.05), drift=(0.0, 0.006), shake=0.0022)
 
     def setup(self, st):
-        self.base(st); K = self.K; self.track = anim.Track([(0.0, K['look']), (0.45, K['look']), (0.95, K['crouch'], 'out'), (1.13, K['leap'], 'in'), (1.24, K['hang'], 'linear')], st.actor); self.catch = 1.24
+        self.base(st); K = self.K; self.track = anim.Track([(0.0, K['look']), (0.45, K['look']), (0.95, K['crouch'], 'out'), (1.13, K['leap'], 'in'), (1.24, K['hang1'], 'linear')], st.actor); self.catch = 1.24
 
     def frame(self, st, t):
         A = st.actor
         if t < self.catch: A.apply(self.track.at(t))
-        else: tau = t - self.catch; self.swing(st, self.K['hang'], -0.40 * math.exp(-0.95 * tau) * math.sin(2 * math.pi * 0.62 * tau + 0.25))
-        A.alive(t, breath=2.0, rate=0.6, restless=0.4); A.face(Blink=anim.blinks(t, [0.3, 2.6]), BrowDown=0.5, JawOpen=anim.curve(t, [(0, 0.1), (0.9, 0.2), (1.2, 0.5), (2.0, 0.3)]))
-        A.gaze(tuple(self.grip)); S.mud(0.70, 1.0); S.device_power(st.sv, 0.0); st.splash.frame(-1.0)
+        else: tau = t - self.catch; self.swing(st, self.K['hang1'], -0.42 * math.exp(-0.95 * tau) * math.sin(2 * math.pi * 0.62 * tau + 0.25), one=True)
+        A.alive(t, breath=2.0, rate=0.6, restless=0.4); A.face(Blink=anim.blinks(t, [0.3, 2.3]), BrowDown=0.5, JawOpen=anim.curve(t, [(0, 0.1), (0.9, 0.2), (1.2, 0.5), (2.0, 0.3)]))
+        if t >= self.catch: self.hold(st, one=True)
+        A.gaze(tuple(self.grip)); S.mud(0.70, 1.0); S.device_power(st.sv, 0.0); S.device_cake(0.85); st.splash.frame(-1.0)
 
 
 class Fall(_Branch):
-    """His hands come off. He drops on his back into the pool."""
+    """His hand comes off. He drops on his back into the pool."""
     name = 's09_fall'; dur = 1.9; move = dict(zoom=(1.05, 1.05), drift=(0.0, 0.0), shake=0.003)
 
     def setup(self, st):
-        self.base(st); self.t_go = 0.22; A = st.actor; A.apply(self.K['hang']); bpy.context.view_layer.update(); seat = A.point('Seat'); self.drop0 = Vector(A.arm.location)
+        self.base(st); self.t_go = 0.22; A = st.actor; A.apply(self.K['look1']); bpy.context.view_layer.update(); seat = A.point('Seat'); self.drop0 = Vector(A.arm.location)
         self.t_hit = self.t_go + math.sqrt(2 * max(0.05, seat.z - 0.10) / 9.81); st.splash.used = 0; st.splash.bursts = []; st.splash.burst(self.t_hit, (seat.x - st.branch['north'].x * 0.25, seat.y - st.branch['north'].y * 0.25), power=1.25, count=300)
-        self.track = anim.Track([(0.0, self.K['hang']), (self.t_go, self.K['hang']), (self.t_go + 0.30, self.K['fall'], 'out')], A)
+        self.track = anim.Track([(0.0, self.K['look1']), (self.t_go, self.K['look1']), (self.t_go + 0.30, self.K['fall'], 'out')], A)
 
     def frame(self, st, t):
         A = st.actor
-        if t < self.t_go: self.swing(st, self.K['hang'], 0.05 * math.sin(4.0 * t), sag=0.03 * t / self.t_go)
+        if t < self.t_go: self.swing(st, self.K['look1'], 0.05 * math.sin(4.0 * t), sag=0.05 * t / self.t_go, one=True)
         else:
             tau = t - self.t_go; k = self.track.at(t); z = 0.5 * 9.81 * tau * tau; tu = max(0.0, t - self.t_hit)
             if tu > 0: z = 0.5 * 9.81 * (self.t_hit - self.t_go) ** 2 + 0.75 * (1 - math.exp(-3.5 * tu))                 # the water takes him
-            kk = dict(k); kk['pitch'] = -1.25 * anim.ease(tau / 0.42, 'in'); kk['loc'] = self.drop0 - Vector((0, 0, z)) - st.branch['north'] * (0.55 * min(tau, 0.5)); A.apply(kk)
-        A.alive(t, breath=1.0, rate=0.6, restless=0.3); A.face(Blink=0.0, BrowUp=0.8, JawOpen=0.7); A.gaze_dir(0, 20); S.mud(0.70, 1.0); S.device_power(st.sv, 0.35); st.splash.frame(t)
+            kk = dict(k); kk['pitch'] = -1.25 * anim.ease(tau / 0.42, 'in'); kk['roll'] = 0.16 * (1 - anim.ease(tau / 0.3)); kk['loc'] = self.drop0 - Vector((0, 0, z + 0.05)) - st.branch['north'] * (0.55 * min(tau, 0.5)); A.apply(kk)
+        A.alive(t, breath=1.0, rate=0.6, restless=0.3); A.face(Blink=0.0, BrowUp=0.8, JawOpen=0.7); A.gaze_dir(0, 20)
+        if t < self.t_go: self.hold(st, sag=0.05 * t / self.t_go, one=True); S.mud(0.62, 1.0); S.device_power(st.sv, 0.5); S.device_cake(0.0); st.splash.frame(t)
 
 
 class Pull(_Branch):
-    """He comes back up out of the water, gets the branch, and this time holds: he hauls himself up."""
+    """He comes back up out of the water, gets the branch with both hands, and this time holds: he hauls himself up."""
     name = 's12_pull'; dur = 3.6; move = dict(zoom=(1.05, 1.12), drift=(0.0, 0.012), shake=0.0024)
 
     def setup(self, st):
-        self.base(st); A = st.actor; K = self.K; under = dict(K['leap']); under['loc'] = K['leap']['loc'] - Vector((0, 0, 1.25)); self.t_up = 0.30; self.catch = 0.72
+        self.base(st); A = st.actor; K = self.K; under = dict(K['up']); under['loc'] = K['up']['loc'] - Vector((0, 0, 1.25)); self.t_up = 0.30; self.catch = 0.72
         A.apply(under); bpy.context.view_layer.update(); p = A.point('Head'); st.splash.used = 0; st.splash.bursts = []; st.splash.burst(self.t_up + 0.08, (p.x, p.y), power=1.0, count=260)
         self.track = anim.Track([(0.0, under), (self.t_up, under), (self.catch, K['hang'], 'out')], A)
         self.haul = anim.Track([(0.0, K['hang']), (0.55, K['hang']), (1.9, K['pull'], 'inout'), (3.0, K['pull'])], A)
@@ -274,34 +290,35 @@ class Pull(_Branch):
         if t < self.catch: A.apply(self.track.at(t))
         else: tau = t - self.catch; self.swing(st, self.haul.at(tau), -0.22 * math.exp(-1.3 * tau) * math.sin(2 * math.pi * 0.62 * tau + 0.2))
         strain = anim.curve(t, [(0, 0.5), (1.2, 1.0), (2.2, 3.0), (3.6, 2.2)]); A.alive(t, breath=2.2, rate=0.7, restless=0.4, tremble={'armL': strain, 'armR': strain})
-        A.face(Blink=anim.blinks(t, [0.5, 1.6]), BrowDown=0.8, JawOpen=anim.curve(t, [(0, 0.6), (1.0, 0.3), (2.2, 0.55), (3.6, 0.4)])); A.gaze(tuple(self.grip)); S.mud(0.42, 1.0); S.device_power(st.sv, 0.35); st.splash.frame(t)
+        A.face(Blink=anim.blinks(t, [0.5, 1.6]), BrowDown=0.8, JawOpen=anim.curve(t, [(0, 0.6), (1.0, 0.3), (2.2, 0.55), (3.6, 0.4)])); A.gaze(tuple(self.grip))
+        if t >= self.catch: self.hold(st); S.mud(0.42, 1.0); S.device_power(st.sv, 0.35); S.device_cake(0.0); st.splash.frame(t)
 
 
 class Arm(Shot):
-    """ECU from in front, hanging: a hand's width from his eyes, in the meat of his forearm, something that is not him. He freezes. His fingers slip."""
-    name = 's08_arm'; dur = 4.2; zone = (1.6, 2.4); bloom = 0.5; move = dict(zoom=(1.0, 1.12), drift=(0.012, 0.0), shake=0.0014)
+    """Close, from in front: one hand has the branch, the other is on its way up, and stops. In the meat of his forearm, a hand's width from his eyes, is something that is not him. He freezes. His fingers begin to slip."""
+    name = 's08_arm'; dur = 4.4; zone = (1.8, 2.6); bloom = 0.55; move = dict(zoom=(1.0, 1.10), drift=(0.0, -0.006), shake=0.0014)
 
     def setup(self, st):
-        A = st.actor; h = st.branch['heading']; self.grip = st.on_branch(GRIP_X, up=0.012); palms = ['LeftPalm', 'RightPalm']; self.palms = palms; N = st.branch['north']; W = -st.branch['along']
-        self.Ka = A.key('hang', root=SPOT, heading=h, pin=(palms, self.grip), tweak={'Head': ((0.0, -0.02, 1.0), 0.0, ((0, -1, 0), (0.0, -0.75, 0.66)))}); self.Kb = A.key('hanglook', root=SPOT, heading=h, pin=(palms, self.grip))
-        self.Kc = A.key('hanglook', root=SPOT, heading=h, pin=(palms, self.grip), curl=(0.55, 0.9, 0.7)); A.apply(self.Kb); bpy.context.view_layer.update()
-        eye = A.point('Eyes'); dev, nrm = st.actor.device(); self.dev0 = dev; mid = eye.lerp(dev, 0.5)
-        st.camera(tuple(mid + N * 1.22 + W * 0.30 + Vector((0, 0, -0.10))), tuple(mid + Vector((0, 0, 0.0))), lens=52, fstop=3.2, focus=None)
-        st.clear_lamps(); st.lamp('Key', tuple(mid + N * 1.6 + W * 1.8 + Vector((0, 0, 1.6))), tuple(mid), 110, (1.0, 0.86, 0.62), 0.8); st.lamp('Cool', tuple(mid - N * 1.2 - W * 1.6 + Vector((0, 0, 1.2))), tuple(mid), 90, (0.6, 0.88, 0.95), 0.8)
-        st.lamp('Eye', tuple(mid + N * 1.2 + W * 0.05 + Vector((0, 0, 0.1))), tuple(eye), 5, (0.9, 1.0, 0.95), 0.3)
-        self.track = anim.Track([(0.0, self.Ka), (0.9, self.Ka), (1.35, self.Kb, 'out'), (3.2, self.Kb), (4.2, self.Kc, 'in')], A)
+        A = st.actor; N = st.branch['north']; W = -st.branch['along']; H = _hang_keys(st); K = H['K']; self.grip1 = H['grip1']
+        A.apply(K['look1']); bpy.context.view_layer.update(); eye = A.point('Eyes'); dev, nrm = A.device(); mid = eye.lerp(dev, 0.55); cam = mid + N * 1.32 + W * 0.22 + Vector((0, 0, 0.24))
+        st.camera(tuple(cam), tuple(mid), lens=50, fstop=3.2, focus=(eye.lerp(dev, 0.5) - cam).length)
+        st.clear_lamps(); st.lamp('Key', tuple(mid + N * 1.6 + W * 1.8 + Vector((0, 0, 1.6))), tuple(mid), 120, (1.0, 0.86, 0.62), 0.8); st.lamp('Cool', tuple(mid - N * 1.2 - W * 1.6 + Vector((0, 0, 1.2))), tuple(mid), 110, (0.6, 0.88, 0.95), 0.8)
+        st.lamp('Eye', tuple(cam + Vector((0.1, 0, 0.12))), tuple(eye), 5, (0.9, 1.0, 0.95), 0.3)
+        self.track = anim.Track([(0.0, K['hang1']), (0.55, K['hang1']), (1.25, K['look1'], 'inout'), (3.3, K['look1']), (4.4, K['slip1'], 'in')], A)
 
-    def center(self, st): return (self.grip.x, self.grip.y - 0.1)
+    def center(self, st): return (self.grip1.x, self.grip1.y - 0.1)
 
     def frame(self, st, t):
-        A = st.actor; k = dict(self.track.at(t)); k['pitch'] = 0.04 * math.sin(2 * math.pi * 0.62 * t) * math.exp(-0.4 * t); A.apply(k); A.pin(self.palms, self.grip - Vector((0, 0, 0.05 * anim.ease((t - 3.2) / 1.0, 'in'))))
-        A.alive(t, breath=anim.curve(t, [(0, 2.2), (1.3, 2.0), (1.8, 0.3), (4.2, 0.3)]), rate=0.7, restless=anim.curve(t, [(0, 0.6), (1.3, 0.5), (1.8, 0.05), (4.2, 0.05)]), tremble={'armL': 1.2, 'armR': 1.2})
-        A.face(Blink=anim.blinks(t, [0.35]), BrowUp=anim.curve(t, [(0, 0.0), (1.3, 0.0), (1.7, 0.9), (4.2, 1.0)]), BrowDown=anim.curve(t, [(0, 0.5), (1.3, 0.4), (1.6, 0.0)]), JawOpen=anim.curve(t, [(0, 0.35), (1.3, 0.3), (1.9, 0.12), (4.2, 0.2)]))
+        A = st.actor; k = dict(self.track.at(t)); k['pitch'] = 0.05 * math.sin(2 * math.pi * 0.62 * t + 1.0) * math.exp(-0.5 * t); A.apply(k)
+        A.alive(t, breath=anim.curve(t, [(0, 2.2), (1.2, 2.0), (1.7, 0.3), (4.4, 0.3)]), rate=0.7, restless=anim.curve(t, [(0, 0.6), (1.2, 0.5), (1.7, 0.05), (4.4, 0.05)]), tremble={'armR': anim.curve(t, [(0, 1.0), (3.2, 1.4), (4.4, 3.5)])})
+        A.pin('RightPalm', self.grip1 - Vector((0, 0, 0.06 * anim.ease((t - 3.3) / 1.1, 'in'))))
+        A.face(Blink=anim.blinks(t, [0.3]), BrowUp=anim.curve(t, [(0, 0.0), (1.2, 0.0), (1.6, 0.9), (4.4, 1.0)]), BrowDown=anim.curve(t, [(0, 0.5), (1.2, 0.4), (1.5, 0.0)]), JawOpen=anim.curve(t, [(0, 0.35), (1.2, 0.3), (1.8, 0.12), (4.4, 0.2)]))
         dev, _ = A.device()
-        if t < 1.05: A.gaze(tuple(self.grip + Vector((0, 0, 0.1))))
-        else: A.gaze(tuple(dev))
-        flick = 0.0 if t < 0.75 else (0.5 if (t < 1.0 and int(t * 24) % 3 == 0) else anim.curve(t, [(1.0, 0.12), (1.5, 0.4), (4.2, 0.5)]))
-        S.mud(0.62, 1.0); S.device_power(st.sv, flick, wave=anim.curve(t, [(2.0, -5.0), (2.01, 0.0), (3.4, 30.0)], 'linear') if t >= 2.0 else None)
+        if t < 0.62: A.gaze(tuple(self.grip1 + Vector((0, 0, 0.1))))
+        elif t < 4.05: A.gaze(tuple(dev))
+        else: A.gaze(tuple(self.grip1))                                                           # too late he looks back up at his hand
+        flick = 0.0 if t < 0.40 else (0.55 if (t < 0.75 and int(t * 24) % 3 == 0) else anim.curve(t, [(0.75, 0.12), (1.5, 0.42), (4.4, 0.55)]))
+        S.mud(0.62, 1.0); S.device_power(st.sv, flick, wave=(t - 2.1) * 22.0 if t >= 2.1 else None); S.device_cake(anim.curve(t, [(0, 0.85), (0.4, 0.85), (0.9, 0.0)]))      # the caked mud cracks off it as the arm swings up
 
 
 def _perch_keys(st):
@@ -315,27 +332,27 @@ def _perch_keys(st):
 def _study(st, K, t):
     """His performance on the branch (the same from every camera): he settles, stares, reaches, touches it. It wakes."""
     A = st.actor; track = anim.Track([(0.0, K['a']), (0.5, K['a']), (1.9, K['b'], 'inout'), (5.9, K['b']), (6.05, K['b']), (8.0, K['c'], 'inout'), (9.0, K['c'])], A); A.apply(track.at(t)); A.pin('Seat', K['seat'])
-    A.alive(t, breath=anim.curve(t, [(0, 2.0), (3.0, 1.3), (5.6, 0.5), (9, 0.7)]), rate=0.5, restless=anim.curve(t, [(0, 0.8), (2.5, 0.3), (9, 0.15)]))
+    A.alive(t, breath=anim.curve(t, [(0, 2.0), (3.0, 1.3), (5.6, 0.5), (9, 0.7)]), rate=0.5, restless=anim.curve(t, [(0, 0.8), (2.5, 0.3), (9, 0.15)])); A.pin('Seat', K['seat'])
     dev, nrm = A.device(); touch = 5.6
     if t > 3.9:                                                                              # the right hand comes across, one finger out
-        A.curl('Right', (0.9, 1.3, 1.0), index=(0.08, 0.12, 0.08)); bpy.context.view_layer.update(); rest = A.point('RightTip'); w = anim.ease((t - 3.9) / (touch - 3.9), 'inout') if t < touch else 1.0
-        hover = dev + nrm * 0.045 + Vector((0, 0, 0.02)); goal = dev + nrm * 0.008; tip = rest.lerp(hover, anim.ease(w / 0.8, 'inout')) if w < 0.8 else hover.lerp(goal, anim.ease((w - 0.8) / 0.2, 'in'))
-        if t > touch + 0.12: tip = goal.lerp(hover + nrm * 0.03, anim.ease((t - touch - 0.12) / 0.35, 'out'))            # he snatches it back
-        for _ in range(3): A.reach('Right', tuple(A.point('RightHand') + (tip - A.point('RightTip'))), pole=(0, 0, -1))
+        A.curl('Right', (0.9, 1.3, 1.0), index=(0.06, 0.10, 0.06)); bpy.context.view_layer.update(); rest = A.point('RightTip'); w = anim.ease((t - 3.9) / (touch - 3.9), 'inout') if t < touch else 1.0
+        east = st.branch['along']; hover = dev + nrm * 0.05 + east * 0.02; goal = dev + nrm * 0.006; tip = rest.lerp(hover, anim.ease(w / 0.8, 'inout')) if w < 0.8 else hover.lerp(goal, anim.ease((w - 0.8) / 0.2, 'in'))
+        if t > touch + 0.12: tip = goal.lerp(hover + nrm * 0.04, anim.ease((t - touch - 0.12) / 0.35, 'out'))            # he snatches it back
+        A.touch('Right', tuple(tip), tuple(-nrm * 0.80 - east * 0.55 + Vector((0, 0, -0.10))), pole=(east.x * 0.5, east.y * 0.5, -1.0))
     power = anim.curve(t, [(0, 0.30), (1.0, 0.28), (1.6, 0.42), (2.4, 0.3), (3.4, 0.45), (4.6, 0.32), (touch, 0.4), (touch + 0.08, 1.0), (9.0, 1.0)]) + (0.06 * math.sin(t * 9.0) if t > touch else 0.0)
     S.device_power(st.sv, power, light=1.6, wave=(t - touch) * 26.0 if t >= touch else None)
     A.face(Blink=anim.blinks(t, [0.9, 2.7, 4.4]), BrowUp=anim.curve(t, [(0, 0.0), (touch, 0.1), (touch + 0.15, 0.9), (9, 0.7)]), BrowDown=anim.curve(t, [(0, 0.7), (2.0, 0.45), (touch, 0.2), (touch + 0.1, 0.0)]), JawOpen=anim.curve(t, [(0, 0.35), (2.0, 0.15), (touch, 0.1), (touch + 0.2, 0.3), (9, 0.22)]))
-    A.gaze(tuple(dev)); S.mud(0.40, 1.0)
+    A.gaze(tuple(dev)); S.mud(0.40, 1.0); S.device_cake(0.0)
     return dev, nrm
 
 
 class Study(Shot):
     """On the branch at last. He turns his arm over and stares at the thing in it, and then he touches it."""
-    name = 's13_study'; dur = 9.0; zone = (2.2, 3.2); bloom = 0.55; move = dict(zoom=(1.0, 1.16), drift=(0.008, 0.012), shake=0.0012)
+    name = 's13_study'; dur = 9.0; zone = (2.2, 3.2); bloom = 0.55; move = dict(zoom=(1.0, 1.10), drift=(0.006, 0.008), shake=0.0012)
 
     def setup(self, st):
-        self.K = K = _perch_keys(st); A = st.actor; A.apply(K['b']); A.pin('Seat', K['seat']); head = A.point('Head'); N = st.branch['north']; W = -st.branch['along']; c = K['seat'] + Vector((0, 0, 0.30))
-        st.camera(tuple(c + N * 2.25 + W * 0.95 + Vector((0, 0, -0.18))), tuple(c + Vector((0, 0, 0.02))), lens=50, fstop=3.5)
+        self.K = K = _perch_keys(st); A = st.actor; A.apply(K['b']); A.pin('Seat', K['seat']); head = A.point('Head'); N = st.branch['north']; W = -st.branch['along']; c = K['seat'] + Vector((0, 0, 0.40))
+        st.camera(tuple(c + N * 2.25 + W * 0.95 + Vector((0, 0, -0.22))), tuple(c + Vector((0, 0, 0.0))), lens=45, fstop=3.5)
         st.clear_lamps(); st.lamp('Key', tuple(c + N * 2.6 + W * 2.8 + Vector((0, 0, 2.6))), tuple(c), 260, (1.0, 0.86, 0.62), 1.0); st.lamp('Cool', tuple(c - N * 2.2 - W * 1.5 + Vector((0, 0, 1.6))), tuple(c), 200, (0.55, 0.85, 0.95), 1.0)
         st.lamp('Eye', tuple(c + N * 2.2 + W * 0.6 + Vector((0, 0, 0.2))), tuple(head), 8, (0.9, 1.0, 0.95), 0.35); st.splash.frame(-1.0)
 
@@ -348,7 +365,7 @@ class Device(Shot):
     name = 's14_device'; dur = 3.2; zone = (1.5, 2.2); bloom = 0.7; t0 = 4.4; move = dict(zoom=(1.0, 1.10), drift=(0.0, 0.0), shake=0.0010)
 
     def setup(self, st):
-        self.K = K = _perch_keys(st); A = st.actor; dev, nrm = _study(st, K, 5.0); side = nrm.cross(Vector((0, 0, 1))).normalized()
+        self.K = K = _perch_keys(st); A = st.actor; dev, nrm = _study(st, K, 3.5); side = nrm.cross(Vector((0, 0, 1))).normalized()
         st.camera(tuple(dev + nrm * 0.50 + Vector((0, 0, 0.16)) + side * 0.10), tuple(dev), lens=85, fstop=4.0)
         st.clear_lamps(); st.lamp('Key', tuple(dev + nrm * 0.9 + Vector((0, 0, 1.4)) - side * 1.2), tuple(dev), 34, (1.0, 0.88, 0.66), 0.7); st.lamp('Cool', tuple(dev + side * 1.4 + Vector((0, 0, 0.5))), tuple(dev), 20, (0.6, 0.88, 0.95), 0.8)
 
@@ -358,12 +375,12 @@ class Device(Shot):
 
 class Wide(Shot):
     """A long way back: the black wood, the pool, the fallen branch, and on it one small animal bent over a point of blue light."""
-    name = 's15_wide'; dur = 5.0; zone = (2.4, 3.4); bloom = 0.6; move = dict(zoom=(1.30, 1.0), drift=(0.0, -0.01), shake=0.0008)
+    name = 's15_wide'; dur = 5.0; zone = (2.6, 3.6); bloom = 0.6; move = dict(zoom=(1.18, 1.0), drift=(0.0, -0.01), shake=0.0008)
 
     def setup(self, st):
-        self.K = K = _perch_keys(st); c = K['seat']; N = st.branch['north']; E = st.branch['along']
-        st.camera(tuple(c + N * 11.5 - E * 3.2 + Vector((0, 0, -1.45))), tuple(c + Vector((0.2, 0, -0.35))), lens=40, fstop=8.0)
-        st.clear_lamps(); st.lamp('Rim', tuple(c - N * 3.5 - E * 2.5 + Vector((0, 0, 4.0))), tuple(c), 700, (0.62, 0.88, 0.95), 1.2); st.lamp('Key', tuple(c + N * 3.5 - E * 3.5 + Vector((0, 0, 3.5))), tuple(c), 380, (1.0, 0.86, 0.62), 1.2)
+        self.K = K = _perch_keys(st); c = K['seat']
+        st.camera((0.6, 10.2, 0.42), tuple(c + Vector((-0.25, 0, -0.40))), lens=30, fstop=8.0); st.sightline(tuple(c), 0.3, 0.6, 1.0)
+        st.clear_lamps(); st.lamp('Rim', tuple(c + Vector((2.5, -3.5, 4.0))), tuple(c), 700, (0.62, 0.88, 0.95), 1.2); st.lamp('Key', tuple(c + Vector((-3.5, 3.5, 3.5))), tuple(c), 380, (1.0, 0.86, 0.62), 1.2)
 
     def center(self, st): return (self.K['seat'].x, self.K['seat'].y)
     def frame(self, st, t): _study(st, self.K, 7.2 + t * 0.35)

@@ -82,6 +82,13 @@ POSES['hang'] = {    # hanging from the branch by both hands, arms straight, kne
 POSES['hanglook'] = dict(POSES['hang'], **{   # ...and he has turned his head: the thing in his left forearm is a hand's width from his eyes
     'Neck': (0.06, -0.10, 0.99), 'Head': ((0.14, -0.05, 0.99), 0.0, ((0, -1, 0), (0.80, -0.52, 0.30))),
     'LeftForeArm': ((0.03, -0.05, 1.0), 0.0, ((0, 0, 1), (-0.62, -0.78, 0.05))), 'RightForeArm': (-0.03, -0.05, 1.0)})
+POSES['hang1'] = dict(POSES['hang'], **{   # caught it with the right hand only: the left is still coming up for the branch
+    'Spine2': (0.03, 0.04, 1.0), 'Neck': (0.02, 0.05, 1.0), 'Head': ((0.03, 0.22, 0.975), 0.0, ((0, -1, 0), (0.10, -0.50, 0.86))),
+    'LeftShoulder': (0.80, -0.20, 0.56), 'LeftArm': (0.42, -0.45, 0.79), 'LeftForeArm': ((0.05, -0.35, 0.94), 0.0, ((0, 0, 1), (-0.30, -0.80, 0.50))), 'LeftHand': (0.0, -0.45, 0.89),
+    'RightShoulder': (-0.74, 0.0, 0.67), 'RightArm': (-0.12, -0.05, 0.99), 'RightForeArm': (-0.02, -0.05, 1.0), 'RightHand': (0.0, -0.80, 0.60)})
+POSES['hang1look'] = dict(POSES['hang1'], **{   # ...and it never gets there. He has stopped with the forearm in front of his face, staring at what is in it
+    'Neck': (0.03, -0.30, 0.95), 'Head': ((0.08, -0.42, 0.90), 0.0, ((0, -1, 0), (0.12, -0.80, -0.58))),
+    'LeftShoulder': (0.90, -0.40, 0.10), 'LeftArm': (0.52, -0.66, -0.54), 'LeftForeArm': ((-0.86, -0.42, 0.28), 0.0, ((0, 0, 1), (0.15, -0.62, 0.77))), 'LeftHand': ((-0.92, -0.36, 0.12), 0.0, ((0, 0, 1), (0.15, -0.62, 0.77)))})
 POSES['pullup'] = {  # hauling himself up: elbows bent hard, chin over the branch, knees tucked
     'Hips': (0, -0.10, 0.99), 'Spine': (0, -0.05, 1.0), 'Spine1': (0, 0.0, 1.0), 'Spine2': (0, 0.05, 1.0), 'Neck': (0, -0.15, 0.99), 'Head': (0, -0.20, 0.98),
     'LeftShoulder': (0.90, 0.0, 0.42), 'LeftArm': (0.62, -0.10, -0.78), 'LeftForeArm': (-0.28, -0.22, 0.93), 'LeftHand': (0.0, -0.80, 0.60),
@@ -94,7 +101,7 @@ POSES['perch'] = {   # sat on the branch, legs hanging, hunched over the forearm
     'LeftUpLeg': (0.40, -0.86, -0.32), 'LeftLeg': (0.0, 0.24, -0.97), 'LeftFoot': (0.12, -0.75, -0.65),
 }
 CURL = {'prone': (0.5, 0.7, 0.5), 'headup': (0.5, 0.7, 0.5), 'pushup': (0.15, 0.2, 0.15), 'quad': (0.8, 1.3, 1.0), 'sit': (0.5, 0.7, 0.5), 'knuckle': (0.9, 1.5, 1.2), 'arm': (0.35, 0.5, 0.4), 'look': (0.45, 0.6, 0.5), 'study': (0.4, 0.55, 0.45),
-        'stand': (0.45, 0.6, 0.45), 'lookup': (0.45, 0.6, 0.45), 'crouch': (0.6, 0.8, 0.6), 'leap': (0.1, 0.25, 0.2), 'hang': (1.0, 1.45, 1.1), 'hanglook': (1.0, 1.45, 1.1), 'pullup': (1.0, 1.45, 1.1), 'perch': (0.45, 0.6, 0.5)}       # how far each finger joint curls (radians)
+        'stand': (0.45, 0.6, 0.45), 'lookup': (0.45, 0.6, 0.45), 'crouch': (0.6, 0.8, 0.6), 'leap': (0.1, 0.25, 0.2), 'hang': (1.0, 1.45, 1.1), 'hanglook': (1.0, 1.45, 1.1), 'hang1': (1.0, 1.45, 1.1), 'hang1look': (1.0, 1.45, 1.1), 'pullup': (1.0, 1.45, 1.1), 'perch': (0.45, 0.6, 0.5)}       # how far each finger joint curls (radians)
 
 
 def apply(seven, name):

@@ -82,6 +82,18 @@ def mud_field():
     return g
 
 
+def cake_field():
+    """A lump of swamp mud dried over the device, hiding it until the water washes it off. Inside: Cake (0 none .. 1 buried)."""
+    g = bpy.data.node_groups.get('DeviceCake')
+    if g: return g
+    g = bpy.data.node_groups.new('DeviceCake', 'ShaderNodeTree'); g.interface.new_socket('Cake', in_out='OUTPUT', socket_type='NodeSocketFloat'); T = NT(g); go = T.node('NodeGroupOutput')
+    v = T.node('ShaderNodeValue'); v.name = v.label = 'Cake'; v.outputs[0].default_value = 0.0; T.link(v.outputs[0], go.inputs['Cake']); return g
+
+
+def device_cake(value):
+    cake_field().nodes['Cake'].outputs[0].default_value = value
+
+
 def _mud(T, position):
     n = T.node('ShaderNodeGroup'); n.node_tree = mud_field(); T.link(position, n.inputs['Position']); return n.outputs['Mud'], n.outputs['Thick'], n.outputs['Wet']
 
@@ -165,6 +177,7 @@ def device_object(b, arm):
     T.set(p, Base_Color=T.mix(T.math('MULTIPLY', wear_, 0.6), T.mix(grime, lin('#15171a'), lin('#2a2d31')), lin('#6d7176')), Metallic=1.0, Roughness=T.math('ADD', 0.30, T.math('MULTIPLY', brushed, 0.28)))
     bm_ = T.node('ShaderNodeBump'); bm_.inputs['Strength'].default_value = 0.25; bm_.inputs['Distance'].default_value = 0.02; T.link(brushed, bm_.inputs['Height']); T.link(bm_.outputs['Normal'], p.inputs['Normal'])
     rest = T.node('ShaderNodeAttribute', attribute_name='rest_position').outputs['Vector']; mud, thick, wet = _mud(T, rest); mudcol = T.mix(wet, lin(MUD_DRY), lin(MUD_WET))
+    ck = T.node('ShaderNodeGroup'); ck.node_tree = cake_field(); mud = T.math('MAXIMUM', mud, ck.outputs['Cake'])
     fb = [l.from_socket for l in p.inputs['Base Color'].links][0]; fr = [l.from_socket for l in p.inputs['Roughness'].links][0]
     T.link(T.mix(mud, fb, mudcol), p.inputs['Base Color']); T.link(T.mix(mud, fr, T.mix(wet, (0.85, 0.85, 0.85, 1), (0.30, 0.30, 0.30, 1))), p.inputs['Roughness']); T.link(T.math('SUBTRACT', 1.0, mud), p.inputs['Metallic'])
     # glass: black, cracked from one hit, the dead display under it still giving a faint pulse
@@ -177,6 +190,7 @@ def device_object(b, arm):
           Emission_Color=lin('#3aa8ff'), Emission_Strength=G.math('MULTIPLY', lit, 7.0))
     bg = G.node('ShaderNodeBump'); bg.inputs['Strength'].default_value = 0.6; bg.inputs['Distance'].default_value = 0.012; G.link(G.math('MULTIPLY', broken, -1.0), bg.inputs['Height']); G.link(bg.outputs['Normal'], pg.inputs['Normal'])
     restg = G.node('ShaderNodeAttribute', attribute_name='rest_position').outputs['Vector']; mud, thick, wet = _mud(G, restg); mudcol = G.mix(wet, lin(MUD_DRY), lin(MUD_WET)); smear = G.math('MULTIPLY', mud, G.math('ADD', 0.55, G.math('MULTIPLY', thick, 0.45)))
+    ckg = G.node('ShaderNodeGroup'); ckg.node_tree = cake_field(); smear = G.math('MAXIMUM', smear, ckg.outputs['Cake'])
     gb = [l.from_socket for l in pg.inputs['Base Color'].links][0]; gr = [l.from_socket for l in pg.inputs['Roughness'].links][0]; ge = [l.from_socket for l in pg.inputs['Emission Strength'].links][0]; gc = [l.from_socket for l in pg.inputs['Coat Weight'].links][0]
     G.link(G.mix(smear, gb, mudcol), pg.inputs['Base Color']); G.link(G.mix(smear, gr, G.mix(wet, (0.85, 0.85, 0.85, 1), (0.30, 0.30, 0.30, 1))), pg.inputs['Roughness'])
     G.link(G.math('MULTIPLY', ge, G.math('SUBTRACT', 1.0, G.math('MULTIPLY', smear, 0.92))), pg.inputs['Emission Strength']); G.link(G.math('MULTIPLY', gc, G.math('SUBTRACT', 1.0, smear)), pg.inputs['Coat Weight'])     # mud dulls the glass and hides the light under it
@@ -422,7 +436,10 @@ def pose(seven, spec, order=None):
         if k.startswith('Left') and 'Right' + k[4:] not in full:
             d, tw, face = _unpack(v); full['Right' + k[4:]] = (mx(d), -tw, (mx(face[0]), mx(face[1])) if face else None)
     for n in names:
-        if n in full: d, tw, face = _unpack(full[n]); aim(arm, n, d, tw, face)
+        if n in full:
+            d, tw, face = _unpack(full[n])
+            if n == 'Head' and face is None and abs(tw) < 1e-6: face = ((0, -1, 0), (0, -1, 0))      # unless told otherwise his face stays square to the front (the short neck bone would otherwise leave it turned a few degrees)
+            aim(arm, n, d, tw, face)
 
 
 def look_at(seven, point):
