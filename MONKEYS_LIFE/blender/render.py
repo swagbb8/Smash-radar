@@ -70,6 +70,7 @@ def plates(shot, name, outdir, quality):
     st = shots.Stage(quality, seven=True, fur=False); sc = st.sc; ids = list(range(len(shot.focus))) if shot.kind == 'focus' else [None]
     if arg('--variant') is not None: ids = [int(arg('--variant'))]
     if arg('--samples'): st.q['plate_samples'] = int(arg('--samples'))
+    else: st.q['plate_samples'] = max(48, st.q['plate_samples'] // 2)                             # these plates are big and soft (mist, blur): half the samples is plenty
     for i in ids:
         if i is None: shot.setup(st)
         else: shot.setup(st, i)

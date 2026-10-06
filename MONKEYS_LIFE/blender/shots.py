@@ -23,7 +23,7 @@ FPS = 24
 QUALITY = {   # size of the frame, samples per pixel (frames, plate), fur strands, body subdivision
     'draft':   dict(size=(480, 200), samples=12, plate_samples=24, fur=70000, subdiv=1, noise=0.05),
     'preview': dict(size=(768, 322), samples=40, plate_samples=96, fur=220000, subdiv=2, noise=0.02),
-    'final':   dict(size=(1280, 536), samples=112, plate_samples=256, fur=405000, subdiv=2, noise=0.008),
+    'final':   dict(size=(1280, 536), samples=112, plate_samples=224, fur=405000, subdiv=2, noise=0.008),
 }
 
 

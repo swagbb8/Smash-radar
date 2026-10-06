@@ -264,6 +264,14 @@ def jacaranda():
     with bpy.data.libraries.load(assets.path('jacaranda_tree'), link=False) as (src, dst): dst.collections = ['jacaranda_tree_geometry_nodes', 'jacaranda_tree_leaves_LOD1', 'jacaranda_tree_leaves_LOD0', 'jacaranda_tree_trunk_LOD1']
     crown = bpy.data.objects['jacaranda_tree_geometry_nodes']; trunk = bpy.data.objects['jacaranda_tree_trunk_LOD1']; crown.location = (0, 0, 0); trunk.location = (0, 0, 0)
     full = bpy.data.collections.new('JacarandaTree'); full.objects.link(crown); full.objects.link(trunk); top = bpy.data.collections.new('JacarandaCrown'); top.objects.link(crown)
+    m = bpy.data.materials.get('jacaranda_tree_leaves')                                    # the scan's leaves are a fresh sunny green: down here they are older, darker, wetter
+    if m and not m.get('toned'):
+        nt = m.node_tree; m['toned'] = 1
+        for n in list(nt.nodes):
+            if n.bl_idname == 'ShaderNodeTexImage' and n.image and n.image.colorspace_settings.name == 'sRGB':
+                for l in list(n.outputs['Color'].links):
+                    mul = nt.nodes.new('ShaderNodeMix'); mul.data_type = 'RGBA'; mul.blend_type = 'MULTIPLY'; mul.inputs[0].default_value = 1.0; mul.inputs[7].default_value = (0.42, 0.50, 0.34, 1); to = l.to_socket; nt.links.remove(l)
+                    nt.links.new(n.outputs['Color'], mul.inputs[6]); nt.links.new(mul.outputs[2], to)
     return full, top
 
 
