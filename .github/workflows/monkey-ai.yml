@@ -1,6 +1,7 @@
 # Monkey's Life — makes Episode 1 with AI video models.
-#   model ltx  : FREE route — open models (Qwen-Image-Edit + LTX-2.5, sound included) on Modal's free monthly credit.
-#                Secrets: MODAL_TOKEN_ID, MODAL_TOKEN_SECRET, HF_TOKEN (Hugging Face, with LTX-2.5's terms accepted)
+#   model ltx  : FREE route — open models (Qwen-Image-Edit + LTX, sound included) on Modal's free monthly credit.
+#                Secrets: MODAL_TOKEN_ID, MODAL_TOKEN_SECRET. Optional HF_TOKEN (account that accepted LTX-2.5's terms)
+#                switches from the open LTX-2.3 to LTX-2.5.
 #   model h3   : MiniMax H3 Max through fal.ai (~$0.08/s), secret FAL_KEY
 #   model kling: Kling 3.0 Omni through fal.ai (~$0.22/s), secret FAL_KEY
 #   mode plan  : what would be made and roughly what it costs; spends nothing, needs no key

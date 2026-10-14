@@ -12,8 +12,9 @@ Two video models, picked per run (env ML_MODEL or --model):
         (fal: "audio in the same pass"); a clip that arrives silent goes through MMAudio (video-to-audio) instead.
   kling Kling 3.0 Omni (~$0.22/s with sound). Characters are "elements" built from the cast pictures; sound built in.
   ltx   FREE route: open models on Modal's free monthly credit (modal_app.py). Every shot with a character first gets
-        a still (Qwen-Image-Edit, from the cast pictures) that LTX-2.5 then brings to life with sound; shots with
-        nobody in them are LTX-2.5 text-to-video. Needs MODAL_TOKEN_ID, MODAL_TOKEN_SECRET and HF_TOKEN (all secrets).
+        a still (Qwen-Image-Edit, from the cast pictures) that LTX then brings to life with sound; shots with nobody in
+        them are LTX text-to-video. Needs MODAL_TOKEN_ID and MODAL_TOKEN_SECRET; HF_TOKEN is optional (LTX-2.5
+        instead of the open LTX-2.3).
 Subtitles, Seven's English words, captions and title cards are added in the edit (cut.py).
 """
 import concurrent.futures as cf, json, os, re, shutil, subprocess, sys, time, urllib.request
@@ -311,7 +312,7 @@ def shots(scene, only, max_usd, cast_dir, out, workers=4, have=(), model='h3'):
 
 # ------------------------------------------------------------------------------------------------- free route (Modal)
 def _modal():
-    missing = [k for k in ('MODAL_TOKEN_ID', 'MODAL_TOKEN_SECRET', 'HF_TOKEN') if not os.environ.get(k)]
+    missing = [k for k in ('MODAL_TOKEN_ID', 'MODAL_TOKEN_SECRET') if not os.environ.get(k)]
     if missing:
         print(f"::error::Missing secret(s): {', '.join(missing)}. Add them at GitHub: Settings > Secrets and variables > "
               'Actions > New repository secret.'); sys.exit(1)
