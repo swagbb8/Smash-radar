@@ -411,6 +411,19 @@ def ci():
     if model not in ('h3', 'kling', 'ltx'): print('::error::model must be ltx (free), h3 or kling'); sys.exit(1)
     max_minutes = float(SAFE(os.environ.get('ML_MAX_MINUTES')) or 50)
     summary = os.environ.get('GITHUB_STEP_SUMMARY')
+    if mode == 'probe':                                  # which open models can be downloaded without an account
+        for repo in ('Lightricks/LTX-2.5-Diffusers', 'Lightricks/LTX-2.5', 'diffusers/LTX-2.3-Diffusers', 'Lightricks/LTX-2.3',
+                     'Lightricks/LTX-2', 'rootonchair/LTX-2-19b-distilled', 'Qwen/Qwen-Image-Edit-2511', 'Qwen/Qwen-Image-Edit-2509',
+                     'Qwen/Qwen-Image-2512', 'Qwen/Qwen-Image', 'Wan-AI/Wan2.2-I2V-A14B-Diffusers', 'Wan-AI/Wan2.2-TI2V-5B-Diffusers',
+                     'hkchengrex/MMAudio'):
+            try:
+                d = json.load(urllib.request.urlopen(f'https://huggingface.co/api/models/{repo}?blobs=true', timeout=30))
+                size = sum(s.get('size') or 0 for s in d.get('siblings', [])) / 1e9
+                lic = next((t[8:] for t in d.get('tags', []) if t.startswith('license:')), '?')
+                print(f"{repo:40s} gated={d.get('gated')} license={lic} modified={d.get('lastModified', '')[:10]} {size:.0f} GB")
+            except Exception as e:
+                print(f'{repo:40s} not reachable: {str(e)[:80]}')
+        return
     if mode == 'plan':
         rows = plan(scene, only, model); usd = sum(r['usd'] for r in rows)
         lines = [f'{len(rows)} clips with {model}, about ${usd:.0f}', '']
