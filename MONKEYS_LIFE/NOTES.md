@@ -24,6 +24,15 @@ Then: smash cut to black, title card MONKEY'S LIFE — Episode 1 — "ARISE".
 Not decided by Ash (ask before adding): narration of these words by a voice; any text on the device's screen (kept abstract).
 
 ## WHERE THINGS STAND (update this first; the session gets cut off without warning)
+- Oct 13: Ash got the full 76 s ARISE rough cut (ARISE_opening.mp4, re-encoded to 18 MB: chat uploads stop at 30 MB).
+  He then asked for "30 min episodes next gen fully realistic". Told him straight: not renderable here (CPU only, months,
+  GitHub could flag it). Route chosen: AI video app (Kling / Veo / Sora) clip by clip, I write every shot and edit what
+  he sends back. Built `episode1/` (scenes_a..d.py → build.py → page.py): 249 clips, 29:20, published as the artifact
+  "ARISE Shot List" (https://claude.ai/artifact/Y6a8ZremHAzY9m7GDY7da7, republish from episode1/out with ref/ pictures).
+  4 scenes are NEW (not Ash's): The world, The stream, Grooming, Nests — flagged on the page. Troop are chimps like
+  Seven, so the tail grab became a foot grab (flagged). 3D renders paused unless Ash says keep going.
+  Next: when he sends clips, cut them per scene (subtitles for grunts, Seven's English words from his own recording or
+  a voice he picks, captions, sound, title cards, credits).
 - Oct 6 02:10 UTC: rough cut in progress at `preview` quality. Plates started (run 37402948112); frames are started per shot once
   its plate branch exists: `python cloud.py frames` (it only starts what is missing; `python cloud.py status` shows the gaps).
   Then: `python cloud.py fetch <dir>` → `python post.py unpack <dir> <frames>` → `python sound.py <wav>` →
