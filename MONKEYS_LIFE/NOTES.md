@@ -24,6 +24,16 @@ Then: smash cut to black, title card MONKEY'S LIFE — Episode 1 — "ARISE".
 Not decided by Ash (ask before adding): narration of these words by a voice; any text on the device's screen (kept abstract).
 
 ## WHERE THINGS STAND (update this first; the session gets cut off without warning)
+- Oct 14: Ash asked why I don't "talk to every AI" (and use all the free tiers). Told him: free credits live in apps
+  behind his logins (I won't use his passwords), are tiny and watermarked; extra accounts break their rules. Route now:
+  ONE fal.ai key (repo secret FAL_KEY, he adds it; never in chat) → `episode1/ai_video.py` via workflow
+  "Monkey AI video" (monkey-ai.yml; modes plan / cast / shots; model h3 = MiniMax H3 Max 768P ~$0.08/s, default, or
+  kling = Kling 3.0 Omni ~$0.22/s). Whole episode ≈ $160 on h3 (≈ $430 Kling); cast ≈ $2, cold open ≈ $18. He was told
+  to put $25 in. Order: cast → show Ash the 4 chimps → cold open (scene 0) → `cut.py` → send → rest scene by scene.
+  Results: branches ep1-ai/cast, ep1-ai/sNN. Edit: `python cut.py <clips dir> <out.mp4> --scene N` (slates for
+  missing clips). Chat uploads stop at 30 MB: send scenes at 720p. Can't list repo secrets from here (proxy): a `cast`
+  run is the first real use of the key. Ash rejected two long test commands (cd + rm -rf + git config --global):
+  keep commands short and plain.
 - Oct 13: Ash got the full 76 s ARISE rough cut (ARISE_opening.mp4, re-encoded to 18 MB: chat uploads stop at 30 MB).
   He then asked for "30 min episodes next gen fully realistic". Told him straight: not renderable here (CPU only, months,
   GitHub could flag it). Route chosen: AI video app (Kling / Veo / Sora) clip by clip, I write every shot and edit what
