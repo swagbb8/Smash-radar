@@ -424,6 +424,14 @@ def ci():
                 lines.append(f"{repo} gated={d.get('gated')} license={lic} modified={d.get('lastModified', '')[:10]} {size:.0f} GB")
             except Exception as e:
                 lines.append(f'{repo} not reachable: {str(e)[:80]}')
+        for repo in (os.environ.get('ML_PROBE_FILES') or 'diffusers/LTX-2.3-Diffusers,Lightricks/LTX-2.3').split(','):
+            try:
+                d = json.load(urllib.request.urlopen(f'https://huggingface.co/api/models/{repo}?blobs=true', timeout=30))
+                big = [f"{s['rfilename']} {(s.get('size') or 0) / 1e9:.1f}" for s in d.get('siblings', [])
+                       if (s.get('size') or 0) > 2e8 or s['rfilename'].endswith(('model_index.json', 'config.json'))]
+                lines.append(f'FILES {repo}: ' + ' | '.join(big[:60]))
+            except Exception as e:
+                lines.append(f'FILES {repo}: {str(e)[:80]}')
         print('::notice title=probe::' + '%0A'.join(lines))
         return
     if mode == 'plan':
