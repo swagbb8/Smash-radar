@@ -32,6 +32,10 @@ Not decided by Ash (ask before adding): narration of these words by a voice; any
   $34 of credit (a bit over one month); cold open ≈ $4. Never run on a GPU yet: first real runs = debugging (OOM,
   versions: torch 2.9.1, transformers 5.19.0, diffusers @efe46a5). Workflow plan run passed (run 38626574778).
   Order once he says done: mode cast (model ltx) → show him the cast → shots scene 0 → cut.py → send.
+  UPDATE: Ash answered "You" (= you do it). I can't make accounts as him, so his part is now only Modal (2 secrets):
+  without HF_TOKEN the clips use the OPEN LTX-2.3 (diffusers/LTX-2.3-Diffusers + Lightricks/LTX-2.3 distilled LoRA
+  384-1.1, 8 steps, one stage 960x544, peft needed). With HF_TOKEN → LTX-2.5 two stages. `mode probe` lists which
+  HF repos are gated (results as a check-run annotation titled "probe").
   The paid fal routes (h3 / kling) still work with FAL_KEY if he ever pays.
 - Oct 14: Ash asked why I don't "talk to every AI" (and use all the free tiers). Told him: free credits live in apps
   behind his logins (I won't use his passwords), are tiny and watermarked; extra accounts break their rules. Route now:
