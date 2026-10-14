@@ -1,6 +1,9 @@
-# Monkey's Life — makes Episode 1 with AI video models through one fal.ai key (repository secret FAL_KEY).
-#   mode plan  : what would be sent and roughly what it costs; spends nothing, needs no key
-#   model      : h3 = MiniMax H3 Max (+ MMAudio for sound, ~$0.09/s) or kling = Kling 3.0 Omni (sound built in, ~$0.22/s)
+# Monkey's Life — makes Episode 1 with AI video models.
+#   model ltx  : FREE route — open models (Qwen-Image-Edit + LTX-2.5, sound included) on Modal's free monthly credit.
+#                Secrets: MODAL_TOKEN_ID, MODAL_TOKEN_SECRET, HF_TOKEN (Hugging Face, with LTX-2.5's terms accepted)
+#   model h3   : MiniMax H3 Max through fal.ai (~$0.08/s), secret FAL_KEY
+#   model kling: Kling 3.0 Omni through fal.ai (~$0.22/s), secret FAL_KEY
+#   mode plan  : what would be made and roughly what it costs; spends nothing, needs no key
 #   mode cast  : photoreal reference pictures of Seven (from the 3D renders) and the troop -> branch ep1-ai/cast
 #   mode shots : the clips of a scene (or of some clip numbers) -> branch ep1-ai/sNN (NN = scene number), one mp4 per clip
 # Free text only ever reaches the script through environment variables.
@@ -19,10 +22,13 @@ on:
         description: 'clip numbers to (re)make, e.g. 1,4,7-9 (empty = every clip not made yet)'
         default: ''
       model:
-        description: 'h3 (MiniMax H3 Max, cheaper) or kling (Kling 3.0 Omni)'
-        default: 'h3'
+        description: 'ltx (free, Modal), h3 (MiniMax, paid) or kling (paid)'
+        default: 'ltx'
+      max_minutes:
+        description: 'free route: stop starting new clips after this many minutes'
+        default: '50'
       max_usd:
-        description: 'stop before the estimated spend of this run passes this many dollars'
+        description: 'paid routes: stop before the estimated spend passes this many dollars'
         default: '25'
 permissions:
   contents: write
@@ -35,10 +41,14 @@ jobs:
     timeout-minutes: 330
     env:
       FAL_KEY: '${{ secrets.FAL_KEY }}'
+      MODAL_TOKEN_ID: '${{ secrets.MODAL_TOKEN_ID }}'
+      MODAL_TOKEN_SECRET: '${{ secrets.MODAL_TOKEN_SECRET }}'
+      HF_TOKEN: '${{ secrets.HF_TOKEN }}'
       ML_MODE: '${{ inputs.mode }}'
       ML_SCENE: '${{ inputs.scene }}'
       ML_ONLY: '${{ inputs.only }}'
       ML_MAX_USD: '${{ inputs.max_usd }}'
+      ML_MAX_MINUTES: '${{ inputs.max_minutes }}'
       ML_MODEL: '${{ inputs.model }}'
       ML_REPO: 'https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git'
     steps:
@@ -47,7 +57,7 @@ jobs:
         with: { python-version: '3.12' }
       - name: Tools
         run: |
-          pip install -q fal-client
+          pip install -q fal-client modal==1.6.1 pillow
           command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null)
       - name: Make
         working-directory: MONKEYS_LIFE/episode1

@@ -11,6 +11,9 @@ Two video models, picked per run (env ML_MODEL or --model):
         cast pictures as Image 1, Image 2, ...; shots with nobody in them use text-to-video. Sound comes with the clip
         (fal: "audio in the same pass"); a clip that arrives silent goes through MMAudio (video-to-audio) instead.
   kling Kling 3.0 Omni (~$0.22/s with sound). Characters are "elements" built from the cast pictures; sound built in.
+  ltx   FREE route: open models on Modal's free monthly credit (modal_app.py). Every shot with a character first gets
+        a still (Qwen-Image-Edit, from the cast pictures) that LTX-2.5 then brings to life with sound; shots with
+        nobody in them are LTX-2.5 text-to-video. Needs MODAL_TOKEN_ID, MODAL_TOKEN_SECRET and HF_TOKEN (all secrets).
 Subtitles, Seven's English words, captions and title cards are added in the edit (cut.py).
 """
 import concurrent.futures as cf, json, os, re, shutil, subprocess, sys, time, urllib.request
@@ -29,6 +32,12 @@ EP = dict(
     edit=_env('edit', 'fal-ai/nano-banana-pro/edit'))
 RATE = dict(kling_ref=0.224, kling_t2v=0.224, h3_ref=0.08, h3_t2v=0.08, audio=0.01, image=0.15)   # USD estimates
 H3_RES = os.environ.get('ML_H3_RES', '768P')
+# Free route (Modal): H100 time, $0.001097 a second out of the $30 free monthly credit. GPU seconds are estimates
+# until a real run has been timed: per clip ~40 s + 8 s per second of video (two stages, 1280x704), per still ~25 s.
+H100 = 0.001097
+LTX_W, LTX_H = int(os.environ.get('ML_LTX_W', 1280)), int(os.environ.get('ML_LTX_H', 704))
+LTX_GPU_S = lambda secs: 40 + 8 * secs
+STILL_GPU_S = 25
 STYLE = ("Photorealistic live action, nature-documentary realism: real chimpanzee anatomy, skin and fur. Cinematic 35mm "
          "film look, shallow depth of field, natural light. No text, no subtitles, no humans, no music.")
 SEVEN_HINT = ' (the huge, ragged chimpanzee with the shattered device in his left forearm)'
@@ -96,6 +105,7 @@ def clips():
 def request(n, sc, s, model='h3'):
     """-> (endpoint key, arguments without image URLs, cast keys of the characters in it, sound prompt, seconds)"""
     look = s['look'] or sc.get('look', 'dry')
+    if model == 'ltx': return ltx_request(sc, s, look)
     secs = max(3 if model == 'kling' else 5, min(15, s['sec'] + 1))          # H3 Max makes 5-15 s, Kling 3-15 s
     snd = s['snd'] or 'the natural sounds of the place'
     if s['who']: snd += ', chimpanzee breathing, grunts and hoots where they react'
@@ -123,8 +133,51 @@ def request(n, sc, s, model='h3'):
     return model + '_ref', dict(base, prompt=f"{names}{fur} {s['act'].strip()}{tail}"), keys, snd, secs
 
 
+def ltx_request(sc, s, look):
+    """Free route: the clip prompt (LTX likes one long paragraph: who, action, place, camera, light, sound) and, for
+    shots with characters, the prompt of the still it starts from."""
+    secs = max(3, min(15, s['sec'] + 1))
+    snd = (s['snd'] or 'the natural sounds of the place') + (', chimpanzee breathing, grunts and hoots where they react'
+                                                              if s['who'] else '')
+    sound = f' Sound: {snd}; only natural sounds and chimpanzee noises, no human speech, no music.'
+    if s['kind'] == 'flash':
+        return 'ltx_t2v', dict(prompt=f"{s['act'].strip()} {FLASH}{sound}", secs=secs), [], snd, secs
+    where = 'Setting: ' + PLACE[s['place'] or sc['place']] + '.'
+    cam = f" Camera: {s['cam']}." if s['cam'] else ''
+    who = ' '.join(CHAR[c].format(look=LOOK[look]) + '.' for c in s['who'])
+    text = f"{who} {s['act'].strip()} {where}{cam} {STYLE}{sound}".strip()
+    if not s['who']: return 'ltx_t2v', dict(prompt=text, secs=secs), [], snd, secs
+    refs, names = still_layout(s['who'], look)
+    fur = f" Seven's fur is {LOOK[look]}; the device is in his LEFT forearm." if 'S' in s['who'] else ''
+    still = (f"{names}. A photorealistic 16:9 film still, the very first moment of this shot: {s['act'].strip()} {where}"
+             f"{cam}{fur} Keep every chimpanzee exactly as in his or her picture: same face, fur, build and size. "
+             "Real wildlife cinematography, natural light, shallow depth of field. No text, no humans.")
+    return 'ltx_i2v', dict(prompt=text, secs=secs, still=still), refs, snd, secs
+
+
+def still_layout(who, look):
+    """Which cast pictures a shot's still is made from (at most 3; 'a+b' = two portraits side by side) and how the
+    prompt names them."""
+    key = lambda c: 'seven_mud' if c == 'S' and look == 'mud' else WHO[c]
+    if len(who) == 1:
+        k = key(who[0]); third = 'seven/arm' if who[0] == 'S' else f'{k}/angle'
+        note = ', Image 3 is a close-up of his left forearm with the device' if who[0] == 'S' else ''
+        return [f'{k}/front', f'{k}/full', third], f'Images 1 to 3 show {NAME[who[0]]}{note}'
+    refs = [f'{key(c)}/front' for c in who[:2]]
+    names = '; '.join(f'Image {i + 1} shows {NAME[c]}' for i, c in enumerate(who[:2]))
+    if len(who) == 2 and 'S' in who:
+        refs.append('seven/arm'); names += "; Image 3 is a close-up of Seven's left forearm with the device"
+    elif len(who) == 3:
+        refs.append(f'{key(who[2])}/front'); names += f'; Image 3 shows {NAME[who[2]]}'
+    elif len(who) == 4:
+        refs.append(f'{key(who[2])}/front+{key(who[3])}/front')
+        names += f'; Image 3 shows {NAME[who[2]]} (left) and {NAME[who[3]]} (right)'
+    return refs, names
+
+
 def cost(ep, secs, model):
-    """Estimate, with a little room for the odd silent clip that needs MMAudio."""
+    """Estimate, with a little room for the odd silent clip that needs MMAudio. Free route: share of the free credit."""
+    if model == 'ltx': return (LTX_GPU_S(secs) + (STILL_GPU_S if ep == 'ltx_i2v' else 0)) * H100
     return secs * RATE[ep] + (secs * RATE['audio'] * 0.25 if model == 'h3' else 0)
 
 
@@ -256,6 +309,82 @@ def shots(scene, only, max_usd, cast_dir, out, workers=4, have=(), model='h3'):
     return manifest
 
 
+# ------------------------------------------------------------------------------------------------- free route (Modal)
+def _modal():
+    missing = [k for k in ('MODAL_TOKEN_ID', 'MODAL_TOKEN_SECRET', 'HF_TOKEN') if not os.environ.get(k)]
+    if missing:
+        print(f"::error::Missing secret(s): {', '.join(missing)}. Add them at GitHub: Settings > Secrets and variables > "
+              'Actions > New repository secret.'); sys.exit(1)
+    import modal, modal_app
+    return modal, modal_app
+
+
+def _collage(a, b):
+    from PIL import Image
+    import io
+    ia, ib = (Image.open(io.BytesIO(x)).convert('RGB') for x in (a, b))
+    h = min(ia.height, ib.height); ia, ib = (im.resize((round(im.width * h / im.height), h)) for im in (ia, ib))
+    out = Image.new('RGB', (ia.width + ib.width + 16, h), (0, 0, 0)); out.paste(ia, (0, 0)); out.paste(ib, (ia.width + 16, 0))
+    buf = io.BytesIO(); out.save(buf, 'JPEG', quality=92); return buf.getvalue()
+
+
+def cast_ltx(out):
+    """The cast on the free route: the troop from text, Seven from the 3D renders, then the other views from those."""
+    modal, M = _modal(); os.makedirs(out, exist_ok=True); local = {}
+    read = lambda p: open(os.path.join(HERE, p), 'rb').read()
+    jobs = [dict(name=f'{k}/front', prompt=CAST[k][0][3], refs=[], w=896, h=1120, steps=40, seed=3) for k in ('grub', 'petch', 'dolo')]
+    for char, views in CAST.items():
+        for view, how, refs, text in views:
+            if view == 'front' and how == 't2i': continue
+            r = [('@' + (x[1:] if '/' in x else f'{char}/{x[1:]}')) if x.startswith('@') else read(x) for x in refs]
+            jobs.append(dict(name=f'{char}/{view}', prompt=text, refs=r, w=896, h=1120, steps=40, seed=3))
+    with modal.enable_output(), M.app.run():
+        for name, data, note in M.Stills().make.remote_gen(jobs):
+            print('cast', name, note, flush=True)
+            if data:
+                f = name.replace('/', '_') + '.jpg'; open(os.path.join(out, f), 'wb').write(data); local[name] = f
+                json.dump(local, open(os.path.join(out, 'cast.json'), 'w'), indent=1)
+    return local
+
+
+def shots_ltx(scene, only, cast_dir, out, have=(), max_minutes=50):
+    """Stills for the shots with characters, then every clip, until the time for this run is up."""
+    modal, M = _modal(); os.makedirs(out, exist_ok=True); t0 = time.time(); deadline = t0 + max_minutes * 60
+    rows = [r for r in plan(scene, only or None, 'ltx') if r['n'] not in have]
+    names = json.load(open(os.path.join(cast_dir, 'cast.json')))
+    pic = {k: open(os.path.join(cast_dir, f), 'rb').read() for k, f in names.items()}
+    man_path = os.path.join(out, 'manifest.json'); manifest = json.load(open(man_path)) if os.path.exists(man_path) else {}
+    key_of = lambda n: os.path.join(out, f'key_{n:03d}.jpg')
+    stills = []
+    for r in rows:
+        if r['ep'] != 'ltx_i2v' or os.path.exists(key_of(r['n'])): continue
+        refs = [_collage(*(pic[p] for p in k.split('+'))) if '+' in k else pic[k] for k in r['keys']]
+        stills.append(dict(name=str(r['n']), prompt=r['args']['still'], refs=refs, w=LTX_W, h=LTX_H, steps=30, seed=r['n']))
+    print(f"{len(rows)} clips to make for free on Modal ({len(stills)} stills first), at most {max_minutes} min", flush=True)
+
+    def note(n, **kw):
+        rec = manifest.setdefault(str(n), dict(n=n, scene=scene, model='ltx')); rec.update(kw)
+        json.dump(manifest, open(man_path, 'w'), indent=1)
+    with modal.enable_output(), M.app.run():
+        if stills:
+            for name, data, msg in M.Stills().make.remote_gen(stills, deadline):
+                print(f'still #{int(name):03d} {msg}', flush=True)
+                if data: open(key_of(int(name)), 'wb').write(data)
+                note(int(name), still=msg)
+        jobs = []
+        for r in rows:
+            img = open(key_of(r['n']), 'rb').read() if r['ep'] == 'ltx_i2v' and os.path.exists(key_of(r['n'])) else None
+            if r['ep'] == 'ltx_i2v' and img is None: note(r['n'], status='failed', error='no still to start from'); continue
+            jobs.append(dict(n=r['n'], prompt=r['args']['prompt'], image=img, secs=r['secs'], w=LTX_W, h=LTX_H, seed=r['n']))
+        for n, data, msg in M.Clips().make.remote_gen(jobs, deadline):
+            print(f'#{n:03d} {msg}', flush=True)
+            if data: open(os.path.join(out, f'{n:03d}.mp4'), 'wb').write(data); note(n, status='made', clip=msg, file=f'{n:03d}.mp4')
+            else: note(n, status='failed' if msg.startswith('failed') else 'waiting', error=msg)
+    made = sum(1 for r in manifest.values() if r.get('status') == 'made')
+    print(f'done in {(time.time() - t0) / 60:.0f} min: {made} clips here')
+    return manifest
+
+
 # ------------------------------------------------------------------------------------------------------- workflow side
 SAFE = lambda v: re.sub(r'[^A-Za-z0-9,._-]', '', v or '')
 
@@ -278,8 +407,9 @@ def ci():
     mode = SAFE(os.environ.get('ML_MODE')); scene_s = SAFE(os.environ.get('ML_SCENE')) or '0'
     only = numbers(SAFE(os.environ.get('ML_ONLY'))); max_usd = float(SAFE(os.environ.get('ML_MAX_USD')) or 25)
     scene = None if scene_s == 'all' else int(scene_s)
-    model = SAFE(os.environ.get('ML_MODEL')) or 'h3'
-    if model not in ('h3', 'kling'): print('::error::model must be h3 or kling'); sys.exit(1)
+    model = SAFE(os.environ.get('ML_MODEL')) or 'ltx'
+    if model not in ('h3', 'kling', 'ltx'): print('::error::model must be ltx (free), h3 or kling'); sys.exit(1)
+    max_minutes = float(SAFE(os.environ.get('ML_MAX_MINUTES')) or 50)
     summary = os.environ.get('GITHUB_STEP_SUMMARY')
     if mode == 'plan':
         rows = plan(scene, only, model); usd = sum(r['usd'] for r in rows)
@@ -290,17 +420,21 @@ def ci():
         return
     os.makedirs('keep', exist_ok=True)
     if mode == 'cast':
-        cast('keep'); open('keep_branch.txt', 'w').write('ep1-ai/cast'); return
+        open('keep_branch.txt', 'w').write('ep1-ai/cast')
+        cast_ltx('keep') if model == 'ltx' else cast('keep'); return
     if mode == 'shots':
         if not _clone('ep1-ai/cast', 'cast_in'): print('::error::Make the cast first (mode cast).'); sys.exit(1)
-        targets = sorted({r['scene'] for r in plan(scene, only, model)})
+        targets = sorted({r['scene'] for r in plan(scene, only, model)}); t_end = time.time() + max_minutes * 60
         for k in targets:
-            br = f'ep1-ai/s{k:02d}'; _clone(br, 'keep')
+            br = f'ep1-ai/s{k:02d}'; _clone(br, 'keep'); open('keep_branch.txt', 'w').write(br)
             have = set() if only else {int(f[:3]) for f in os.listdir('keep') if re.fullmatch(r'\d{3}\.mp4', f)}
-            man = shots(k, only, max_usd, 'cast_in', 'keep', have=have, model=model)
-            max_usd -= sum(r['usd'] for r in man.values() if r.get('status') == 'made' and r['scene'] == k and r['n'] not in have)
+            if model == 'ltx':
+                shots_ltx(k, only, 'cast_in', 'keep', have=have, max_minutes=max(1, (t_end - time.time()) / 60))
+            else:
+                man = shots(k, only, max_usd, 'cast_in', 'keep', have=have, model=model)
+                max_usd -= sum(r['usd'] for r in man.values() if r.get('status') == 'made' and r['scene'] == k and r['n'] not in have)
             keep(br); shutil.rmtree('keep'); os.makedirs('keep')
-            if max_usd <= 0: break
+            if max_usd <= 0 or time.time() > t_end: break
         return
     print('::error::mode must be plan, cast or shots'); sys.exit(1)
 
@@ -323,7 +457,7 @@ def keep(branch=None):
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'plan'
     scene = arg('--scene', '0'); scene = None if scene == 'all' else int(scene); only = numbers(arg('--only'))
-    model = arg('--model', os.environ.get('ML_MODEL', 'h3'))
+    model = arg('--model', os.environ.get('ML_MODEL', 'ltx'))
     if cmd == 'plan':
         rows = plan(scene, only, model)
         for r in rows: print(f"#{r['n']:03d} s{r['scene']} {r['ep']:9s} {r['secs']:>2}s ${r['usd']:5.2f} {'+'.join(r['keys']) or '-':24s} {r['args']['prompt'][:80]}")
