@@ -1,27 +1,34 @@
 """Make Episode 1 with AI video models, through one fal.ai key (FAL_KEY — a GitHub secret, never in the repo or chat).
 
-    python ai_video.py plan  [--scene 0|all] [--only 1,4,7-9]             what would be sent + rough cost (no key needed)
+    python ai_video.py plan  [--scene 0|all] [--only 1,4,7-9] [--model h3|kling]   what would be sent + rough cost
     python ai_video.py cast  [--out DIR]                                  photoreal references: Seven (from the 3D renders)
                                                                           and the troop, 3-4 views each
-    python ai_video.py shots --scene 0 [--only ...] [--max-usd 60] --cast DIR [--out DIR] [--workers 4]
+    python ai_video.py shots --scene 0 [--only ...] [--max-usd 25] [--model h3|kling] --cast DIR [--out DIR]
     python ai_video.py ci | keep                                          what the workflow "Monkey AI video" runs
 
-Shots with characters go to Kling 3.0 Omni reference-to-video: each character is an "element" built from the cast
-pictures, so Seven, Grub, Petch and Dolo stay the same chimps from clip to clip. Shots with nobody in them (his POV,
-landscapes, memory flashes) go to Kling 3.0 Omni text-to-video. Clips come back with their own natural sound; the
-subtitles, Seven's English words, captions and title cards are added in the edit (cut.py).
+Two video models, picked per run (env ML_MODEL or --model):
+  h3    MiniMax H3 Max (default, ~$0.08/s at 768P). Shots with characters use reference-to-video with each character's
+        cast pictures as Image 1, Image 2, ...; shots with nobody in them use text-to-video. It makes no sound, so every
+        clip then goes through MMAudio (video-to-audio) for its natural sound.
+  kling Kling 3.0 Omni (~$0.22/s with sound). Characters are "elements" built from the cast pictures; sound built in.
+Subtitles, Seven's English words, captions and title cards are added in the edit (cut.py).
 """
 import concurrent.futures as cf, json, os, re, shutil, subprocess, sys, time, urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 from ep import CHAR, LOOK, NAME, PLACE, FLASH                                              # noqa: E402
 from build import SCENES                                                                  # noqa: E402
 
-EP = dict(  # endpoints on fal.ai; override with env ML_EP_<KEY> if fal renames one
-    ref2v=os.environ.get('ML_EP_REF2V', 'fal-ai/kling-video/o3/standard/reference-to-video'),
-    t2v=os.environ.get('ML_EP_T2V', 'fal-ai/kling-video/o3/standard/text-to-video'),
-    t2i=os.environ.get('ML_EP_T2I', 'fal-ai/nano-banana-pro'),
-    edit=os.environ.get('ML_EP_EDIT', 'fal-ai/nano-banana-pro/edit'))
-RATE = dict(ref2v=0.224, t2v=0.224, image=0.15)       # USD estimates (Kling 3.0 Omni standard with sound, per second)
+_env = lambda k, d: os.environ.get('ML_EP_' + k.upper(), d)      # override an endpoint if fal renames it
+EP = dict(
+    kling_ref=_env('kling_ref', 'fal-ai/kling-video/o3/standard/reference-to-video'),
+    kling_t2v=_env('kling_t2v', 'fal-ai/kling-video/o3/standard/text-to-video'),
+    h3_ref=_env('h3_ref', 'minimax/h3-max/reference-to-video'),
+    h3_t2v=_env('h3_t2v', 'minimax/h3-max/text-to-video'),
+    audio=_env('audio', 'fal-ai/mmaudio-v2'),
+    t2i=_env('t2i', 'fal-ai/nano-banana-pro'),
+    edit=_env('edit', 'fal-ai/nano-banana-pro/edit'))
+RATE = dict(kling_ref=0.224, kling_t2v=0.224, h3_ref=0.08, h3_t2v=0.08, audio=0.01, image=0.15)   # USD estimates
+H3_RES = os.environ.get('ML_H3_RES', '768P')
 STYLE = ("Photorealistic live action, nature-documentary realism: real chimpanzee anatomy, skin and fur. Cinematic 35mm "
          "film look, shallow depth of field, natural light. No text, no subtitles, no humans, no music.")
 SEVEN_HINT = ' (the huge, ragged chimpanzee with the shattered device in his left forearm)'
@@ -86,32 +93,47 @@ def clips():
             n += 1; yield n, k, sc, s
 
 
-def request(n, sc, s):
-    """-> (endpoint key, arguments without image URLs filled in, element cast keys)"""
+def request(n, sc, s, model='h3'):
+    """-> (endpoint key, arguments without image URLs, cast keys of the characters in it, sound prompt, seconds)"""
     look = s['look'] or sc.get('look', 'dry')
-    dur = str(max(3, min(15, s['sec'] + 1)))
-    snd = (s['snd'] or 'the natural sounds of the place') + '; only natural sounds and chimpanzee noises, no human speech'
+    secs = max(3, min(15 if model == 'kling' else 10, s['sec'] + 1))
+    snd = s['snd'] or 'the natural sounds of the place'
+    if s['who']: snd += ', chimpanzee breathing, grunts and hoots where they react'
+    nospeech = '; only natural sounds and chimpanzee noises, no human speech'
+    if model == 'kling':
+        base = dict(duration=str(secs), aspect_ratio='16:9', generate_audio=True)
+    else:
+        base = dict(duration=float(secs), resolution=H3_RES, aspect_ratio='16:9', prompt_expansion_mode='disabled')
+    t2v = model + '_t2v'
     if s['kind'] == 'flash':
-        text = f"{s['act'].strip()} {FLASH} Sound: {snd}."
-        return 't2v', dict(prompt=text, duration=dur, aspect_ratio='16:9', generate_audio=True), []
+        text = f"{s['act'].strip()} {FLASH}" + (f" Sound: {snd}{nospeech}." if model == 'kling' else '')
+        return t2v, dict(base, prompt=text), [], snd, secs
     where = 'Setting: ' + PLACE[s['place'] or sc['place']] + '.'
     cam = f" Camera: {s['cam']}." if s['cam'] else ''
+    tail = f" {where}{cam} {STYLE}" + (f" Sound: {snd}{nospeech}." if model == 'kling' else '')
     if not s['who']:
-        text = f"{s['act'].strip()} {where}{cam} {STYLE} Sound: {snd}."
-        return 't2v', dict(prompt=text, duration=dur, aspect_ratio='16:9', generate_audio=True), []
+        return t2v, dict(base, prompt=s['act'].strip() + tail), [], snd, secs
     keys = [('seven_mud' if c == 'S' and look == 'mud' else WHO[c]) for c in s['who']]
-    names = ' '.join(f"@Element{i + 1} is {NAME[c]}{SEVEN_HINT if c == 'S' else ''}." for i, c in enumerate(s['who']))
     fur = f" Seven's fur is {LOOK[look]}." if 'S' in s['who'] else ''
-    text = f"{names}{fur} {s['act'].strip()} {where}{cam} {STYLE} Sound: {snd}."
-    return 'ref2v', dict(prompt=text, duration=dur, aspect_ratio='16:9', generate_audio=True), keys
+    if model == 'kling':
+        names = ' '.join(f"@Element{i + 1} is {NAME[c]}{SEVEN_HINT if c == 'S' else ''}." for i, c in enumerate(s['who']))
+    else:                                     # two pictures per character: Image 1-2 = first character, Image 3-4 = next...
+        names = ' '.join(f"Image {2 * i + 1} and Image {2 * i + 2} show {NAME[c]}{SEVEN_HINT if c == 'S' else ''}."
+                         for i, c in enumerate(s['who'])) + ' Keep every chimpanzee exactly as in his or her pictures.'
+    return model + '_ref', dict(base, prompt=f"{names}{fur} {s['act'].strip()}{tail}"), keys, snd, secs
 
 
-def plan(scene=None, only=None):
+def cost(ep, secs, model):
+    return secs * RATE[ep] + (secs * RATE['audio'] if model == 'h3' else 0)
+
+
+def plan(scene=None, only=None, model='h3'):
     rows = []
     for n, k, sc, s in clips():
         if scene is not None and k != scene: continue
         if only and n not in only: continue
-        ep, a, keys = request(n, sc, s); rows.append((n, k, ep, a, keys, int(a['duration']) * RATE[ep]))
+        ep, a, keys, snd, secs = request(n, sc, s, model)
+        rows.append(dict(n=n, scene=k, ep=ep, args=a, keys=keys, snd=snd, secs=secs, usd=cost(ep, secs, model)))
     return rows
 
 
@@ -153,41 +175,60 @@ def cast(out):
     return local
 
 
-def elements(cast_dir):
-    """Upload the cast pictures once -> {cast key: element dict for Kling}."""
-    fal = _fal(); names = json.load(open(os.path.join(cast_dir, 'cast.json'))); url = {}
-    for key, f in names.items(): url[key] = fal.upload_file(os.path.join(cast_dir, f))
-    el = {}
-    for char in CAST:
+def uploads(cast_dir):
+    """Upload the cast pictures once -> {'char/view': url}."""
+    fal = _fal(); names = json.load(open(os.path.join(cast_dir, 'cast.json')))
+    return {key: fal.upload_file(os.path.join(cast_dir, f)) for key, f in names.items()}
+
+
+def kling_elements(url, keys):
+    out = []
+    for char in keys:
         refs = [url[f'{char}/{v}'] for v, *_ in CAST[char] if v != 'front' and f'{char}/{v}' in url]
-        if char == 'seven_mud': refs += [url['seven/angle']] if 'seven/angle' in url else []
-        el[char] = dict(frontal_image_url=url[f'{char}/front'], reference_image_urls=refs[:3])
-    return el
+        if char == 'seven_mud' and 'seven/angle' in url: refs.append(url['seven/angle'])
+        out.append(dict(frontal_image_url=url[f'{char}/front'], reference_image_urls=refs[:3]))
+    return out
 
 
-def shots(scene, only, max_usd, cast_dir, out, workers=4, have=()):
+def h3_refs(url, keys):
+    return [url[f'{char}/{v}'] for char in keys for v in ('front', 'full')]
+
+
+def shots(scene, only, max_usd, cast_dir, out, workers=4, have=(), model='h3'):
     fal = _fal(); os.makedirs(out, exist_ok=True)
-    rows = [r for r in plan(scene, only or None) if r[0] not in have]
+    rows = [r for r in plan(scene, only or None, model) if r['n'] not in have]
     todo, spend = [], 0.0
     for r in rows:
-        if spend + r[5] > max_usd: break
-        todo.append(r); spend += r[5]
-    skipped = [r[0] for r in rows if r not in todo]
-    print(f'{len(todo)} clips to make, about ${spend:.0f}' + (f'; over the ${max_usd:.0f} cap, not made: {skipped}' if skipped else ''), flush=True)
-    el = elements(cast_dir) if any(r[2] == 'ref2v' for r in todo) else {}
+        if spend + r['usd'] > max_usd: break
+        todo.append(r); spend += r['usd']
+    skipped = [r['n'] for r in rows[len(todo):]]
+    print(f'{len(todo)} clips to make with {model}, about ${spend:.0f}' +
+          (f'; over the ${max_usd:.0f} cap, not made: {skipped}' if skipped else ''), flush=True)
+    url = uploads(cast_dir) if any(r['keys'] for r in todo) else {}
     man_path = os.path.join(out, 'manifest.json'); manifest = json.load(open(man_path)) if os.path.exists(man_path) else {}
 
     def one(r):
-        n, k, ep, a, keys, usd = r; a = dict(a)
-        if keys: a['elements'] = [el[key] for key in keys]
-        rec = dict(n=n, scene=k, endpoint=EP[ep], duration=a['duration'], usd=round(usd, 2), prompt=a['prompt'])
+        n = r['n']; a = dict(r['args'])
+        if r['keys']:
+            if model == 'kling': a['elements'] = kling_elements(url, r['keys'])
+            else: a['reference_image_urls'] = h3_refs(url, r['keys'])
+        rec = dict(n=n, scene=r['scene'], model=model, endpoint=EP[r['ep']], secs=r['secs'], usd=round(r['usd'], 2),
+                   prompt=a['prompt'])
         try:
-            h = fal.submit(EP[ep], arguments=a); rec['request_id'] = getattr(h, 'request_id', '')
-            res = h.get(); raw = os.path.join(out, f'{n:03d}_raw.mp4'); _save(res['video']['url'], raw)
-            dst = os.path.join(out, f'{n:03d}.mp4')
-            if shutil.which('ffmpeg'):                                       # same picture, a third of the size
-                p = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', raw, '-c:v', 'libx264', '-crf', '19', '-preset', 'veryfast',
-                                    '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', dst])
+            h = fal.submit(EP[r['ep']], arguments=a); rec['request_id'] = getattr(h, 'request_id', '')
+            video = h.get()['video']['url']
+            if model == 'h3':                                                 # H3 makes no sound: add it with MMAudio
+                try:
+                    res = fal.subscribe(EP['audio'], arguments=dict(
+                        video_url=video, prompt=r['snd'], duration=float(r['secs']),
+                        negative_prompt='music, singing, human speech, voices, talking'), client_timeout=900)
+                    video = res['video']['url']; rec['sound'] = 'mmaudio'
+                except Exception as e:
+                    rec['sound'] = 'none: ' + str(e)[:200]
+            raw = os.path.join(out, f'{n:03d}_raw.mp4'); _save(video, raw); dst = os.path.join(out, f'{n:03d}.mp4')
+            if shutil.which('ffmpeg'):                                       # same picture, a fraction of the size
+                p = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', raw, '-c:v', 'libx264', '-crf', '19', '-preset',
+                                    'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', dst])
                 if p.returncode: os.replace(raw, dst)
                 else: os.remove(raw)
             else: os.replace(raw, dst)
@@ -201,8 +242,8 @@ def shots(scene, only, max_usd, cast_dir, out, workers=4, have=()):
         for rec in pool.map(one, todo):
             manifest[str(rec['n'])] = rec
             json.dump(manifest, open(man_path, 'w'), indent=1)
-    made = sum(1 for r in manifest.values() if r['status'] == 'made')
-    print(f'done: {made} clips made in this folder, {sum(1 for r in manifest.values() if r["status"] == "failed")} failed')
+    print(f"done: {sum(1 for r in manifest.values() if r['status'] == 'made')} clips here, "
+          f"{sum(1 for r in manifest.values() if r['status'] == 'failed')} failed")
     return manifest
 
 
@@ -226,13 +267,15 @@ def _clone(branch, dst):
 
 def ci():
     mode = SAFE(os.environ.get('ML_MODE')); scene_s = SAFE(os.environ.get('ML_SCENE')) or '0'
-    only = numbers(SAFE(os.environ.get('ML_ONLY'))); max_usd = float(SAFE(os.environ.get('ML_MAX_USD')) or 60)
+    only = numbers(SAFE(os.environ.get('ML_ONLY'))); max_usd = float(SAFE(os.environ.get('ML_MAX_USD')) or 25)
     scene = None if scene_s == 'all' else int(scene_s)
+    model = SAFE(os.environ.get('ML_MODEL')) or 'h3'
+    if model not in ('h3', 'kling'): print('::error::model must be h3 or kling'); sys.exit(1)
     summary = os.environ.get('GITHUB_STEP_SUMMARY')
     if mode == 'plan':
-        rows = plan(scene, only); usd = sum(r[5] for r in rows)
-        lines = [f'{len(rows)} clips, about ${usd:.0f}', '']
-        lines += [f"#{r[0]:03d} {r[2]} {r[3]['duration']}s {'+'.join(r[4]) or '-'}  {r[3]['prompt'][:110]}" for r in rows]
+        rows = plan(scene, only, model); usd = sum(r['usd'] for r in rows)
+        lines = [f'{len(rows)} clips with {model}, about ${usd:.0f}', '']
+        lines += [f"#{r['n']:03d} {r['ep']} {r['secs']}s {'+'.join(r['keys']) or '-'}  {r['args']['prompt'][:110]}" for r in rows]
         print('\n'.join(lines))
         if summary: open(summary, 'a').write('```\n' + '\n'.join(lines) + '\n```\n')
         return
@@ -241,11 +284,11 @@ def ci():
         cast('keep'); open('keep_branch.txt', 'w').write('ep1-ai/cast'); return
     if mode == 'shots':
         if not _clone('ep1-ai/cast', 'cast_in'): print('::error::Make the cast first (mode cast).'); sys.exit(1)
-        targets = sorted({k for _, k, *_ in plan(scene, only)})
+        targets = sorted({r['scene'] for r in plan(scene, only, model)})
         for k in targets:
             br = f'ep1-ai/s{k:02d}'; _clone(br, 'keep')
             have = set() if only else {int(f[:3]) for f in os.listdir('keep') if re.fullmatch(r'\d{3}\.mp4', f)}
-            man = shots(k, only, max_usd, 'cast_in', 'keep', have=have)
+            man = shots(k, only, max_usd, 'cast_in', 'keep', have=have, model=model)
             max_usd -= sum(r['usd'] for r in man.values() if r.get('status') == 'made' and r['scene'] == k and r['n'] not in have)
             keep(br); shutil.rmtree('keep'); os.makedirs('keep')
             if max_usd <= 0: break
@@ -271,12 +314,13 @@ def keep(branch=None):
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'plan'
     scene = arg('--scene', '0'); scene = None if scene == 'all' else int(scene); only = numbers(arg('--only'))
+    model = arg('--model', os.environ.get('ML_MODEL', 'h3'))
     if cmd == 'plan':
-        rows = plan(scene, only)
-        for n, k, ep, a, keys, usd in rows: print(f"#{n:03d} s{k} {ep:5s} {a['duration']:>2}s ${usd:5.2f} {'+'.join(keys) or '-':24s} {a['prompt'][:90]}")
-        print(f'{len(rows)} clips, about ${sum(r[5] for r in rows):.0f}')
+        rows = plan(scene, only, model)
+        for r in rows: print(f"#{r['n']:03d} s{r['scene']} {r['ep']:9s} {r['secs']:>2}s ${r['usd']:5.2f} {'+'.join(r['keys']) or '-':24s} {r['args']['prompt'][:80]}")
+        print(f'{len(rows)} clips with {model}, about ${sum(r["usd"] for r in rows):.0f}')
     elif cmd == 'cast': cast(arg('--out', 'cast'))
-    elif cmd == 'shots': shots(scene, only, float(arg('--max-usd', 60)), arg('--cast', 'cast'), arg('--out', 'clips'), int(arg('--workers', 4)))
+    elif cmd == 'shots': shots(scene, only, float(arg('--max-usd', 25)), arg('--cast', 'cast'), arg('--out', 'clips'), int(arg('--workers', 4)), model=model)
     elif cmd == 'ci': ci()
     elif cmd == 'keep': keep()
 

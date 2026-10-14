@@ -1,5 +1,6 @@
 # Monkey's Life — makes Episode 1 with AI video models through one fal.ai key (repository secret FAL_KEY).
 #   mode plan  : what would be sent and roughly what it costs; spends nothing, needs no key
+#   model      : h3 = MiniMax H3 Max (+ MMAudio for sound, ~$0.09/s) or kling = Kling 3.0 Omni (sound built in, ~$0.22/s)
 #   mode cast  : photoreal reference pictures of Seven (from the 3D renders) and the troop -> branch ep1-ai/cast
 #   mode shots : the clips of a scene (or of some clip numbers) -> branch ep1-ai/sNN (NN = scene number), one mp4 per clip
 # Free text only ever reaches the script through environment variables.
@@ -17,9 +18,12 @@ on:
       only:
         description: 'clip numbers to (re)make, e.g. 1,4,7-9 (empty = every clip not made yet)'
         default: ''
+      model:
+        description: 'h3 (MiniMax H3 Max, cheaper) or kling (Kling 3.0 Omni)'
+        default: 'h3'
       max_usd:
         description: 'stop before the estimated spend of this run passes this many dollars'
-        default: '60'
+        default: '25'
 permissions:
   contents: write
 concurrency:
@@ -35,6 +39,7 @@ jobs:
       ML_SCENE: '${{ inputs.scene }}'
       ML_ONLY: '${{ inputs.only }}'
       ML_MAX_USD: '${{ inputs.max_usd }}'
+      ML_MODEL: '${{ inputs.model }}'
       ML_REPO: 'https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git'
     steps:
       - uses: actions/checkout@v4
