@@ -8,8 +8,8 @@
 
 Two video models, picked per run (env ML_MODEL or --model):
   h3    MiniMax H3 Max (default, ~$0.08/s at 768P). Shots with characters use reference-to-video with each character's
-        cast pictures as Image 1, Image 2, ...; shots with nobody in them use text-to-video. It makes no sound, so every
-        clip then goes through MMAudio (video-to-audio) for its natural sound.
+        cast pictures as Image 1, Image 2, ...; shots with nobody in them use text-to-video. Sound comes with the clip
+        (fal: "audio in the same pass"); a clip that arrives silent goes through MMAudio (video-to-audio) instead.
   kling Kling 3.0 Omni (~$0.22/s with sound). Characters are "elements" built from the cast pictures; sound built in.
 Subtitles, Seven's English words, captions and title cards are added in the edit (cut.py).
 """
@@ -96,21 +96,21 @@ def clips():
 def request(n, sc, s, model='h3'):
     """-> (endpoint key, arguments without image URLs, cast keys of the characters in it, sound prompt, seconds)"""
     look = s['look'] or sc.get('look', 'dry')
-    secs = max(3, min(15 if model == 'kling' else 10, s['sec'] + 1))
+    secs = max(3 if model == 'kling' else 5, min(15, s['sec'] + 1))          # H3 Max makes 5-15 s, Kling 3-15 s
     snd = s['snd'] or 'the natural sounds of the place'
     if s['who']: snd += ', chimpanzee breathing, grunts and hoots where they react'
-    nospeech = '; only natural sounds and chimpanzee noises, no human speech'
+    nospeech = '; only natural sounds and chimpanzee noises, no human speech, no music'
     if model == 'kling':
         base = dict(duration=str(secs), aspect_ratio='16:9', generate_audio=True)
     else:
         base = dict(duration=float(secs), resolution=H3_RES, aspect_ratio='16:9', prompt_expansion_mode='disabled')
     t2v = model + '_t2v'
     if s['kind'] == 'flash':
-        text = f"{s['act'].strip()} {FLASH}" + (f" Sound: {snd}{nospeech}." if model == 'kling' else '')
+        text = f"{s['act'].strip()} {FLASH} Sound: {snd}{nospeech}."
         return t2v, dict(base, prompt=text), [], snd, secs
     where = 'Setting: ' + PLACE[s['place'] or sc['place']] + '.'
     cam = f" Camera: {s['cam']}." if s['cam'] else ''
-    tail = f" {where}{cam} {STYLE}" + (f" Sound: {snd}{nospeech}." if model == 'kling' else '')
+    tail = f" {where}{cam} {STYLE} Sound: {snd}{nospeech}."
     if not s['who']:
         return t2v, dict(base, prompt=s['act'].strip() + tail), [], snd, secs
     keys = [('seven_mud' if c == 'S' and look == 'mud' else WHO[c]) for c in s['who']]
@@ -124,7 +124,15 @@ def request(n, sc, s, model='h3'):
 
 
 def cost(ep, secs, model):
-    return secs * RATE[ep] + (secs * RATE['audio'] if model == 'h3' else 0)
+    """Estimate, with a little room for the odd silent clip that needs MMAudio."""
+    return secs * RATE[ep] + (secs * RATE['audio'] * 0.25 if model == 'h3' else 0)
+
+
+def has_audio(path):
+    if not shutil.which('ffprobe'): return True
+    p = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', path],
+                       capture_output=True, text=True)
+    return bool(p.stdout.strip())
 
 
 def plan(scene=None, only=None, model='h3'):
@@ -217,15 +225,16 @@ def shots(scene, only, max_usd, cast_dir, out, workers=4, have=(), model='h3'):
         try:
             h = fal.submit(EP[r['ep']], arguments=a); rec['request_id'] = getattr(h, 'request_id', '')
             video = h.get()['video']['url']
-            if model == 'h3':                                                 # H3 makes no sound: add it with MMAudio
+            raw = os.path.join(out, f'{n:03d}_raw.mp4'); _save(video, raw); dst = os.path.join(out, f'{n:03d}.mp4')
+            rec['sound'] = 'own'
+            if not has_audio(raw):                                            # arrived silent: MMAudio adds the sound
                 try:
                     res = fal.subscribe(EP['audio'], arguments=dict(
                         video_url=video, prompt=r['snd'], duration=float(r['secs']),
                         negative_prompt='music, singing, human speech, voices, talking'), client_timeout=900)
-                    video = res['video']['url']; rec['sound'] = 'mmaudio'
+                    _save(res['video']['url'], raw); rec['sound'] = 'mmaudio'
                 except Exception as e:
                     rec['sound'] = 'none: ' + str(e)[:200]
-            raw = os.path.join(out, f'{n:03d}_raw.mp4'); _save(video, raw); dst = os.path.join(out, f'{n:03d}.mp4')
             if shutil.which('ffmpeg'):                                       # same picture, a fraction of the size
                 p = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', raw, '-c:v', 'libx264', '-crf', '19', '-preset',
                                     'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', dst])
