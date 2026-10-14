@@ -24,6 +24,15 @@ Then: smash cut to black, title card MONKEY'S LIFE — Episode 1 — "ARISE".
 Not decided by Ash (ask before adding): narration of these words by a voice; any text on the device's screen (kept abstract).
 
 ## WHERE THINGS STAND (update this first; the session gets cut off without warning)
+- Oct 14 (later): Ash said "Try to do it for free". FREE route built and now the default (model ltx): Modal's $30/month
+  free credit runs open models — `episode1/modal_app.py`: Stills = Qwen-Image / Qwen-Image-Edit-2511 (Apache-2.0) for
+  the cast and a first frame per character shot; Clips = LTX-2.5 distilled (gated on HF; LTX-2.x Community License,
+  free under $10M revenue) image-to-video WITH sound, two stages at 1280x704. Secrets needed: MODAL_TOKEN_ID,
+  MODAL_TOKEN_SECRET, HF_TOKEN (his HF account must "Agree and access" LTX-2.5). Estimate: whole episode ~8.6 H100 h ≈
+  $34 of credit (a bit over one month); cold open ≈ $4. Never run on a GPU yet: first real runs = debugging (OOM,
+  versions: torch 2.9.1, transformers 5.19.0, diffusers @efe46a5). Workflow plan run passed (run 38626574778).
+  Order once he says done: mode cast (model ltx) → show him the cast → shots scene 0 → cut.py → send.
+  The paid fal routes (h3 / kling) still work with FAL_KEY if he ever pays.
 - Oct 14: Ash asked why I don't "talk to every AI" (and use all the free tiers). Told him: free credits live in apps
   behind his logins (I won't use his passwords), are tiny and watermarked; extra accounts break their rules. Route now:
   ONE fal.ai key (repo secret FAL_KEY, he adds it; never in chat) → `episode1/ai_video.py` via workflow
