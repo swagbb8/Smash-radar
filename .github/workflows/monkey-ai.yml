@@ -1,0 +1,53 @@
+# Monkey's Life — makes Episode 1 with AI video models through one fal.ai key (repository secret FAL_KEY).
+#   mode plan  : what would be sent and roughly what it costs; spends nothing, needs no key
+#   mode cast  : photoreal reference pictures of Seven (from the 3D renders) and the troop -> branch ep1-ai/cast
+#   mode shots : the clips of a scene (or of some clip numbers) -> branch ep1-ai/sNN (NN = scene number), one mp4 per clip
+# Free text only ever reaches the script through environment variables.
+name: Monkey AI video
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'plan, cast or shots'
+        required: true
+        default: 'plan'
+      scene:
+        description: 'scene number (0 = cold open) or all'
+        default: '0'
+      only:
+        description: 'clip numbers to (re)make, e.g. 1,4,7-9 (empty = every clip not made yet)'
+        default: ''
+      max_usd:
+        description: 'stop before the estimated spend of this run passes this many dollars'
+        default: '60'
+permissions:
+  contents: write
+concurrency:
+  group: monkey-ai-${{ inputs.mode }}-${{ inputs.scene }}
+  cancel-in-progress: false
+jobs:
+  make:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    env:
+      FAL_KEY: '${{ secrets.FAL_KEY }}'
+      ML_MODE: '${{ inputs.mode }}'
+      ML_SCENE: '${{ inputs.scene }}'
+      ML_ONLY: '${{ inputs.only }}'
+      ML_MAX_USD: '${{ inputs.max_usd }}'
+      ML_REPO: 'https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Tools
+        run: |
+          pip install -q fal-client
+          command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null)
+      - name: Make
+        working-directory: MONKEYS_LIFE/episode1
+        run: python ai_video.py ci
+      - name: Keep what was made
+        if: ${{ always() }}
+        working-directory: MONKEYS_LIFE/episode1
+        run: python ai_video.py keep
