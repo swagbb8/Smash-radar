@@ -19,7 +19,7 @@ COLD_OPEN = dict(
            'locked at ground level, a tiny groggy drift', snd='insects, dripping water, one slow breath',
            his='i slid my eyes open the grass met up to my eye view'),
         sh(6, 'S', 'His eye opens in the mud',
-           'Extreme close-up of Seven\'s face lying sideways in black mud: one amber eye opens, unfocused, mud '
+           'Extreme close-up of Seven\'s face lying sideways in black mud: one dark-brown eye opens, unfocused, mud '
            'clinging to his brow. He does not move. A slow blink.', 'extreme close-up, static, very shallow focus',
            his='i felt cold as the mud covers my body head to toe'),
         sh(8, 'S', 'Lying face-down, mud head to toe, shivering',

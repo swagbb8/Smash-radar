@@ -8,7 +8,7 @@ Scenes marked new=True are NOT in Ash's script yet (added to reach 30 min): say 
 # Who is who. {look} is filled from the scene / shot (how muddy Seven is at that point of the day).
 CHAR = {
     'S': "Seven — a huge, ragged adult chimpanzee, bigger and more powerfully built than a normal chimp, scrappy and "
-         "scarred, dark fur {look}, amber-brown eyes; fused into his LEFT forearm is a palm-sized device: a thin scar "
+         "scarred, dark fur {look}, deep dark-brown eyes; fused into his LEFT forearm is a palm-sized device: a thin scar "
          "line, faint circuit patterns under the skin and fur, and a small shattered glass screen",
     'G': "Grub — an enormous, heavyset adult male chimpanzee with a barrel chest, thick neck, heavy brow and coarse "
          "black fur, permanently suspicious",
