@@ -33,7 +33,7 @@ WHO = [('seven', r'\b(seven|he|his|him|chimp)\b'), ('grub', r'\bgrub\b'), ('petc
 # rampage cracks it; shattered from then on.
 DEVICE = {'intact': 'a palm-sized dark glass screen fused flush into the skin of his bare left forearm, a thin healed scar around its edge',
           'cracked': 'a palm-sized shattered glass screen fused flush into the skin of his bare left forearm, a thin healed scar around its edge'}
-NAMES = {'seven': 'Seven (the huge ragged chimpanzee from reference image {i}; dark brown eyes; {device})',
+NAMES = {'seven': 'Seven (the huge ragged chimpanzee from reference image {i}; dark brown eyes; dry matte black fur; {device})',
          'grub': 'Grub (the enormous chimpanzee from reference image {i})', 'petch': 'Petch (the small young chimpanzee from '
          'reference image {i})', 'dolo': 'Dolo (the female chimpanzee from reference image {i})',
          'scientist_a': 'Dr A (the man from reference image {i})', 'scientist_b': 'Dr B (the woman from reference image {i})'}

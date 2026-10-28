@@ -3,7 +3,7 @@
 Shots come from ../blender/<module>.py through ai_scene.shots(); <out>/<shot>.jpg and .mp4 already there are skipped.
 """
 import json, os, shutil, sys, tempfile, time
-import ai_scene, kaggle_run
+import ai_scene, kaggle_run, keyfix
 
 
 def main():
@@ -22,7 +22,11 @@ def main():
             json.dump(dict(j, model=model[kind], when=time.strftime('%Y-%m-%d %H:%M')), open(os.path.join(out, f"{j.get('name') or j.get('n')}.{kind}.json"), 'w'), indent=1)
     if '--clips-only' not in sys.argv:
         need = [k for k in keys if not os.path.exists(os.path.join(out, k['name'] + '.jpg'))]
-        if need: record('keys', need); kaggle_run.run('keys', need, out, keys=cast)
+        if need:
+            record('keys', need); kaggle_run.run('keys', need, out, keys=cast)
+            for k in need:
+                f = os.path.join(out, k['name'] + '.jpg')
+                if os.path.exists(f) and 'seven' in ' '.join(k['refs']): keyfix.despeckle(f)
     if '--keys-only' in sys.argv: return
     need = [c for c in clips if not os.path.exists(os.path.join(out, c['name'] + '.mp4'))
             and os.path.exists(os.path.join(out, c['name'] + '.jpg'))]
