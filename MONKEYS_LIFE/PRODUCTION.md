@@ -30,3 +30,15 @@ qa.py -> look at the sheet -> finish.py -> cut + sound. Blender stays installed 
 
 ## Approval rule
 A clip is approved only after qa.py PASS **and** someone has looked at its contact sheet: right action, Seven recognizable, no smear, no extra limbs.
+
+## Log
+- 2026-10-28 17:47 VERIFIED: 1280x720 lab keys done (415–466 s each). B02 and D01 approved after looking at them (moody low-key light).
+  B01 FAILED on look: orange eyes, white specks, strapped device. Cause: cast/seven_front.jpg itself has orange eyes and rain
+  drops, and the edit model copies its reference. Fix: eyes recolored brown and specks removed (original kept in
+  cast/old/seven_front_orange.jpg). B01 re-queued.
+- 17:55 Device continuity fixed in ai_scene.DEVICE: palm-sized screen fused into the LEFT forearm; intact in the lab, shattered
+  after the rampage (STORY.md). Before this, every shot asked for "a small cracked chip".
+- 17:55 Every Kaggle job now writes <out>/<shot>.<kind>.json (prompt, refs, seed, size, model, time).
+- Research (web, 2026 comparisons): Wan 2.2 A14B is still the strongest open image-to-video model for realistic motion.
+  HunyuanVideo 1.5 and LTX-2.3 are the alternatives, and LTX-2.3 needs a bigger GPU. Wan 3.0 is API-only. The 14B test is the right test.
+- OPEN: ai_scene ignores the Blender camera framing (B01 is written "extreme close-up of the eyes" but came out full body).

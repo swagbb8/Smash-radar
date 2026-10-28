@@ -29,7 +29,11 @@ PEOPLE = {'scientist_a': 'Dr A, a tired man in his fifties in a white lab coat a
           'voice': 'a scientist (heard, not seen)'}
 WHO = [('seven', r'\b(seven|he|his|him|chimp)\b'), ('grub', r'\bgrub\b'), ('petch', r'\bpetch\b'), ('dolo', r'\bdolo\b'),
        ('scientist_a', r'\b(dr a|people|scientists|them|two of them)\b'), ('scientist_b', r'\b(dr b|people|scientists|them|two of them)\b')]
-NAMES = {'seven': 'Seven (the huge ragged chimpanzee from reference image {i}; a small cracked glass chip is implanted under the skin of his left forearm, flush with the skin, no strap)',
+# Seven's device (STORY.md + Ash's words): a palm-sized screen fused into his LEFT forearm. Intact in the lab until the
+# rampage cracks it; shattered from then on.
+DEVICE = {'intact': 'a palm-sized dark glass screen fused flush into the skin of his bare left forearm, a thin healed scar around its edge',
+          'cracked': 'a palm-sized shattered glass screen fused flush into the skin of his bare left forearm, a thin healed scar around its edge'}
+NAMES = {'seven': 'Seven (the huge ragged chimpanzee from reference image {i}; dark brown eyes; {device})',
          'grub': 'Grub (the enormous chimpanzee from reference image {i})', 'petch': 'Petch (the small young chimpanzee from '
          'reference image {i})', 'dolo': 'Dolo (the female chimpanzee from reference image {i})',
          'scientist_a': 'Dr A (the man from reference image {i})', 'scientist_b': 'Dr B (the woman from reference image {i})'}
@@ -75,7 +79,8 @@ def plan(s, cast):
     if s['place'] == 'lab' and 'seven' in who and len(who) == 1 and 'people' in text: who += ['scientist_a', 'scientist_b']
     who = who[:3]
     flash = 'flash' in s['act'].lower() or 'memory' in s['act'].lower()
-    cast_txt = '; '.join(NAMES[k].format(i=i + 1) for i, k in enumerate(who))
+    cracked = s['place'] != 'lab' or re.search(r'crack|spark|white-out|smash', s['act'].lower())
+    cast_txt = '; '.join(NAMES[k].format(i=i + 1, device=DEVICE['cracked' if cracked else 'intact']) for i, k in enumerate(who))
     act = re.sub(r'^(Black\. Then |White\. )', '', s['act'])                 # a keyframe is the first visible frame
     still = (f"{act} Setting: {SETS.get(s['place'], SETS['forest'])}. " + (f'In the shot: {cast_txt}. ' if who else '') +
              ('Overexposed, dreamlike memory flash, very shallow focus. ' if flash else '') +
