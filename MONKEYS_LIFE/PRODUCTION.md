@@ -41,4 +41,4 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
 - 17:55 Every Kaggle job now writes <out>/<shot>.<kind>.json (prompt, refs, seed, size, model, time).
 - Research (web, 2026 comparisons): Wan 2.2 A14B is still the strongest open image-to-video model for realistic motion.
   HunyuanVideo 1.5 and LTX-2.3 are the alternatives, and LTX-2.3 needs a bigger GPU. Wan 3.0 is API-only. The 14B test is the right test.
-- OPEN: ai_scene ignores the Blender camera framing (B01 is written "extreme close-up of the eyes" but came out full body).
+- 18:05 FIXED: ai_scene.framing() reads each Blender setup() (frame_on size, close/medium, or lens) and puts the shot size first in the prompt (B01 = extreme close-up of eyes and face).

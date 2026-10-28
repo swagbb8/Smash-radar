@@ -44,9 +44,20 @@ def _val(node):
     except Exception: return None
 
 
+def framing(src):
+    """The shot size the Blender setup() asks for, in words (frame_on size, close/medium helpers, or the camera's lens)."""
+    m = re.search(r"frame_on\('\w+',\s*'(\w+)'", src) or re.search(r"\.(close|medium|wide)\(", src)
+    if m: size = m.group(1)
+    else:
+        m = re.search(r'lens=(\d+)', src); lens = int(m.group(1)) if m else 0
+        size = '' if not lens else 'close' if lens >= 85 else 'medium' if lens >= 45 else 'wide'
+    return {'extreme': 'Extreme close-up filling the frame with his eyes and face.', 'close': 'Close-up of his face and shoulders.',
+            'medium': 'Medium shot, waist up.', 'wide': 'Wide shot.', 'vista': 'Very wide shot.'}.get(size, '')
+
+
 def shots(module, listname=None):
     """[{name, place, act, dur, lines}] in play order (the module's SCENEx list if given, else SHOTS order)."""
-    tree = ast.parse(open(os.path.join(BLENDER, module + '.py'), encoding='utf8').read())
+    code = open(os.path.join(BLENDER, module + '.py'), encoding='utf8').read(); tree = ast.parse(code)
     cls = {}; order = []; lists = {}
     for n in tree.body:
         if isinstance(n, ast.ClassDef):
@@ -56,6 +67,7 @@ def shots(module, listname=None):
                 targets = [(t, s.value) for t in s.targets] if isinstance(s, ast.Assign) else []
                 for t, v in targets:
                     if isinstance(t, ast.Name) and t.id in ('dur', 'lines', 'place'): d[t.id] = _val(v)
+                if isinstance(s, ast.FunctionDef) and s.name == 'setup': d['frame'] = framing(ast.get_source_segment(code, s) or '')
             cls[n.name] = d
         elif isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name):
             if n.targets[0].id == 'SHOTS' and isinstance(n.value, ast.List):
@@ -69,7 +81,7 @@ def shots(module, listname=None):
             c = cls.get(c['base'])
     names = lists.get(listname) if listname else order
     return [dict(name=k, place=get(cls[k], 'place') or 'forest', act=cls[k]['act'], dur=get(cls[k], 'dur') or 4.0,
-                 lines=get(cls[k], 'lines') or []) for k in names if k in cls]
+                 lines=get(cls[k], 'lines') or [], frame=cls[k].get('frame', '')) for k in names if k in cls]
 
 
 def plan(s, cast):
@@ -82,6 +94,7 @@ def plan(s, cast):
     cracked = s['place'] != 'lab' or re.search(r'crack|spark|white-out|smash', s['act'].lower())
     cast_txt = '; '.join(NAMES[k].format(i=i + 1, device=DEVICE['cracked' if cracked else 'intact']) for i, k in enumerate(who))
     act = re.sub(r'^(Black\. Then |White\. )', '', s['act'])                 # a keyframe is the first visible frame
+    if s.get('frame') and not re.match(r'(wide|close|extreme|medium|insert|pov|his pov|over)', act.lower()): act = s['frame'] + ' ' + act
     still = (f"{act} Setting: {SETS.get(s['place'], SETS['forest'])}. " + (f'In the shot: {cast_txt}. ' if who else '') +
              ('Overexposed, dreamlike memory flash, very shallow focus. ' if flash else '') +
              ('Seven is clean, not muddy. ' if s['place'] == 'lab' and 'seven' in who else '') + FILM)
