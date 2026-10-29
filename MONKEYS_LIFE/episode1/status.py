@@ -41,6 +41,21 @@ def main():
             md += ['', f'![review sheet](review_{sub}.jpg)', '']
     md.insert(4, f'**Approved footage: {done / 60:.1f} of {total / 60:.1f} planned minutes in production.**\n')
     open(os.path.join(OUT, 'STATUS.md'), 'w', encoding='utf-8').write('\n'.join(md) + '\n')
+    raw = 'https://raw.githubusercontent.com/swagbb8/Smash-radar/main/MONKEYS_LIFE/'
+    files = [('Shot status (start here)', 'status/STATUS.md'), ('Production log: tests, failures, causes', 'PRODUCTION.md'),
+             ('The story (source of truth)', 'STORY.md'), ('Full shot list', 'SHOTLIST_v3.md'),
+             ('Scene 1 shots as code (each class docstring = the action)', 'blender/ep1_lab.py'),
+             ('Prompt builder (characters, props, framing)', 'episode1/ai_scene.py'),
+             ('GPU jobs (Kaggle: Qwen-Image-Edit keyframes, Wan 2.2 14B clips)', 'episode1/kaggle_run.py'),
+             ('Scene runner', 'episode1/scene_kaggle.py'), ('Clip checker', 'episode1/qa.py')]
+    files += [(f'Review sheet {sub}', f'status/review_{sub}.jpg') for _, _, sub, _ in SCENES]
+    idx = ["# Monkey's Life — reviewer index", '',
+           'Plain links to everything a reviewer (ChatGPT) needs; open them directly, no repo search needed.', '']
+    idx += [f'- {t}: {raw}{f}' for t, f in files]
+    idx += ['', '## How to send notes back', '',
+            'Open an issue at https://github.com/swagbb8/Smash-radar/issues titled "<shot ID>: <problem>" (e.g. "B03: card too small")',
+            'or "Pipeline: <problem>". One problem per issue. Claude reads open issues every round, fixes, and closes them with what changed.']
+    open(os.path.join(OUT, 'INDEX.md'), 'w', encoding='utf-8').write('\n'.join(idx) + '\n')
     prod = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'PRODUCTION.md')
     print('wrote', os.path.normpath(OUT), os.path.exists(prod))
 
