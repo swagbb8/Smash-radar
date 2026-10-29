@@ -15,11 +15,12 @@ WHO = {'scientist_a': 'DR A', 'scientist_b': 'DR B', 'seven': 'SEVEN', 'voice': 
 FX = {'B01': 'fade=t=in:st=0:d=1.2:color=black,fade=t=out:st={end_minus_1_5}:d=1.5:color=white'}
 AFTER_WHITE = 'fade=t=in:st=0:d=0.8:color=white'           # the shot after a white-out comes up out of the white
 SMOOTH = 'minterpolate=fps=24:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1'   # Wan makes 16 fps; a show runs at 24
+SUB_Y = 105                                               # subtitles low: the picture cards sit at the bottom of the frame
 PUSH = 0.05                                               # a slow 5 % push-in over each shot: no shot sits dead still
 
 
 def sub_png(text, path):
-    im = Image.new('RGBA', (W, 120), (0, 0, 0, 0)); d = ImageDraw.Draw(im); f = ImageFont.truetype(FONT, 40)
+    im = Image.new('RGBA', (W, 120), (0, 0, 0, 0)); d = ImageDraw.Draw(im); f = ImageFont.truetype(FONT, 34)
     w = d.textlength(text, font=f); x = (W - w) / 2
     for dx in (-2, 0, 2):
         for dy in (-2, 0, 2): d.text((x + dx, 40 + dy), text, font=f, fill=(0, 0, 0, 220))
@@ -54,7 +55,7 @@ def shot(src, s, work, after_white=False):
         if t >= dur: continue
         end = min(lines[i + 1][0] if i + 1 < len(lines) else dur, dur)
         png = os.path.join(work, f"{s['name']}_{i}.png"); sub_png(ln, png); ins += ['-i', png]
-        ov += f"{last}[{i + 1}:v]overlay=0:{H - 140}:enable='between(t,{t},{end})'[o{i}];"; last = f'[o{i}]'
+        ov += f"{last}[{i + 1}:v]overlay=0:{H - SUB_Y}:enable='between(t,{t},{end})'[o{i}];"; last = f'[o{i}]'
     fc = f'[0:v]{vf}[v];' + ov + f"{last}format=yuv420p[out]"
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[out]', '-c:v', 'libx264', '-crf', '18',
                     '-preset', 'medium', '-an', out], check=True)
@@ -64,7 +65,7 @@ def shot(src, s, work, after_white=False):
 def main():
     module, lst, review, out = sys.argv[1:5]
     rest = sys.argv[5:]; into = {}
-    if '--into' in rest:
+    while '--into' in rest:                                   # may be given more than once
         i = rest.index('--into'); a, b = rest[i + 1].split(':'); into[a] = b; rest = rest[:i] + rest[i + 2:]
     clips = dict(a.split('=', 1) for a in rest)
     ok = json.load(open(review))

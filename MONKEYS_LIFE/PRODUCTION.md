@@ -95,3 +95,6 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   frame (`ml-clips14` v10, test14/chain2).
 - 16:04 Scene 1 v3 cut (scene_cut.py): 7 shots, 39.6 s, qa PASS (phone/scene1_v3.mp4; 1280 web copy on the phone page).
   Found: subtitles sit over the cards at the bottom of the 2.39 frame. To move them in scene_cut.py.
+- 16:30 D03x (chained from B03's last frame) looked at: same set, Seven leans into Dr A's face for the pant-hoot. APPROVED;
+  replaces D03 (played inside B03's take). scene_cut.py: --into may repeat; subtitles 34 px at H-105 (were 40 px at H-140).
+  Scene 1 v4: 6 cuts, 39.5 s, qa PASS (phone/scene1_v4.mp4).
