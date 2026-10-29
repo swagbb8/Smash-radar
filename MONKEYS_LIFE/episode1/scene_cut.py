@@ -1,6 +1,8 @@
 """Cut the APPROVED AI clips of a scene into one video: script order, film finish, subtitles from the script lines, the
 edit-only effects (ai_scene.EDIT_FX), and room tone. Shots without an approved clip are skipped (and listed).
-    python scene_cut.py ep1_lab SCENE1 <review.json> <out.mp4> SHOT=clip.mp4 [SHOT=clip.mp4 ...]
+    python scene_cut.py ep1_lab SCENE1 <review.json> <out.mp4> SHOT=clip.mp4 [SHOT=a.mp4+b.mp4 ...] [--into D01:B02]
+A+B = one continuous take: B was generated from A's last frame, so they join with no cut (B's first frame dropped).
+--into D01:B02 plays shot D01's beat inside B02's take: D01 is not cut in separately; its lines follow B02's.
 Dialogue is subtitles until voices are decided (NOTES.md: "Seven's voice: decided later").
 """
 import json, os, subprocess, sys, tempfile
@@ -29,6 +31,17 @@ def secs(f):
                                 capture_output=True, text=True).stdout)
 
 
+def take(srcs, work, name):
+    """Several chained clips -> one file (each later clip starts on the previous one's last frame: drop that frame)."""
+    if len(srcs) == 1: return srcs[0]
+    out = os.path.join(work, name + '_take.mp4')
+    ins = sum((['-i', x] for x in srcs), [])
+    fc = ''.join(f'[{i}:v]' + ('trim=start_frame=1,setpts=PTS-STARTPTS' if i else 'null') + f'[c{i}];' for i in range(len(srcs)))
+    fc += ''.join(f'[c{i}]' for i in range(len(srcs))) + f'concat=n={len(srcs)}:v=1[v]'
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[v]', '-c:v', 'libx264', '-crf', '14', out], check=True)
+    return out
+
+
 def shot(src, s, work, after_white=False):
     dur = secs(src); out = os.path.join(work, s['name'] + '.mp4')
     grow = f"scale=w='trunc({W}*(1+{PUSH}*t/{dur:.2f})/2)*2':h=-2:eval=frame:flags=lanczos,crop={W}:{H},"   # crop w/h can't follow t
@@ -50,14 +63,23 @@ def shot(src, s, work, after_white=False):
 
 def main():
     module, lst, review, out = sys.argv[1:5]
-    clips = dict(a.split('=', 1) for a in sys.argv[5:])
+    rest = sys.argv[5:]; into = {}
+    if '--into' in rest:
+        i = rest.index('--into'); a, b = rest[i + 1].split(':'); into[a] = b; rest = rest[:i] + rest[i + 2:]
+    clips = dict(a.split('=', 1) for a in rest)
     ok = json.load(open(review))
     work = tempfile.mkdtemp(); parts = []; skipped = []
-    for s in ai_scene.shots(module, lst):
+    shots = ai_scene.shots(module, lst)
+    by = {x['name']: x for x in shots}
+    for a, b in into.items():                                 # a's lines move into b's take, after b's first clip
+        first = secs(clips[b].split('+')[0])
+        by[b] = dict(by[b], lines=by[b]['lines'] + [(first + t, sp, ln) for t, sp, ln in by[a]['lines']])
+    for s in [by[x['name']] for x in shots if x['name'] not in into]:
         v = ok.get(s['name'], {}).get('clip', {})
         if s['name'] in clips and v.get('ok'):
             prev = os.path.basename(parts[-1])[:-4] if parts else ''
-            parts.append(shot(clips[s['name']], s, work, after_white=prev in FX and 'white' in FX[prev]))
+            src = take(clips[s['name']].split('+'), work, s['name'])
+            parts.append(shot(src, s, work, after_white=prev in FX and 'white' in FX[prev]))
         else: skipped.append(s['name'])
     lst_file = os.path.join(work, 'list.txt')
     open(lst_file, 'w').write(''.join(f"file '{p.replace(os.sep, '/')}'\n" for p in parts))

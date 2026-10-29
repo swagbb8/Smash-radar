@@ -62,3 +62,7 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   (ai/phone/compare_3d.jpg). 3D: grey fluffy fur, bead eyes, plastic nose, no set. Far behind the AI frame. Free asset sites
   (CGTrader, Open3DModel) block downloads without an account. The only groomed and rigged chimp found costs money
   (TurboSquid, about $359). Verdict: 3D is not substantially better; it is much worse. Stay AI-first.
+- 2026-10-29 12:30 VERIFIED, one-take chaining: B02x was generated from B02's last frame (Wan 14B, 946 s). Looked at its 5-frame
+  strip: the camera pushes continuously from the wide into Seven copying the head-scratch, and identity holds. scene_cut.py
+  joins A+B with no cut (`SHOT=a+b`, B's first frame dropped) and `--into D01:B02` plays D01's beat and lines inside that take.
+  phone/scene1_onetake.mp4: 15.2 s, qa PASS. Method adopted: chain takes within a place and time; cut only where the story jumps.
