@@ -226,8 +226,16 @@ CLIPS14 = r'''
 import json, os, subprocess, sys, time
 subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '-U', 'git+https://github.com/huggingface/diffusers',
                 'transformers', 'accelerate', 'peft', 'gguf', 'ftfy', 'imageio', 'imageio-ffmpeg'], check=True)
+# Kaggle ships torchao 0.10; peft refuses LoRA on anything once it sees a torchao older than 0.16 (that killed Lightning on
+# the 2026-10-28 runs: 20 slow steps, 54 min for a 3 s clip). peft does not need torchao at all, so take it out.
+subprocess.run([sys.executable, '-m', 'pip', 'uninstall', '-y', '-q', 'torchao'])
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-import gc, glob, torch
+import gc, glob, torch, builtins
+T0 = time.time(); DEADLINE = 75 * 60                    # stop starting new clips after 75 min so the log always comes back
+os.makedirs('/kaggle/working/out', exist_ok=True)
+_print = builtins.print
+def print(*a, **k):                                      # everything also goes to out/run14.txt (downloaded with the clips)
+    _print(*a, **k); open('/kaggle/working/out/run14.txt', 'a').write(f'[{time.time() - T0:6.0f}s] ' + ' '.join(map(str, a)) + chr(10))
 from PIL import Image
 from huggingface_hub import hf_hub_download, list_repo_files
 from diffusers import AutoencoderKLWan, WanImageToVideoPipeline, WanTransformer3DModel, GGUFQuantizationConfig
@@ -253,7 +261,7 @@ for j in JOBS:
         pe, ne = i2v.encode_prompt(prompt=j['prompt'], negative_prompt='', device='cuda:0')
     embeds[j['name']] = (pe.to('cpu', FP), ne.to('cpu', FP))
 tok = i2v.tokenizer; del i2v, te; gc.collect(); torch.cuda.empty_cache()
-print(f'prompts encoded in {time.time() - t:.0f} s', flush=True)
+print('te done; RAM:', ' '.join(os.popen('free -g').read().split()[7:10])); print(f'prompts encoded in {time.time() - t:.0f} s', flush=True)
 q = GGUFQuantizationConfig(compute_dtype=FP)
 t1 = WanTransformer3DModel.from_single_file(pick(G, 'high', 'q4_k_m', '.gguf'), quantization_config=q, config=R,
                                             subfolder='transformer', torch_dtype=FP)
@@ -271,7 +279,7 @@ try:
     i2v.load_lora_weights(L, weight_name=sorted(hi)[-1], adapter_name='light')
     i2v.load_lora_weights(L, weight_name=sorted(lo)[-1], adapter_name='light_2', load_into_transformer_2=True)
 except Exception as e:
-    import traceback; traceback.print_exc(); FAST = False; print('no lightning, plain steps', str(e)[:200], flush=True)
+    import traceback; print('LIGHTNING FAILED:', traceback.format_exc()[-1500:]); FAST = False
 i2v.vae.to('cuda:0'); i2v.vae.enable_tiling(); t1.to('cuda:1'); t2.to('cuda:0')
 type(i2v)._execution_device = property(lambda self: torch.device('cuda:0'))
 def mv(x, d):
@@ -282,7 +290,11 @@ def mv(x, d):
 _f1 = t1.forward
 t1.forward = lambda *a, **k: mv(_f1(*mv(a, 'cuda:1'), **mv(k, 'cuda:1')), 'cuda:0')
 print(f'loaded in {time.time() - t:.0f} s, fast={FAST}', flush=True)
+def step_cb(pipe, i, ts, kw):
+    print(f'  step {i} t={int(ts)} {time.time() - T0:.0f}s, gpu0 {torch.cuda.max_memory_allocated(0) >> 30} GB, gpu1 {torch.cuda.max_memory_allocated(1) >> 30} GB')
+    return kw
 for j in JOBS:
+    if time.time() - T0 > DEADLINE: print('deadline: skipped', j['name']); continue
     t = time.time()
     try:
         pe, ne = embeds[j['name']]
@@ -291,7 +303,7 @@ for j in JOBS:
         kw = dict(num_inference_steps=4, guidance_scale=1.0, guidance_scale_2=1.0) if FAST else \
              dict(num_inference_steps=20, guidance_scale=3.5, guidance_scale_2=3.5, negative_prompt_embeds=ne.to('cuda:0'))
         out = i2v(image=img, prompt_embeds=pe.to('cuda:0'), height=j['h'], width=j['w'], num_frames=frames,
-                  generator=torch.Generator('cpu').manual_seed(int(j.get('seed', 11))), **kw).frames[0]
+                  generator=torch.Generator('cpu').manual_seed(int(j.get('seed', 11))), callback_on_step_end=step_cb, **kw).frames[0]
         export_to_video(out, f"/kaggle/working/out/{j['name']}.mp4", fps=16)
         print('made', j['name'], f'{frames} frames {time.time() - t:.0f} s', flush=True)
     except Exception as e:
@@ -325,7 +337,7 @@ def kaggle(*a, check=True):
     return r.stdout
 
 
-def run(kind, jobs, out, slug=None, keys=None):
+def run(kind, jobs, out, slug=None, keys=None, wait=True):
     slug = slug or f'ml-{kind}'; os.makedirs(out, exist_ok=True)
     code = {'stills': STILLS, 'keys': KEYS, 'clips': CLIPS, 'clips14': CLIPS14}[kind] % json.dumps(jobs)
     if keys: upload(keys)
@@ -336,17 +348,24 @@ def run(kind, jobs, out, slug=None, keys=None):
                        dataset_sources=[f'{USER}/ml-input'] if keys else [], competition_sources=[], kernel_sources=[]),
                   open(os.path.join(d, 'kernel-metadata.json'), 'w'))
         print(kaggle('kernels', 'push', '-p', d).strip(), flush=True)
-    time.sleep(20); last = ''
+    if not wait: return None
+    return fetch(slug, out, poll=True)
+
+
+def fetch(slug, out, poll=False):
+    """Download a kernel's outputs into out (waits for it first with poll). True if it completed."""
+    os.makedirs(out, exist_ok=True); time.sleep(20 if poll else 0); last = ''
     while True:
         s = kaggle('kernels', 'status', f'{USER}/{slug}', check=False)
         if s != last: print(s.strip(), flush=True); last = s
-        if any(k in s.lower() for k in ('complete', 'error', 'cancel')): break
+        if any(k in s.lower() for k in ('complete', 'error', 'cancel')) or not poll: break
         time.sleep(30)
+    if not any(k in last.lower() for k in ('complete', 'error', 'cancel')): return None
     with tempfile.TemporaryDirectory() as d:
         kaggle('kernels', 'output', f'{USER}/{slug}', '-p', d, check=False)
         for root, _, files in os.walk(d):
             for f in files:
-                if f.endswith(('.jpg', '.mp4', '.png')): shutil.copy(os.path.join(root, f), os.path.join(out, f))
+                if f.endswith(('.jpg', '.mp4', '.png', '.txt')): shutil.copy(os.path.join(root, f), os.path.join(out, f))
                 elif f.endswith('.log'):
                     try: log = ''.join(x.get('data', '') for x in json.load(open(os.path.join(root, f), encoding='utf8')))
                     except Exception: log = open(os.path.join(root, f), encoding='utf8', errors='replace').read()
@@ -357,4 +376,5 @@ def run(kind, jobs, out, slug=None, keys=None):
 
 
 if __name__ == '__main__':
-    run(sys.argv[1], json.load(open(sys.argv[2])), sys.argv[3], keys=sys.argv[4] if len(sys.argv) > 4 else None)
+    if sys.argv[1] == 'fetch': print(fetch(sys.argv[2], sys.argv[3]))     # python kaggle_run.py fetch ml-clips14 <out>
+    else: run(sys.argv[1], json.load(open(sys.argv[2])), sys.argv[3], keys=sys.argv[4] if len(sys.argv) > 4 else None)
