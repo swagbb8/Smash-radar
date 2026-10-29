@@ -57,3 +57,8 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
 - 12:00 Ash: the cut "feels like a comic book flipping pages". Fixed in the cut: 16->24 fps interpolation, slow push-in, white-out
   dissolve. Then "it switches scene to scene instead of flowing like one shot": testing chained clips (the next clip starts
   on the previous clip's last frame), B02 -> B02x.
+- 2026-10-29 12:20 3D re-test (Ash asked to reconsider 3D). Rendered the same shot, B01, with the rigged Blender Seven at 'laptop'
+  quality: 19 s a frame on the RTX 3050 (5 s of footage is about 40 min). Looked at frames 61 and 91 next to the approved AI B01
+  (ai/phone/compare_3d.jpg). 3D: grey fluffy fur, bead eyes, plastic nose, no set. Far behind the AI frame. Free asset sites
+  (CGTrader, Open3DModel) block downloads without an account. The only groomed and rigged chimp found costs money
+  (TurboSquid, about $359). Verdict: 3D is not substantially better; it is much worse. Stay AI-first.
