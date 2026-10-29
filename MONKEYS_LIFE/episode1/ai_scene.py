@@ -84,6 +84,12 @@ def shots(module, listname=None):
                  lines=get(cls[k], 'lines') or [], frame=cls[k].get('frame', '')) for k in names if k in cls]
 
 
+# What the video model is asked to animate when the script line asks for something it gets wrong; the rest of the beat is
+# done in the edit (EDIT_FX). B01: "white light floods in" came out as glowing eyes twice, so the white-out is a fade.
+CLIP_ACT = {'B01': 'Seven slowly blinks and opens his eyes, dazed and confused, looking straight ahead. He barely moves.'}
+EDIT_FX = {'B01': 'fade to white over the last 1.5 s'}
+
+
 def plan(s, cast):
     """One shot -> (keyframe job, clip job). Who is in it comes from the action text and the speakers."""
     text = (s['act'] + ' ' + ' '.join(x[1] for x in s['lines'])).lower()
@@ -104,7 +110,7 @@ def plan(s, cast):
     # quoted lines were printed on screen as subtitles (D01, twice), so speech stays out (it goes in the edit as audio);
     # 'vocalize' made Seven move his mouth as if talking (B01); 'the chimpanzees' filled B01's close-up with extra chimps.
     talk = ' '.join(sorted({f"{PEOPLE.get(sp, sp.capitalize()).split(',')[0]} talks quietly." for _, sp, _ in s['lines'] if sp in who}))
-    act = re.sub(r'^(Black|White)\. Then ', '', s['act'])
+    act = CLIP_ACT.get(s['name'], re.sub(r'^(Black|White)\. Then ', '', s['act']))
     clip = (f"{act} " + (talk + ' ' if talk else '') + ('Seven keeps his dark brown eyes. ' if 'seven' in who else '') +
             (f"{'Seven moves' if who == ['seven'] else 'Every chimpanzee here moves'} like a real wild chimpanzee, mouth closed "
              'unless the action calls for it. ' if any(w in who for w in ('seven', 'grub', 'petch', 'dolo')) else '') +
