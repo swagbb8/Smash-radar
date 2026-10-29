@@ -31,8 +31,9 @@ WHO = [('seven', r'\b(seven|he|his|him|chimp)\b'), ('grub', r'\bgrub\b'), ('petc
        ('scientist_a', r'\b(dr a|people|scientists|them|two of them)\b'), ('scientist_b', r'\b(dr b|people|scientists|them|two of them)\b')]
 # Seven's device (STORY.md + Ash's words): a palm-sized screen fused into his LEFT forearm. Intact in the lab until the
 # rampage cracks it; shattered from then on.
-DEVICE = {'intact': 'a palm-sized dark glass screen fused flush into the skin of his bare left forearm, a thin healed scar around its edge',
-          'cracked': 'a palm-sized shattered glass screen fused flush into the skin of his bare left forearm, a thin healed scar around its edge'}
+_ARM = (' fused flush into the skin of his bare left forearm, a thin healed scar around its edge; it is part of his arm, '
+        'not a separate gadget, not a tablet, not a strap')
+DEVICE = {'intact': 'a palm-sized dark glass screen' + _ARM, 'cracked': 'a palm-sized shattered glass screen' + _ARM}
 NAMES = {'seven': 'Seven (the huge ragged chimpanzee from reference image {i}; dark brown eyes; dry matte black fur; {device})',
          'grub': 'Grub (the enormous chimpanzee from reference image {i})', 'petch': 'Petch (the small young chimpanzee from '
          'reference image {i})', 'dolo': 'Dolo (the female chimpanzee from reference image {i})',
@@ -125,12 +126,27 @@ def ref_files(who, s, cast, limit=3):
     return files[:limit]
 
 
+# Shots whose cast the text alone gets wrong (reviewed by hand). Empty list = nobody (inserts, empty rooms).
+CAST = {'B20': ['scientist_a', 'scientist_b'], 'B19': [], 'B07': [], 'C04': []}
+
+
+def cast_of(s):
+    """Everyone who must be in the shot, in order (Seven first). Never truncated: only the reference pictures are capped.
+    Named in the action, or speaking in a shot wide enough to hold them (not a close-up, insert or POV, where the speaker
+    is off screen); in the lab "they" / "the two of them" means both scientists."""
+    if s['name'] in CAST: return CAST[s['name']]
+    act = s['act'].lower()
+    who = [k for k, rx in WHO if re.search(rx, act)]
+    if s['place'] == 'lab' and re.search(r'\b(they|their|the people)\b', act): who += ['scientist_a', 'scientist_b']
+    tight = s.get('frame', '').startswith(('Extreme', 'Close')) or re.match(r'(his pov|pov|close on|the screen, close|insert)', act)
+    if not tight: who += [sp for _, sp, _ in s['lines'] if sp in NAMES]
+    if re.match(r'(his pov|first-person)', act): who = [k for k in who if k != 'seven']   # we see through his eyes
+    return [k for k in NAMES if k in who]                                       # NAMES order: seven first, no repeats
+
+
 def plan(s, cast):
     """One shot -> (keyframe job, clip job). Who is in it comes from the action text and the speakers."""
-    text = (s['act'] + ' ' + ' '.join(x[1] for x in s['lines'])).lower()
-    who = [k for k, rx in WHO if re.search(rx, text) and os.path.exists(os.path.join(cast, f'{k}_front.jpg'))]
-    if s['place'] == 'lab' and 'seven' in who and len(who) == 1 and 'people' in text: who += ['scientist_a', 'scientist_b']
-    who = who[:3]
+    who = [k for k in cast_of(s) if os.path.exists(os.path.join(cast, f'{k}_front.jpg'))]
     flash = 'flash' in s['act'].lower() or 'memory' in s['act'].lower()
     cracked = s['place'] != 'lab' or re.search(r'crack|spark|white-out|smash', s['act'].lower())
     files = ref_files(who, s, cast)
