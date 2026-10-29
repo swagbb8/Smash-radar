@@ -90,6 +90,41 @@ CLIP_ACT = {'B01': 'Seven slowly blinks and opens his eyes, dazed and confused, 
 EDIT_FX = {'B01': 'fade to white over the last 1.5 s'}
 
 
+# Props as the script means them (blender/lab.py card_image: "a teaching card ... a simple drawing of a person doing a
+# thing"). Unexplained, the models guessed: a real fishing rod (B03), a real fire on the table (B04), no card (B05).
+CARD = ('a white picture card propped up on the steel table in front of him, with a simple black line drawing on it of {}')
+PROPS = [(r'\bthe (fishing) card\b', CARD.format('a little man fishing with a rod')),
+         (r'\bthe (fire) card\b', CARD.format('a campfire with flames')),
+         (r'\bthe (wheel) card\b', CARD.format('a cart wheel')),
+         (r"\bthe little man's rod\b", "the drawn rod on the card"),
+         (r'\breaches for the flame\b', 'reaches out to touch the drawn flames on the card'),
+         (r'\bpulls it back\b', 'pulls the card back out of his reach'),
+         (r'\ba little scanner\b', 'a small handheld scanner wand')]
+
+
+def must_have(s, who):
+    """The review checklist for a shot: who must be visible and which props, from the same script text the prompt uses."""
+    need = [NAMES[k].split(' (')[0] for k in who]
+    need += [re.search(rx, s['act'], re.I).group(0) for rx, _ in PROPS if re.search(rx, s['act'], re.I)]
+    if 'seven' in who: need.append('device on his LEFT forearm, ' + ('shattered' if s['place'] != 'lab' else 'intact unless cracked in this shot'))
+    return need
+
+
+def props(text):
+    for rx, rep in PROPS: text = re.sub(rx, rep, text, flags=re.I)
+    return text
+
+
+def ref_files(who, s, cast, limit=3):
+    """[(who, file)] for the keyframe model (it takes up to 3 pictures): everyone's face first, then, if room, Seven's whole
+    body for anything wider than a close-up (cast/seven_stool.jpg when he sits in the lab, else seven_body.jpg)."""
+    files = [(k, f'{k}_front.jpg') for k in who]
+    if 'seven' in who and not s.get('frame', '').startswith(('Extreme', 'Close')) and len(files) < limit:
+        body = 'seven_stool.jpg' if s['place'] == 'lab' and os.path.exists(os.path.join(cast, 'seven_stool.jpg')) else 'seven_body.jpg'
+        if os.path.exists(os.path.join(cast, body)): files.insert(1 + [k for k, _ in files].index('seven'), ('seven', body))
+    return files[:limit]
+
+
 def plan(s, cast):
     """One shot -> (keyframe job, clip job). Who is in it comes from the action text and the speakers."""
     text = (s['act'] + ' ' + ' '.join(x[1] for x in s['lines'])).lower()
@@ -98,10 +133,15 @@ def plan(s, cast):
     who = who[:3]
     flash = 'flash' in s['act'].lower() or 'memory' in s['act'].lower()
     cracked = s['place'] != 'lab' or re.search(r'crack|spark|white-out|smash', s['act'].lower())
-    cast_txt = '; '.join(NAMES[k].format(i=i + 1, device=DEVICE['cracked' if cracked else 'intact']) for i, k in enumerate(who))
-    act = re.sub(r'^(Black\. Then |White\. )', '', s['act'])                 # a keyframe is the first visible frame
+    files = ref_files(who, s, cast)
+    idx = {k: ' and '.join(str(i + 1) for i, (w, _) in enumerate(files) if w == k) for k in who}
+    cast_txt = '; '.join(NAMES[k].format(i=idx[k], device=DEVICE['cracked' if cracked else 'intact']).replace(
+        'reference image ' + idx[k], ('reference images ' if ' and ' in idx[k] else 'reference image ') + idx[k]) for k in who)
+    act = props(re.sub(r'^(Black\. Then |White\. )', '', s['act']))          # a keyframe is the first visible frame
     if s.get('frame') and not re.match(r'(wide|close|extreme|medium|insert|pov|his pov|over)', act.lower()): act = s['frame'] + ' ' + act
     still = (f"{act} Setting: {SETS.get(s['place'], SETS['forest'])}. " + (f'In the shot: {cast_txt}. ' if who else '') +
+             (f"All {len(who)} of them are clearly visible in frame; no other people or animals. " if len(who) > 1 else
+              'Nobody else is in the shot. ' if who else '') +
              ('Overexposed, dreamlike memory flash, very shallow focus. ' if flash else '') +
              ('Seven is clean, not muddy. ' if s['place'] == 'lab' and 'seven' in who else '') + FILM)
     sound = {'lab': 'Room tone: fluorescent hum, distant machines.', 'night': 'Night jungle: crickets, frogs, wind.'}.get(
@@ -110,14 +150,14 @@ def plan(s, cast):
     # quoted lines were printed on screen as subtitles (D01, twice), so speech stays out (it goes in the edit as audio);
     # 'vocalize' made Seven move his mouth as if talking (B01); 'the chimpanzees' filled B01's close-up with extra chimps.
     talk = ' '.join(sorted({f"{PEOPLE.get(sp, sp.capitalize()).split(',')[0]} talks quietly." for _, sp, _ in s['lines'] if sp in who}))
-    act = CLIP_ACT.get(s['name'], re.sub(r'^(Black|White)\. Then ', '', s['act']))
+    act = CLIP_ACT.get(s['name'], props(re.sub(r'^(Black|White)\. Then ', '', s['act'])))
     clip = (f"{act} " + (talk + ' ' if talk else '') + ('Seven keeps his dark brown eyes. ' if 'seven' in who else '') +
             (f"{'Seven moves' if who == ['seven'] else 'Every chimpanzee here moves'} like a real wild chimpanzee, mouth closed "
              'unless the action calls for it. ' if any(w in who for w in ('seven', 'grub', 'petch', 'dolo')) else '') +
             ('Nobody else is in the shot. ' if who else '') +
             'Realistic natural motion with weight, steady handheld camera, documentary footage. ' + sound)
-    return (dict(name=s['name'], prompt=still, negative=NEG, refs=[open(os.path.join(cast, f'{k}_front.jpg'), 'rb').read()
-                 for k in who], who=who, w=1280, h=720, steps=40, seed=7),
+    return (dict(name=s['name'], prompt=still, negative=NEG, refs=[open(os.path.join(cast, f), 'rb').read() for _, f in files],
+                 ref_names=[f for _, f in files], who=who, must=must_have(s, who), w=1280, h=720, steps=40, seed=7),
             dict(n=s['name'], prompt=clip, secs=max(3.0, min(10.0, s['dur'])), w=960, h=544, seed=11))
 
 

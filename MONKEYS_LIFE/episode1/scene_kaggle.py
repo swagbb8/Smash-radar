@@ -14,7 +14,7 @@ def main():
     keys, clips = [], []
     for s in todo:
         k, c = ai_scene.plan(s, cast)
-        keys.append(dict(name=k['name'], prompt=k['prompt'], refs=[f'{w}_front.jpg' for w in k['who']], w=1280, h=720, seed=7))
+        keys.append(dict(name=k['name'], prompt=k['prompt'], refs=k['ref_names'], must=k['must'], w=1280, h=720, seed=7))
         clips.append(dict(name=c['n'], prompt=c['prompt'], secs=min(c['secs'], 5.0), w=832, h=480, steps=30, seed=11))
     model = {'keys': 'Qwen-Image-Edit (NF4, 8-step)', 'clips': 'Wan2.2-TI2V-5B', 'clips14': 'Wan2.2-I2V-A14B GGUF Q4_K_M + Lightning 4-step'}
     def record(kind, jobs):                                   # what made each output: <out>/<shot>.<kind>.json
@@ -26,7 +26,7 @@ def main():
             record('keys', need); kaggle_run.run('keys', need, out, keys=cast)
             for k in need:
                 f = os.path.join(out, k['name'] + '.jpg')
-                if os.path.exists(f) and 'seven' in ' '.join(k['refs']): keyfix.despeckle(f)
+                if os.path.exists(f) and any(r.startswith('seven') for r in k['refs']): keyfix.despeckle(f)
     if '--keys-only' in sys.argv: return
     need = [c for c in clips if not os.path.exists(os.path.join(out, c['name'] + '.mp4'))
             and os.path.exists(os.path.join(out, c['name'] + '.jpg'))]
