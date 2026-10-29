@@ -312,6 +312,38 @@ for j in JOBS:
     torch.cuda.empty_cache()
 '''
 
+MESH = r'''
+import glob, json, os, subprocess, sys, time, traceback
+T0 = time.time(); os.makedirs('/kaggle/working/out', exist_ok=True)
+def log(*a):
+    m = f'[{time.time() - T0:5.0f}s] ' + ' '.join(map(str, a)); print(m, flush=True); open('/kaggle/working/out/mesh.txt', 'a').write(m + chr(10))
+JOBS = json.loads(%r)
+# Hunyuan3D-2 (Tencent, image -> textured mesh): shape on one T4, then texture painting (needs its two CUDA extensions built)
+sh = lambda c: subprocess.run(c, shell=True, capture_output=True, text=True)
+r = sh('git clone -q https://github.com/Tencent/Hunyuan3D-2 /tmp/h3d && cd /tmp/h3d && pip install -q -r requirements.txt && pip install -q -e .')
+log('install', r.returncode, r.stderr[-500:])
+tex_ok = True
+for ext in ('hy3dgen/texgen/custom_rasterizer', 'hy3dgen/texgen/differentiable_renderer'):
+    r = sh(f'cd /tmp/h3d/{ext} && python setup.py install'); log('build', ext, r.returncode, r.stderr[-300:]); tex_ok &= r.returncode == 0
+sys.path.insert(0, '/tmp/h3d')
+from PIL import Image
+from hy3dgen.rembg import BackgroundRemover
+from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline
+shape = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained('tencent/Hunyuan3D-2'); log('shape model loaded')
+for j in JOBS:
+    try:
+        img = Image.open(glob.glob('/kaggle/input/**/' + j['image'], recursive=True)[0]).convert('RGBA')
+        img = BackgroundRemover()(img.convert('RGB')); img.save(f"/kaggle/working/out/{j['name']}_cut.png")
+        mesh = shape(image=img, num_inference_steps=30, octree_resolution=380)[0]
+        mesh.export(f"/kaggle/working/out/{j['name']}_shape.glb"); log('shape done', j['name'])
+        if tex_ok:
+            from hy3dgen.texgen import Hunyuan3DPaintPipeline
+            paint = Hunyuan3DPaintPipeline.from_pretrained('tencent/Hunyuan3D-2'); log('paint model loaded')
+            mesh = paint(mesh, image=img); mesh.export(f"/kaggle/working/out/{j['name']}.glb"); log('textured done', j['name'])
+    except Exception:
+        log('FAILED', j['name'], traceback.format_exc()[-1500:])
+'''
+
 
 def upload(folder, slug='ml-input'):
     """Pictures the kernel reads (keyframes) as a private Kaggle dataset, new version each time."""
@@ -339,7 +371,7 @@ def kaggle(*a, check=True):
 
 def run(kind, jobs, out, slug=None, keys=None, wait=True):
     slug = slug or f'ml-{kind}'; os.makedirs(out, exist_ok=True)
-    code = {'stills': STILLS, 'keys': KEYS, 'clips': CLIPS, 'clips14': CLIPS14}[kind] % json.dumps(jobs)
+    code = {'stills': STILLS, 'keys': KEYS, 'clips': CLIPS, 'clips14': CLIPS14, 'mesh': MESH}[kind] % json.dumps(jobs)
     if keys: upload(keys)
     with tempfile.TemporaryDirectory() as d:
         open(os.path.join(d, 'run.py'), 'w', encoding='utf8').write(code)
@@ -365,7 +397,7 @@ def fetch(slug, out, poll=False):
         kaggle('kernels', 'output', f'{USER}/{slug}', '-p', d, check=False)
         for root, _, files in os.walk(d):
             for f in files:
-                if f.endswith(('.jpg', '.mp4', '.png', '.txt')): shutil.copy(os.path.join(root, f), os.path.join(out, f))
+                if f.endswith(('.jpg', '.mp4', '.png', '.txt', '.glb')): shutil.copy(os.path.join(root, f), os.path.join(out, f))
                 elif f.endswith('.log'):
                     try: log = ''.join(x.get('data', '') for x in json.load(open(os.path.join(root, f), encoding='utf8')))
                     except Exception: log = open(os.path.join(root, f), encoding='utf8', errors='replace').read()
