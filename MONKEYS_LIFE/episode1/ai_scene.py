@@ -98,14 +98,18 @@ def plan(s, cast):
     still = (f"{act} Setting: {SETS.get(s['place'], SETS['forest'])}. " + (f'In the shot: {cast_txt}. ' if who else '') +
              ('Overexposed, dreamlike memory flash, very shallow focus. ' if flash else '') +
              ('Seven is clean, not muddy. ' if s['place'] == 'lab' and 'seven' in who else '') + FILM)
-    speech = ' '.join(f"{PEOPLE.get(sp, sp.capitalize()).split(',')[0]} says: \"{ln}\"" for _, sp, ln in s['lines'])
     sound = {'lab': 'Room tone: fluorescent hum, distant machines.', 'night': 'Night jungle: crickets, frogs, wind.'}.get(
         s['place'], 'Jungle ambience: birds, insects, water, leaves.')
     # Wan at cfg 1 (Lightning) ignores the negative prompt, so the clip prompt itself must not invite what we do not want:
-    # 'vocalize' made Seven move his mouth as if talking (B01), and words like 'dialogue' printed fake subtitles (D01).
-    clip = (f"{s['act']} " + (speech + ' ' if speech else '') + ('Seven keeps his dark brown eyes. ' if 'seven' in who else '') +
-            'The chimpanzees move like real wild chimpanzees, mouths closed unless the action calls for it. Realistic natural '
-            'motion with weight, cinematic camera, live-action film, clean picture with nothing written on it. ' + sound)
+    # quoted lines were printed on screen as subtitles (D01, twice), so speech stays out (it goes in the edit as audio);
+    # 'vocalize' made Seven move his mouth as if talking (B01); 'the chimpanzees' filled B01's close-up with extra chimps.
+    talk = ' '.join(sorted({f"{PEOPLE.get(sp, sp.capitalize()).split(',')[0]} talks quietly." for _, sp, _ in s['lines'] if sp in who}))
+    act = re.sub(r'^(Black|White)\. Then ', '', s['act'])
+    clip = (f"{act} " + (talk + ' ' if talk else '') + ('Seven keeps his dark brown eyes. ' if 'seven' in who else '') +
+            (f"{'Seven moves' if who == ['seven'] else 'Every chimpanzee here moves'} like a real wild chimpanzee, mouth closed "
+             'unless the action calls for it. ' if any(w in who for w in ('seven', 'grub', 'petch', 'dolo')) else '') +
+            ('Nobody else is in the shot. ' if who else '') +
+            'Realistic natural motion with weight, steady handheld camera, documentary footage. ' + sound)
     return (dict(name=s['name'], prompt=still, negative=NEG, refs=[open(os.path.join(cast, f'{k}_front.jpg'), 'rb').read()
                  for k in who], who=who, w=1280, h=720, steps=40, seed=7),
             dict(n=s['name'], prompt=clip, secs=max(3.0, min(10.0, s['dur'])), w=960, h=544, seed=11))
