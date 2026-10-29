@@ -10,7 +10,7 @@ Reviewers: open a GitHub issue titled with the shot ID (e.g. "B03: ...") to requ
 | Shot | Sec | Action (script) | State | Note |
 |---|---|---|---|---|
 | B01 | 5.0 | Black. Then his eyes open, very close, and white light floods in. | clip APPROVED | Wan 14B run 4 (eyes-only action): stable face, brown eyes, no extras; fade in from black + white-out added in the edit |
-| B02 | 6.5 | Wide: the white room. A chimp on a stool at a steel table; two people  | clip APPROVED | Wan 14B 3 s probe on the older keyframe: stable, no smear; quiet shot |
+| B02 | 6.5 | Wide: the white room. A chimp on a stool at a steel table; two people  | clip APPROVED | v2 (5 s, Wan 14B) from the current keyframe: stable, matches D01 look; v1 3 s probe kept as backup |
 | D01 | 6.5 | Dr A scratches the back of his head, reading the screen. On the stool, | clip APPROVED | Wan 14B run 3: action works, no subtitles, no smear |
 | C01 | 7.0 | Dr B runs a little scanner over the device in his forearm. It lights u | keyframe REJECTED | device drawn as a tablet on the table, not in his forearm |
 | B03 | 6.0 | The fishing card. He looks at it a long time, then taps the little man | keyframe REJECTED | real fishing rod instead of the picture card; a stranger instead of Dr A |
