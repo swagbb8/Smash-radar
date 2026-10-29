@@ -1,6 +1,6 @@
 # Monkey's Life — RESUME (read first; no secrets in here)
 
-Last updated: 2026-10-29 15:00 CDT.
+Last updated: 2026-10-29 16:05 CDT.
 
 ## Sources of truth
 - Story: `STORY.md` ("Oct 25 outline" supersedes everything older). Shots: `blender/ep1_*.py` (class docstring = action,
@@ -25,12 +25,14 @@ Kaggle: 2 GPU sessions at once, ~30 GPU h/week (account ashton2387). Laptop: 7.6
 generation. Ash said: stay free (no paid GPUs or APIs). HF ZeroGPU anonymous quota is used up for the day.
 
 ## State
-- Approved clips: B01 (`test14/out6`), B02 v2 (`test14/out7`), D01 (`test14/out5`), B02x one-take (`test14/chain1`).
-- Approved keyframes waiting for clips: C01 B03 D03 B04 B05 (round 3). Clips running: `ml-clips14` -> `test14/r3a`
-  (C01 B03 D03), `ml-clips14b` -> `test14/r3b` (B04 B05). Fetch: `python kaggle_run.py fetch <slug> <out>`.
+- Approved clips: B01 (`test14/out6`), B02 v2 (`test14/out7`) + B02x one-take (`test14/chain1`), D01 (`test14/out5`, played
+  inside B02's take), C01 B03 D03 (`test14/r3a`), B04 B05 (`test14/r3b`). Cut: `phone/scene1_v3.mp4` (39.6 s).
+- D03x (D03 chained from B03's last frame, same set) running on `ml-clips14` -> `test14/chain2`. If approved: B03=r3a/B03+chain2/D03x --into D03:B03.
 - Parallel Kaggle runs share the `ml-input` dataset: upload ALL their keyframes in one version.
+- Clip jobs need scene_kaggle's format: name, secs<=5, 832x480 (not plan()'s raw clip dict).
 - 3D route closed (Blender Seven far worse; Hunyuan3D shape statue-like, texture OOM on T4).
 
 ## Next actions
-1. Fetch and review the r3a/r3b clips, re-cut Scene 1 with scene_cut.py, update the phone page.
-2. Continue Scene 1 in batches of 5 shots. Then Scene 2 onward.
+1. Judge D03x; re-cut Scene 1; move subtitles off the cards (scene_cut.py sub position).
+2. Keyframes for the next 5 of Scene 1: C02 B06 D11 D02 B07. Review, animate, chain within the same set.
+3. Continue Scene 1, then Scene 2 onward.

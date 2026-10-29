@@ -89,3 +89,9 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   instead of scene_kaggle's job format (`name`, 832x480, <=5 s). Also found: B05's approved keyframe shows Seven alone and
   D03's has no Dr B, but the clip prompts said "Dr A/Dr B talks quietly", which would make Wan add them. Fix: ai_scene.SEEN
   (who is in the approved keyframe) drives the clip prompt. Relaunched 15:05 (ml-clips14 v9, ml-clips14b v2).
+- 16:02 Clips C01 B03 D03 B04 B05 made (Wan 14B, ~17 min each; B05 4 s). Frame strips looked at: all stable, right cards and
+  people, no extras (SEEN fix held: B05 stayed Seven-only). B04: Dr A pulls the card away as scripted. All approved, but D03's
+  round-2 keyframe is a darker, different lab set than B03/B04, a visible continuity jump. Fix: D03x chained from B03's last
+  frame (`ml-clips14` v10, test14/chain2).
+- 16:04 Scene 1 v3 cut (scene_cut.py): 7 shots, 39.6 s, qa PASS (phone/scene1_v3.mp4; 1280 web copy on the phone page).
+  Found: subtitles sit over the cards at the bottom of the 2.39 frame. To move them in scene_cut.py.
