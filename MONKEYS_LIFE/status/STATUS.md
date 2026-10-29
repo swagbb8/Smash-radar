@@ -14,7 +14,7 @@ Reviewers: open a GitHub issue titled with the shot ID (e.g. "B03: ...") to requ
 | D01 | 6.5 | Dr A scratches the back of his head, reading the screen. On the stool, | clip APPROVED | Wan 14B run 3: action works, no subtitles, no smear |
 | C01 | 7.0 | Dr B runs a little scanner over the device in his forearm. It lights u | no keyframe |  |
 | B03 | 6.0 | The fishing card. He looks at it a long time, then taps the little man | no keyframe |  |
-| D03 | 6.5 | Dr A over-articulates at the fishing card. Seven leans in, lips funnel | no keyframe |  |
+| D03 | 6.5 | Dr A over-articulates at the fishing card. Seven leans in, lips funnel | keyframe approved | round 2: Dr A, the fishing card (a picture card), Seven leaning in; Dr B off screen (medium shot) |
 | B04 | 5.5 | The fire card. He reaches for the flame — Dr A pulls it back. | no keyframe |  |
 | B05 | 4.0 | The wheel card. He tilts his head at it. | no keyframe |  |
 | C02 | 6.0 | He plucks the pen out of Dr A's coat pocket and puts it in his mouth.  | no keyframe |  |

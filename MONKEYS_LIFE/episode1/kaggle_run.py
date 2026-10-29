@@ -328,7 +328,7 @@ for ext in ('hy3dgen/texgen/custom_rasterizer', 'hy3dgen/texgen/differentiable_r
 # new diffusers will not run Tencent's own paint pipeline code without trust_remote_code=True (2026-10-29 failure)
 for f in glob.glob('/tmp/h3d/hy3dgen/texgen/**/*.py', recursive=True):
     t = open(f).read()
-    if 'DiffusionPipeline.from_pretrained(' in t: open(f, 'w').write(t.replace('DiffusionPipeline.from_pretrained(', 'DiffusionPipeline.from_pretrained(trust_remote_code=True, '))
+    if 'custom_pipeline=custom_pipeline_path' in t: open(f, 'w').write(t.replace('custom_pipeline=custom_pipeline_path,', 'custom_pipeline=custom_pipeline_path, trust_remote_code=True,'))
 sys.path.insert(0, '/tmp/h3d')
 from PIL import Image
 from hy3dgen.rembg import BackgroundRemover

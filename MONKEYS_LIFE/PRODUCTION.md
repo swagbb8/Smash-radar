@@ -71,3 +71,9 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   needs trust_remote_code for Tencent's paint pipeline; fixed, rerunning). Rendered the shape in Blender from 3 angles
   (3dtest/ai3d/shape_sheet.jpg): one solid statue, fur as sculpted lumps, arms fused to the body, no separate fingers or
   face parts, no rig. Usable at most as a still prop or body-proportion guide, not as an animatable actor.
+- 2026-10-29 12:55 Round 2 keyframes (prop glossary + cast fix) looked at: ALL THREE CARDS NOW CORRECT (white picture cards with line
+  drawings) and Dr A present in every card shot. D03 APPROVED. C01/B03/B04/B05 REJECTED for the device: a strapped box (B03), a
+  shoulder gadget and head band (B04), the wrong arm (B05), and a hologram with Dr B missing (C01). Cause: describing the device in
+  every shot makes the model invent gadgets. Fix: ai_scene.shows_device() mentions it only in shots about it; C01 gets an
+  explicit cast and staging (STILL_ACT). Round 3 (C01,B03,B04,B05) running. Sheet: status/review_round2_rejected4_passD03.jpg.
+- 12:50 AI-3D: textured run v2 failed on my patch (keyword before a positional argument); fixed, v3 running.

@@ -34,7 +34,7 @@ WHO = [('seven', r'\b(seven|he|his|him|chimp)\b'), ('grub', r'\bgrub\b'), ('petc
 _ARM = (' fused flush into the skin of his bare left forearm, a thin healed scar around its edge; it is part of his arm, '
         'not a separate gadget, not a tablet, not a strap')
 DEVICE = {'intact': 'a palm-sized dark glass screen' + _ARM, 'cracked': 'a palm-sized shattered glass screen' + _ARM}
-NAMES = {'seven': 'Seven (the huge ragged chimpanzee from reference image {i}; dark brown eyes; dry matte black fur; {device})',
+NAMES = {'seven': 'Seven (the huge ragged chimpanzee from reference image {i}; dark brown eyes; dry matte black fur{device})',
          'grub': 'Grub (the enormous chimpanzee from reference image {i})', 'petch': 'Petch (the small young chimpanzee from '
          'reference image {i})', 'dolo': 'Dolo (the female chimpanzee from reference image {i})',
          'scientist_a': 'Dr A (the man from reference image {i})', 'scientist_b': 'Dr B (the woman from reference image {i})'}
@@ -87,6 +87,9 @@ def shots(module, listname=None):
 
 # What the video model is asked to animate when the script line asks for something it gets wrong; the rest of the beat is
 # done in the edit (EDIT_FX). B01: "white light floods in" came out as glowing eyes twice, so the white-out is a fade.
+STILL_ACT = {'C01': 'Medium shot, waist up. Seven sits at the steel table holding his left arm out flat on the table, palm up. '
+                    'Dr B, the woman, bends over it and passes a small handheld scanner wand just above his forearm; a soft '
+                    'blue glow comes from the screen set into his skin.'}
 CLIP_ACT = {'B01': 'Seven slowly blinks and opens his eyes, dazed and confused, looking straight ahead. He barely moves.'}
 EDIT_FX = {'B01': 'fade to white over the last 1.5 s'}
 
@@ -103,11 +106,19 @@ PROPS = [(r'\bthe (fishing) card\b', CARD.format('a little man fishing with a ro
          (r'\ba little scanner\b', 'a small handheld scanner wand')]
 
 
+def shows_device(s):
+    """Describe the arm device only when the shot is about it. Mentioned in every shot, the keyframe model invented gadgets:
+    a strapped box (B03), a shoulder gadget and a head band (B04), a screen on the wrong arm (B05), a hologram (C01)."""
+    return bool(re.search(r'device|forearm|his arm|left arm|scanner|crack|flares|surges', s['act'], re.I))
+
+
 def must_have(s, who):
     """The review checklist for a shot: who must be visible and which props, from the same script text the prompt uses."""
     need = [NAMES[k].split(' (')[0] for k in who]
     need += [re.search(rx, s['act'], re.I).group(0) for rx, _ in PROPS if re.search(rx, s['act'], re.I)]
-    if 'seven' in who: need.append('device on his LEFT forearm, ' + ('shattered' if s['place'] != 'lab' else 'intact unless cracked in this shot'))
+    if 'seven' in who and shows_device(s):
+        need.append('device fused in his LEFT forearm, ' + ('shattered' if s['place'] != 'lab' else 'intact unless cracked in this shot'))
+    elif 'seven' in who: need.append('no gadget, strap or screen anywhere on him')
     return need
 
 
@@ -127,7 +138,7 @@ def ref_files(who, s, cast, limit=3):
 
 
 # Shots whose cast the text alone gets wrong (reviewed by hand). Empty list = nobody (inserts, empty rooms).
-CAST = {'B20': ['scientist_a', 'scientist_b'], 'B19': [], 'B07': [], 'C04': []}
+CAST = {'B20': ['scientist_a', 'scientist_b'], 'B19': [], 'B07': [], 'C04': [], 'C01': ['seven', 'scientist_b']}
 
 
 def cast_of(s):
@@ -160,9 +171,10 @@ def plan(s, cast):
     cracked = s['place'] != 'lab' or re.search(r'crack|spark|white-out|smash', s['act'].lower())
     files = ref_files(who, s, cast)
     idx = {k: ' and '.join(str(i + 1) for i, (w, _) in enumerate(files) if w == k) for k in who}
-    cast_txt = '; '.join(NAMES[k].format(i=idx[k], device=DEVICE['cracked' if cracked else 'intact']).replace(
+    dev = '; ' + DEVICE['cracked' if cracked else 'intact'] if shows_device(s) else ''
+    cast_txt = '; '.join(NAMES[k].format(i=idx[k], device=dev).replace(
         'reference image ' + idx[k], ('reference images ' if ' and ' in idx[k] else 'reference image ') + idx[k]) for k in who)
-    act = props(re.sub(r'^(Black\. Then |White\. )', '', s['act']))          # a keyframe is the first visible frame
+    act = STILL_ACT.get(s['name']) or props(re.sub(r'^(Black\. Then |White\. )', '', s['act']))   # first visible frame
     if s.get('frame') and not re.match(r'(wide|close|extreme|medium|insert|pov|his pov|over)', act.lower()): act = s['frame'] + ' ' + act
     still = (f"{act} Setting: {SETS.get(s['place'], SETS['forest'])}. " + (f'In the shot: {cast_txt}. ' if who else '') +
              (f"All {len(who)} of them are clearly visible in frame; no other people or animals. " if len(who) > 1 else
