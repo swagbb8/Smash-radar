@@ -89,7 +89,14 @@ def shots(module, listname=None):
 # done in the edit (EDIT_FX). B01: "white light floods in" came out as glowing eyes twice, so the white-out is a fade.
 STILL_ACT = {'C01': 'Medium shot, waist up. Seven sits at the steel table holding his left arm out flat on the table, palm up. '
                     'Dr B, the woman, bends over it and passes a small handheld scanner wand just above his forearm; a soft '
-                    'blue glow comes from the screen set into his skin.'}
+                    'blue glow comes from the screen set into his skin.',
+             # round 1: Dr B stacked the blocks (B06), and D11 had no tower and no stool: spell out who does what
+             'B06': 'Medium shot. Seven sits on a steel stool at the steel table and, with both of his own hands, sets a red '
+                    'wooden block on top of a small tower of coloured wooden blocks in front of him. Dr B, the woman, stands '
+                    'a step back from the table holding a stopwatch, watching him; her hands are not on the blocks.',
+             'D11': 'Wide shot, full body. A tall tower of coloured wooden blocks stands on the steel table, taller than a '
+                    'man. Seven is standing upright on top of the steel stool beside the table, stretching one long arm up '
+                    'to set the last block on the very top. Dr B stands back by the wall, staring up at him.'}
 CLIP_ACT = {'B01': 'Seven slowly blinks and opens his eyes, dazed and confused, looking straight ahead. He barely moves.'}
 EDIT_FX = {'B01': 'fade to white over the last 1.5 s'}
 

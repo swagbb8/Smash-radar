@@ -98,3 +98,10 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
 - 16:30 D03x (chained from B03's last frame) looked at: same set, Seven leans into Dr A's face for the pant-hoot. APPROVED;
   replaces D03 (played inside B03's take). scene_cut.py: --into may repeat; subtitles 34 px at H-105 (were 40 px at H-140).
   Scene 1 v4: 6 cuts, 39.5 s, qa PASS (phone/scene1_v4.mp4).
+- 16:50 Keyframes C02 B06 D11 D02 looked at. APPROVED: C02 (pen in his mouth, Dr A), D02 (handshake; wider than the scripted
+  close-up, push-in tightens it). REJECTED: B06 (Dr B stacks the blocks, not Seven), D11 (no tower, Seven not on the stool);
+  kept in scene1/rejected_v3/. Fix: explicit staging in ai_scene.STILL_ACT for both. B07 failed on Kaggle (the edit model
+  needs a reference image; B07 has nobody in it), so it is made in the edit instead: episode1/inserts.py (SUBJECT 7 screen,
+  recall trace climbing, content kept inside the 2.39 crop).
+- 16:55 Launched together, one shared ml-input upload (cast + C02 + D02): keyframes B06 D11 (`ml-keys` v16) and clips C02 D02
+  (`ml-clips14` v11, test14/r4).
