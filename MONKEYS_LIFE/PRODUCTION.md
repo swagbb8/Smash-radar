@@ -85,3 +85,7 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   Re-uploaded one version with all five. Rule: parallel runs must share one upload.
 - 14:58 AI-3D v3: texture stage ran out of GPU memory on the T4 (14.1 of 14.6 GB). The shape was already statue-like and
   unriggable, so the 3D route is closed: AI keyframes + Wan clips stay the pipeline.
+- 15:05 Both clip runs failed in 3 min (KeyError 'name'): my launch script passed plan()'s raw clip dict (`n`, 960x544, 7 s)
+  instead of scene_kaggle's job format (`name`, 832x480, <=5 s). Also found: B05's approved keyframe shows Seven alone and
+  D03's has no Dr B, but the clip prompts said "Dr A/Dr B talks quietly", which would make Wan add them. Fix: ai_scene.SEEN
+  (who is in the approved keyframe) drives the clip prompt. Relaunched 15:05 (ml-clips14 v9, ml-clips14b v2).

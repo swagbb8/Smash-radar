@@ -141,6 +141,11 @@ def ref_files(who, s, cast, limit=3):
 CAST = {'B20': ['scientist_a', 'scientist_b'], 'B19': [], 'B07': [], 'C04': [], 'C01': ['seven', 'scientist_b']}
 
 
+# Who is actually visible in the APPROVED keyframe, when it differs from cast_of (the clip must match its first frame,
+# or Wan adds the missing speaker: "Dr A talks quietly" with no Dr A in the picture).
+SEEN = {'B05': ['seven'], 'D03': ['seven', 'scientist_a']}
+
+
 def cast_of(s):
     """Everyone who must be in the shot, in order (Seven first). Never truncated: only the reference pictures are capped.
     Named in the action, or speaking in a shot wide enough to hold them (not a close-up, insert or POV, where the speaker
@@ -186,12 +191,13 @@ def plan(s, cast):
     # Wan at cfg 1 (Lightning) ignores the negative prompt, so the clip prompt itself must not invite what we do not want:
     # quoted lines were printed on screen as subtitles (D01, twice), so speech stays out (it goes in the edit as audio);
     # 'vocalize' made Seven move his mouth as if talking (B01); 'the chimpanzees' filled B01's close-up with extra chimps.
-    talk = ' '.join(sorted({f"{PEOPLE.get(sp, sp.capitalize()).split(',')[0]} talks quietly." for _, sp, _ in s['lines'] if sp in who}))
+    seen = SEEN.get(s['name'], who)                                             # the clip matches its first frame
+    talk = ' '.join(sorted({f"{PEOPLE.get(sp, sp.capitalize()).split(',')[0]} talks quietly." for _, sp, _ in s['lines'] if sp in seen}))
     act = CLIP_ACT.get(s['name'], props(re.sub(r'^(Black|White)\. Then ', '', s['act'])))
-    clip = (f"{act} " + (talk + ' ' if talk else '') + ('Seven keeps his dark brown eyes. ' if 'seven' in who else '') +
-            (f"{'Seven moves' if who == ['seven'] else 'Every chimpanzee here moves'} like a real wild chimpanzee, mouth closed "
-             'unless the action calls for it. ' if any(w in who for w in ('seven', 'grub', 'petch', 'dolo')) else '') +
-            ('Nobody else is in the shot. ' if who else '') +
+    clip = (f"{act} " + (talk + ' ' if talk else '') + ('Seven keeps his dark brown eyes. ' if 'seven' in seen else '') +
+            (f"{'Seven moves' if seen == ['seven'] else 'Every chimpanzee here moves'} like a real wild chimpanzee, mouth closed "
+             'unless the action calls for it. ' if any(w in seen for w in ('seven', 'grub', 'petch', 'dolo')) else '') +
+            ('Nobody else is in the shot. ' if seen else '') +
             'Realistic natural motion with weight. ' + camera_move(s) + ' Documentary footage. ' + sound)
     return (dict(name=s['name'], prompt=still, negative=NEG, refs=[open(os.path.join(cast, f), 'rb').read() for _, f in files],
                  ref_names=[f for _, f in files], who=who, must=must_have(s, who), w=1280, h=720, steps=40, seed=7),
