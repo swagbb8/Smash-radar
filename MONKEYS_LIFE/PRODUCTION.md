@@ -42,3 +42,10 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
 - Research (web, 2026 comparisons): Wan 2.2 A14B is still the strongest open image-to-video model for realistic motion.
   HunyuanVideo 1.5 and LTX-2.3 are the alternatives, and LTX-2.3 needs a bigger GPU. Wan 3.0 is API-only. The 14B test is the right test.
 - 18:05 FIXED: ai_scene.framing() reads each Blender setup() (frame_on size, close/medium, or lens) and puts the shot size first in the prompt (B01 = extreme close-up of eyes and face).
+- 2026-10-28 22:10 Wan 14B run 1 was stopped by deleting the kernel after 4.5 h, with no log. A 3 s probe with logging
+  showed the cause: Lightning LoRA failed to load because Kaggle ships torchao 0.10 and peft rejects LoRA when an old
+  torchao is present. That forced 20 plain steps at about 150 s each, 54 min for 3 s. The job now uninstalls torchao first.
+- 2026-10-29 09:28 VERIFIED, Wan 14B with Lightning: about 17 min per 5 s clip (4 steps of about 200 s, 13 GB per T4). Looked at B01 and D01:
+  no smearing, identity holds, D01's copied head-scratch action works. Defects: B01 mouth moves as if talking and eyes
+  turn orange late; D01 shows fake subtitle text. Cfg 1 ignores the negative prompt, so the clip prompt was reworded (no
+  'vocalize' or 'dialogue', eyes stated, "nothing written on it"). 14B is now the clip model.

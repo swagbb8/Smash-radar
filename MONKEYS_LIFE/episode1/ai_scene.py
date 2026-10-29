@@ -101,8 +101,11 @@ def plan(s, cast):
     speech = ' '.join(f"{PEOPLE.get(sp, sp.capitalize()).split(',')[0]} says: \"{ln}\"" for _, sp, ln in s['lines'])
     sound = {'lab': 'Room tone: fluorescent hum, distant machines.', 'night': 'Night jungle: crickets, frogs, wind.'}.get(
         s['place'], 'Jungle ambience: birds, insects, water, leaves.')
-    clip = (f"{s['act']} " + (speech + ' ' if speech else 'No dialogue. ') + 'Chimpanzees move and vocalize like real wild '
-            'chimpanzees. Realistic natural motion, cinematic camera, live-action film. ' + sound + ' No music.')
+    # Wan at cfg 1 (Lightning) ignores the negative prompt, so the clip prompt itself must not invite what we do not want:
+    # 'vocalize' made Seven move his mouth as if talking (B01), and words like 'dialogue' printed fake subtitles (D01).
+    clip = (f"{s['act']} " + (speech + ' ' if speech else '') + ('Seven keeps his dark brown eyes. ' if 'seven' in who else '') +
+            'The chimpanzees move like real wild chimpanzees, mouths closed unless the action calls for it. Realistic natural '
+            'motion with weight, cinematic camera, live-action film, clean picture with nothing written on it. ' + sound)
     return (dict(name=s['name'], prompt=still, negative=NEG, refs=[open(os.path.join(cast, f'{k}_front.jpg'), 'rb').read()
                  for k in who], who=who, w=1280, h=720, steps=40, seed=7),
             dict(n=s['name'], prompt=clip, secs=max(3.0, min(10.0, s['dur'])), w=960, h=544, seed=11))
