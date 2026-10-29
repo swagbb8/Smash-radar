@@ -66,3 +66,8 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   strip: the camera pushes continuously from the wide into Seven copying the head-scratch, and identity holds. scene_cut.py
   joins A+B with no cut (`SHOT=a+b`, B's first frame dropped) and `--into D01:B02` plays D01's beat and lines inside that take.
   phone/scene1_onetake.mp4: 15.2 s, qa PASS. Method adopted: chain takes within a place and time; cut only where the story jumps.
+- 2026-10-29 12:31 AI-3D test (Ash: "do ai 3d generator and use that for blender"). TRELLIS.2 HF demo: the anonymous ZeroGPU daily
+  quota is exhausted. Hunyuan3D-2 on Kaggle (`ml-mesh`): the shape worked (21 MB glb, ~4 min); texture failed (new diffusers
+  needs trust_remote_code for Tencent's paint pipeline; fixed, rerunning). Rendered the shape in Blender from 3 angles
+  (3dtest/ai3d/shape_sheet.jpg): one solid statue, fur as sculpted lumps, arms fused to the body, no separate fingers or
+  face parts, no rig. Usable at most as a still prop or body-proportion guide, not as an animatable actor.
