@@ -144,6 +144,15 @@ def cast_of(s):
     return [k for k in NAMES if k in who]                                       # NAMES order: seven first, no repeats
 
 
+def camera_move(s):
+    """A real camera move for every clip: locked-off clips cut together like comic panels (Ash, 2026-10-29)."""
+    f = s.get('frame', '') + ' ' + s['act'][:20]
+    if re.search(r'pov', f, re.I): return 'Handheld point-of-view camera, slight natural sway.'
+    if f.startswith(('Extreme', 'Close')): return 'The camera slowly pushes in toward his face, slight handheld breathing.'
+    if re.match(r'\s*wide', f, re.I) or f.startswith('Wide'): return 'The camera dollies slowly sideways across the room, revealing depth.'
+    return 'Handheld camera, gently drifting closer as the action happens.'
+
+
 def plan(s, cast):
     """One shot -> (keyframe job, clip job). Who is in it comes from the action text and the speakers."""
     who = [k for k in cast_of(s) if os.path.exists(os.path.join(cast, f'{k}_front.jpg'))]
@@ -171,7 +180,7 @@ def plan(s, cast):
             (f"{'Seven moves' if who == ['seven'] else 'Every chimpanzee here moves'} like a real wild chimpanzee, mouth closed "
              'unless the action calls for it. ' if any(w in who for w in ('seven', 'grub', 'petch', 'dolo')) else '') +
             ('Nobody else is in the shot. ' if who else '') +
-            'Realistic natural motion with weight, steady handheld camera, documentary footage. ' + sound)
+            'Realistic natural motion with weight. ' + camera_move(s) + ' Documentary footage. ' + sound)
     return (dict(name=s['name'], prompt=still, negative=NEG, refs=[open(os.path.join(cast, f), 'rb').read() for _, f in files],
                  ref_names=[f for _, f in files], who=who, must=must_have(s, who), w=1280, h=720, steps=40, seed=7),
             dict(n=s['name'], prompt=clip, secs=max(3.0, min(10.0, s['dur'])), w=960, h=544, seed=11))

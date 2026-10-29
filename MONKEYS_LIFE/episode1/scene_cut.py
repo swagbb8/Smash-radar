@@ -11,6 +11,9 @@ W, H, FPS = 1920, 804, 24
 FONT = 'C:/Windows/Fonts/arial.ttf'
 WHO = {'scientist_a': 'DR A', 'scientist_b': 'DR B', 'seven': 'SEVEN', 'voice': ''}
 FX = {'B01': 'fade=t=in:st=0:d=1.2:color=black,fade=t=out:st={end_minus_1_5}:d=1.5:color=white'}
+AFTER_WHITE = 'fade=t=in:st=0:d=0.8:color=white'           # the shot after a white-out comes up out of the white
+SMOOTH = 'minterpolate=fps=24:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1'   # Wan makes 16 fps; a show runs at 24
+PUSH = 0.05                                               # a slow 5 % push-in over each shot: no shot sits dead still
 
 
 def sub_png(text, path):
@@ -26,9 +29,11 @@ def secs(f):
                                 capture_output=True, text=True).stdout)
 
 
-def shot(src, s, work):
+def shot(src, s, work, after_white=False):
     dur = secs(src); out = os.path.join(work, s['name'] + '.mp4')
-    vf = finish.VF + f',fps={FPS}'
+    grow = f"scale=w='trunc({W}*(1+{PUSH}*t/{dur:.2f})/2)*2':h=-2:eval=frame:flags=lanczos,crop={W}:{H},"   # crop w/h can't follow t
+    vf = f'{SMOOTH},' + finish.VF.replace(f'scale=1920:-2:flags=lanczos,crop=1920:804,', grow) + f',fps={FPS}'
+    if after_white: vf += ',' + AFTER_WHITE
     if s['name'] in FX: vf += ',' + FX[s['name']].format(end_minus_1_5=max(dur - 1.5, 0))
     ins, ov, last = ['-i', src], '', '[v]'
     lines = s['lines']
@@ -50,7 +55,9 @@ def main():
     work = tempfile.mkdtemp(); parts = []; skipped = []
     for s in ai_scene.shots(module, lst):
         v = ok.get(s['name'], {}).get('clip', {})
-        if s['name'] in clips and v.get('ok'): parts.append(shot(clips[s['name']], s, work))
+        if s['name'] in clips and v.get('ok'):
+            prev = os.path.basename(parts[-1])[:-4] if parts else ''
+            parts.append(shot(clips[s['name']], s, work, after_white=prev in FX and 'white' in FX[prev]))
         else: skipped.append(s['name'])
     lst_file = os.path.join(work, 'list.txt')
     open(lst_file, 'w').write(''.join(f"file '{p.replace(os.sep, '/')}'\n" for p in parts))
