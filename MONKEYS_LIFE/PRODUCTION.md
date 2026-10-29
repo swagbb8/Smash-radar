@@ -49,3 +49,11 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   no smearing, identity holds, D01's copied head-scratch action works. Defects: B01 mouth moves as if talking and eyes
   turn orange late; D01 shows fake subtitle text. Cfg 1 ignores the negative prompt, so the clip prompt was reworded (no
   'vocalize' or 'dialogue', eyes stated, "nothing written on it"). 14B is now the clip model.
+- 2026-10-29 12:05 Character sheet v1 (cast_sheet.py, 4 views from seven_front.jpg) REJECTED after looking at all four next to
+  the original. 3/4 and profile: device on the shoulder as a tablet, and the face smoother and younger than the original (scars and
+  deep wrinkles lost). Stool: device rendered as a strapped cuff. Body: best build, but a square tablet device. None entered
+  the reference library. Next: body views with bare arms (no device), so they carry only build.
+- 12:05 Round 2 of C01/B03/D03/B04/B05 keyframes pushed with the prop glossary, cast fix and arm-device wording (face reference only).
+- 12:00 Ash: the cut "feels like a comic book flipping pages". Fixed in the cut: 16->24 fps interpolation, slow push-in, white-out
+  dissolve. Then "it switches scene to scene instead of flowing like one shot": testing chained clips (the next clip starts
+  on the previous clip's last frame), B02 -> B02x.
