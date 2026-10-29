@@ -12,11 +12,11 @@ Reviewers: open a GitHub issue titled with the shot ID (e.g. "B03: ...") to requ
 | B01 | 5.0 | Black. Then his eyes open, very close, and white light floods in. | clip APPROVED | Wan 14B run 4 (eyes-only action): stable face, brown eyes, no extras; fade in from black + white-out added in the edit |
 | B02 | 6.5 | Wide: the white room. A chimp on a stool at a steel table; two people  | clip APPROVED | v2 (5 s, Wan 14B) from the current keyframe: stable, matches D01 look; v1 3 s probe kept as backup |
 | D01 | 6.5 | Dr A scratches the back of his head, reading the screen. On the stool, | clip APPROVED | Wan 14B run 3: action works, no subtitles, no smear |
-| C01 | 7.0 | Dr B runs a little scanner over the device in his forearm. It lights u | no keyframe |  |
-| B03 | 6.0 | The fishing card. He looks at it a long time, then taps the little man | no keyframe |  |
+| C01 | 7.0 | Dr B runs a little scanner over the device in his forearm. It lights u | keyframe approved | round 3: Dr B passes the scanner wand over his left forearm, blue glow from the arm; no tablet or gadget |
+| B03 | 6.0 | The fishing card. He looks at it a long time, then taps the little man | keyframe approved | round 3: fishing picture card, Dr A beside him; no gadget |
 | D03 | 6.5 | Dr A over-articulates at the fishing card. Seven leans in, lips funnel | keyframe approved | round 2: Dr A, the fishing card (a picture card), Seven leaning in; Dr B off screen (medium shot) |
-| B04 | 5.5 | The fire card. He reaches for the flame — Dr A pulls it back. | no keyframe |  |
-| B05 | 4.0 | The wheel card. He tilts his head at it. | no keyframe |  |
+| B04 | 5.5 | The fire card. He reaches for the flame — Dr A pulls it back. | keyframe approved | round 3: fire drawn on the card, no real fire, Dr A holds it; eyes a little amber (fix in grade) |
+| B05 | 4.0 | The wheel card. He tilts his head at it. | keyframe approved | round 3: wheel card clearly visible, Seven alone; eyes a little amber (fix in grade) |
 | C02 | 6.0 | He plucks the pen out of Dr A's coat pocket and puts it in his mouth.  | no keyframe |  |
 | B06 | 7.0 | The puzzle: he stacks the coloured blocks one on another, fast. Dr B t | no keyframe |  |
 | D11 | 6.0 | The tower is taller than he can reach. He stands up ON the stool to pu | no keyframe |  |

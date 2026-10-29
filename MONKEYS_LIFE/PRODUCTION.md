@@ -77,3 +77,11 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   every shot makes the model invent gadgets. Fix: ai_scene.shows_device() mentions it only in shots about it; C01 gets an
   explicit cast and staging (STILL_ACT). Round 3 (C01,B03,B04,B05) running. Sheet: status/review_round2_rejected4_passD03.jpg.
 - 12:50 AI-3D: textured run v2 failed on my patch (keyword before a positional argument); fixed, v3 running.
+- 2026-10-29 14:55 Round 3 keyframes looked at: ALL FOUR APPROVED. C01: Dr B passes the scanner wand over his left forearm, blue
+  glow from the arm, no tablet. B03: fishing card + Dr A. B04: fire drawn on the card, no real fire. B05: wheel card visible.
+  No gadgets anywhere (shows_device() fix worked). Note: B04/B05 eyes slightly amber, to correct in the grade.
+- 14:58 Clips C01,B03,D03 (`ml-clips14`, test14/r3a) and B04,B05 (`ml-clips14b`, test14/r3b) launched on two T4 sessions.
+  Found: both kernels mount the same `ml-input` dataset, so the second upload can replace the first one's keyframes.
+  Re-uploaded one version with all five. Rule: parallel runs must share one upload.
+- 14:58 AI-3D v3: texture stage ran out of GPU memory on the T4 (14.1 of 14.6 GB). The shape was already statue-like and
+  unriggable, so the 3D route is closed: AI keyframes + Wan clips stay the pipeline.

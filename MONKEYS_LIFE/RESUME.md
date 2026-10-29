@@ -1,6 +1,6 @@
 # Monkey's Life — RESUME (read first; no secrets in here)
 
-Last updated: 2026-10-29 12:10 CDT.
+Last updated: 2026-10-29 15:00 CDT.
 
 ## Sources of truth
 - Story: `STORY.md` ("Oct 25 outline" supersedes everything older). Shots: `blender/ep1_*.py` (class docstring = action,
@@ -25,15 +25,12 @@ Kaggle: 2 GPU sessions at once, ~30 GPU h/week (account ashton2387). Laptop: 7.6
 generation. Ash said: stay free (no paid GPUs or APIs). HF ZeroGPU anonymous quota is used up for the day.
 
 ## State
-- Approved clips: B01 (`test14/out6`), B02 v2 (`test14/out7`), D01 (`test14/out5`). Cut: `phone/scene1_cut_v2.mp4`.
-- Rejected keyframes (round 1, before the fixes): C01 B03 D03 B04 B05, kept in `scene1/rejected_v1/`. Round 2 running (`ml-keys`).
-- One-take test: `B02x` chained from B02's last frame, running (`ml-clips14`), output in `test14/chain1/`.
-- Character sheet v1 rejected (device on the shoulder or a tablet, face drifted). Not in the reference library.
-- 3D: Blender Seven was rendered for B01 and is far worse than AI (`ai/phone/compare_3d.jpg`). The AI-3D (Hunyuan3D-2) test
-  waits for a Kaggle slot (`ml-mesh`), output in `3dtest/ai3d/`.
+- Approved clips: B01 (`test14/out6`), B02 v2 (`test14/out7`), D01 (`test14/out5`), B02x one-take (`test14/chain1`).
+- Approved keyframes waiting for clips: C01 B03 D03 B04 B05 (round 3). Clips running: `ml-clips14` -> `test14/r3a`
+  (C01 B03 D03), `ml-clips14b` -> `test14/r3b` (B04 B05). Fetch: `python kaggle_run.py fetch <slug> <out>`.
+- Parallel Kaggle runs share the `ml-input` dataset: upload ALL their keyframes in one version.
+- 3D route closed (Blender Seven far worse; Hunyuan3D shape statue-like, texture OOM on T4).
 
 ## Next actions
-1. Review the round 2 keyframes against their pass conditions, post them to the status page, animate the ones that pass.
-2. Judge B02x: if the chained take works, plan the scene as chained takes (cut only where the story jumps place or time).
-3. Judge the Hunyuan3D mesh in Blender honestly. Keep AI-first unless it is clearly better.
-4. Continue Scene 1 in batches of 5 shots. Then Scene 2 onward.
+1. Fetch and review the r3a/r3b clips, re-cut Scene 1 with scene_cut.py, update the phone page.
+2. Continue Scene 1 in batches of 5 shots. Then Scene 2 onward.
