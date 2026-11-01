@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1320">
+<title>BTC 5m Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one phone screen, top to bottom = clock -> lean -> prices -> odds -> chart. Read it in one glance. */
+:root{
+  --bg:#0e1320; --panel:#151c2e; --line:#26304a; --fg:#e8ecf6; --dim:#8a93ab;
+  --clock:#f2b33d; --up:#27c98a; --down:#ff5a6a; --flat:#8a93ab;
+  --display:"Sora",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{margin:0;font-family:var(--display);-webkit-font-smoothing:antialiased;
+  padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+main{max-width:460px;margin:0 auto;display:grid;gap:12px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+h1{font-size:15px;font-weight:800;letter-spacing:.02em;margin:0}
+h1 span{color:var(--clock)}
+.win{font-size:12px;color:var(--dim)}
+a.mk{color:var(--fg);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:5px 9px;border-radius:999px;white-space:nowrap}
+a.mk:focus-visible{outline:2px solid var(--clock);outline-offset:2px}
+
+.clock{display:grid;gap:6px}
+.clock .t{font-size:56px;font-weight:600;line-height:1;color:var(--clock);letter-spacing:-.02em}
+.clock .t small{font-size:26px;color:var(--dim)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--clock);width:0}
+
+.lean{background:var(--panel);border-radius:14px;padding:16px;display:grid;gap:4px;border-left:6px solid var(--flat)}
+.lean.up{border-left-color:var(--up)} .lean.down{border-left-color:var(--down)}
+.lean .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.lean .big{font-size:40px;font-weight:800;line-height:1.05}
+.lean.up .big{color:var(--up)} .lean.down .big{color:var(--down)}
+.lean .sub{font-size:13px;color:var(--dim)}
+
+.prices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.p{background:var(--panel);border-radius:10px;padding:10px;min-width:0}
+.p .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.p .v{font-size:15px;font-weight:600;margin-top:4px;overflow-wrap:anywhere}
+.p .d{font-size:11px;margin-top:2px;color:var(--dim)}
+.u{color:var(--up)} .dn{color:var(--down)}
+
+.odds{background:var(--panel);border-radius:14px;padding:14px;display:grid;gap:10px}
+.row{display:grid;grid-template-columns:64px 1fr 52px;align-items:center;gap:8px;font-size:12px}
+.row .track{height:14px;background:var(--line);border-radius:7px;overflow:hidden;position:relative}
+.row .fill{position:absolute;inset:0 auto 0 0;background:var(--up);width:50%;transition:width .2s}
+.row .fill.mkt{background:#5b8cff}
+.row .pct{text-align:right;font-size:14px;font-weight:600}
+.edge{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim)}
+.chip{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--line);color:var(--dim)}
+.chip.hot{background:var(--clock);color:#1a1300}
+
+canvas{width:100%;height:120px;display:block;background:var(--panel);border-radius:14px}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--dim)}
+.legend b{display:inline-block;width:10px;height:3px;vertical-align:middle;margin-right:4px}
+.status{font-size:11px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
+.status .ok{color:var(--up)} .status .bad{color:var(--down)}
+footer{font-size:11px;line-height:1.5;color:var(--dim)}
+@media (prefers-reduced-motion:reduce){.row .fill{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>BTC <span>5m</span> Radar</h1><div class="win" id="win">Loading window…</div></div>
+    <a class="mk" id="mk" href="https://polymarket.com" target="_blank" rel="noopener">Open market ↗</a>
+  </header>
+
+  <section class="clock">
+    <div class="t num" id="clock">–:––<small>.–</small></div>
+    <div class="bar"><i id="bar"></i></div>
+  </section>
+
+  <section class="lean" id="lean">
+    <div class="lbl">Settlement price vs price to beat</div>
+    <div class="big num" id="leanBig">—</div>
+    <div class="sub" id="leanSub">Waiting for prices</div>
+  </section>
+
+  <section class="prices">
+    <div class="p"><div class="k">To beat</div><div class="v num" id="open">—</div><div class="d" id="openNote">Chainlink at open</div></div>
+    <div class="p"><div class="k">Chainlink</div><div class="v num" id="cl">—</div><div class="d num" id="clAge">settles on this</div></div>
+    <div class="p"><div class="k">Coinbase</div><div class="v num" id="cb">—</div><div class="d num" id="lead">lead —</div></div>
+  </section>
+
+  <section class="odds">
+    <div class="row"><span>Estimate</span><div class="track"><div class="fill" id="fModel"></div></div><span class="pct num" id="pModel">—</span></div>
+    <div class="row"><span>Market</span><div class="track"><div class="fill mkt" id="fMkt"></div></div><span class="pct num" id="pMkt">—</span></div>
+    <div class="edge"><span id="edgeTxt">Chance of Up</span><span class="chip" id="chip">—</span></div>
+  </section>
+
+  <canvas id="chart" aria-label="Chainlink and Coinbase price this window against price to beat"></canvas>
+  <div class="legend"><span><b style="background:var(--fg)"></b>Chainlink</span><span><b style="background:#5b8cff"></b>Coinbase (shifted)</span><span><b style="background:var(--clock)"></b>To beat</span></div>
+
+  <div class="status" id="status"></div>
+
+  <footer>
+    Settles on Chainlink's BTC/USD 60-second TWAP at close versus the open. The estimate is a math model using recent volatility, Coinbase's lead and the time left. It's a rough read, not a sure thing, and fast traders close gaps quickly. Polymarket may be restricted where you live.
+  </footer>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const fmt = (v, d = 2) => v == null || !isFinite(v) ? '—' : v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const sgn = (v, d = 2) => (v >= 0 ? '+$' : '−$') + fmt(Math.abs(v), d);
+
+  const S = {
+    T: 0,                 // window start (unix s)
+    cl: [],               // chainlink [{t(ms), v}]
+    cb: null, cbT: 0,     // coinbase last price
+    basis: null,          // EMA of (coinbase - chainlink)
+    open: null, openExact: false,
+    up: null, upTok: null, downTok: null, slug: '',
+    conn: { cl: false, cb: false, mkt: false },
+  };
+
+  // ---- window bookkeeping ----
+  const etFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
+  function setWindow(T) {
+    S.T = T; S.open = null; S.openExact = false; S.up = null; S.upTok = S.downTok = null;
+    S.slug = 'btc-updown-5m-' + T;
+    $('win').textContent = etFmt.format(new Date(T * 1000)) + '–' + etFmt.format(new Date((T + 300) * 1000)) + ' ET';
+    $('mk').href = 'https://polymarket.com/event/' + S.slug;
+    pickOpen();
+    loadMarket(T);
+  }
+  function pickOpen() {
+    const t0 = S.T * 1000;
+    const exact = S.cl.find(p => p.t === t0) || S.cl.find(p => p.t > t0 && p.t - t0 <= 2000);
+    if (exact) { S.open = exact.v; S.openExact = true; return; }
+    if (!S.open) { const first = S.cl.find(p => p.t >= t0); if (first) { S.open = first.v; S.openExact = false; } }
+  }
+
+  // ---- Polymarket market (token ids + odds) ----
+  async function loadMarket(T) {
+    try {
+      const r = await fetch('https://gamma-api.polymarket.com/events?slug=btc-updown-5m-' + T);
+      const ev = (await r.json())[0];
+      if (!ev || S.T !== T) return;
+      const m = ev.markets[0];
+      const outs = JSON.parse(m.outcomes), toks = JSON.parse(m.clobTokenIds);
+      S.upTok = toks[outs.indexOf('Up')]; S.downTok = toks[outs.indexOf('Down')];
+    } catch (e) { S.conn.mkt = false; setTimeout(() => S.T === T && loadMarket(T), 3000); }
+  }
+  async function pollOdds() {
+    if (S.upTok) {
+      try {
+        const [a, b] = await Promise.all([S.upTok, S.downTok].map(t => fetch('https://clob.polymarket.com/midpoint?token_id=' + t).then(r => r.json())));
+        const u = parseFloat(a.mid), d = parseFloat(b.mid);
+        if (isFinite(u) && isFinite(d) && u + d > 0) S.up = u / (u + d);
+        S.conn.mkt = true;
+      } catch (e) { S.conn.mkt = false; }
+    }
+    setTimeout(pollOdds, 1000);
+  }
+
+  // ---- Chainlink via Polymarket live data ----
+  function connectCL() {
+    const ws = new WebSocket('wss://ws-live-data.polymarket.com');
+    let ping;
+    ws.onopen = () => {
+      S.conn.cl = true;
+      ws.send(JSON.stringify({ action: 'subscribe', subscriptions: [{ topic: 'crypto_prices_chainlink', type: '*', filters: '{"symbol":"btc/usd"}' }] }));
+      ping = setInterval(() => ws.readyState === 1 && ws.send('PING'), 5000);
+    };
+    ws.onmessage = (e) => {
+      if (typeof e.data !== 'string' || e.data[0] !== '{') return;
+      let d; try { d = JSON.parse(e.data); } catch { return; }
+      const p = d.payload || {};
+      if (Array.isArray(p.data)) p.data.forEach(x => addCL(x.timestamp, x.value));
+      else if (p.value != null && p.timestamp) addCL(p.timestamp, p.value);
+    };
+    ws.onclose = () => { S.conn.cl = false; clearInterval(ping); setTimeout(connectCL, 1500); };
+    ws.onerror = () => ws.close();
+  }
+  function addCL(t, v) {
+    v = +v; if (!isFinite(v)) return;
+    const last = S.cl[S.cl.length - 1];
+    if (last && t <= last.t) { if (t === last.t) last.v = v; else if (!S.cl.some(p => p.t === t)) { S.cl.push({ t, v }); S.cl.sort((a, b) => a.t - b.t); } }
+    else S.cl.push({ t, v });
+    const cut = Date.now() - 15 * 60 * 1000; while (S.cl.length && S.cl[0].t < cut) S.cl.shift();
+    if (!S.openExact) pickOpen();
+    if (S.cb != null) { const diff = S.cb - v; S.basis = S.basis == null ? diff : S.basis + (diff - S.basis) * 0.02; }
+  }
+
+  // ---- Coinbase spot ----
+  const cbHist = [];
+  function connectCB() {
+    const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com');
+    ws.onopen = () => { S.conn.cb = true; ws.send(JSON.stringify({ type: 'subscribe', product_ids: ['BTC-USD'], channels: ['ticker'] })); };
+    ws.onmessage = (e) => {
+      let d; try { d = JSON.parse(e.data); } catch { return; }
+      if (d.type === 'ticker' && d.price) {
+        S.cb = +d.price; S.cbT = Date.now();
+        cbHist.push({ t: S.cbT, v: S.cb });
+        const cut = S.cbT - 6 * 60 * 1000; while (cbHist.length && cbHist[0].t < cut) cbHist.shift();
+      }
+    };
+    ws.onclose = () => { S.conn.cb = false; setTimeout(connectCB, 1500); };
+    ws.onerror = () => ws.close();
+  }
+
+  // ---- model ----
+  function erf(x) { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
+  const Phi = (z) => 0.5 * (1 + erf(z / Math.SQRT2));
+
+  function model(nowMs) {
+    if (S.open == null || !S.cl.length) return null;
+    const last = S.cl[S.cl.length - 1];
+    const lead = (S.cb != null && S.basis != null && nowMs - S.cbT < 5000) ? (S.cb - last.v) - S.basis : 0;
+    const level = last.v + lead;                         // best guess of where Chainlink is heading
+    // per-second volatility from recent 1s changes
+    const pts = S.cl.slice(-180); let sum = 0, n = 0;
+    for (let i = 1; i < pts.length; i++) { const dt = (pts[i].t - pts[i - 1].t) / 1000; if (dt > 0 && dt <= 3) { const r = (pts[i].v - pts[i - 1].v) / Math.sqrt(dt); sum += r * r; n++; } }
+    const sig = n > 10 ? Math.sqrt(sum / n) : 8;
+    const end = (S.T + 300) * 1000, left = Math.max(0, (end - nowMs) / 1000);
+    // projected 60s TWAP at close: known part + unknown part held at `level`
+    const winStart = end - 60000;
+    const known = S.cl.filter(p => p.t >= winStart && p.t <= nowMs);
+    const unknownSec = Math.min(60, left);
+    const knownSec = 60 - unknownSec;
+    const knownAvg = known.length ? known.reduce((a, p) => a + p.v, 0) / known.length : level;
+    const proj = (knownAvg * knownSec + level * unknownSec) / 60;
+    // spread of the closing average around proj
+    let varr;
+    if (left >= 60) varr = sig * sig * ((left - 60) + 60 / 3);
+    else varr = sig * sig * Math.pow(left, 3) / (3 * 3600);
+    const sd = Math.sqrt(Math.max(varr, 1e-6));
+    const pUp = left === 0 ? (proj >= S.open ? 1 : 0) : Phi((proj - S.open) / sd);
+    return { pUp, proj, lead, level, sig, left, last };
+  }
+
+  // ---- render ----
+  const cv = $('chart'), cx = cv.getContext('2d');
+  function draw(m) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, w, h);
+    const t0 = S.T * 1000, t1 = t0 + 300000;
+    const cl = S.cl.filter(p => p.t >= t0 - 5000);
+    const shift = S.basis || 0;
+    const cb = cbHist.filter(p => p.t >= t0).map(p => ({ t: p.t, v: p.v - shift }));
+    const vals = cl.map(p => p.v).concat(cb.map(p => p.v)); if (S.open != null) vals.push(S.open);
+    if (vals.length < 2) return;
+    let lo = Math.min(...vals), hi = Math.max(...vals); const pad = Math.max((hi - lo) * 0.15, 5); lo -= pad; hi += pad;
+    const X = t => 8 + (w - 16) * Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+    const Y = v => h - 8 - (h - 16) * (v - lo) / (hi - lo);
+    const css = getComputedStyle(document.documentElement);
+    if (S.open != null) { cx.strokeStyle = css.getPropertyValue('--clock'); cx.setLineDash([5, 4]); cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(8, Y(S.open)); cx.lineTo(w - 8, Y(S.open)); cx.stroke(); cx.setLineDash([]); }
+    const line = (arr, col, lw) => { if (arr.length < 2) return; cx.strokeStyle = col; cx.lineWidth = lw; cx.beginPath(); arr.forEach((p, i) => i ? cx.lineTo(X(p.t), Y(p.v)) : cx.moveTo(X(p.t), Y(p.v))); cx.stroke(); };
+    line(cb, 'rgba(91,140,255,.75)', 1.2);
+    line(cl, css.getPropertyValue('--fg'), 2);
+    const lp = cl[cl.length - 1]; if (lp) { cx.fillStyle = css.getPropertyValue('--fg'); cx.beginPath(); cx.arc(X(lp.t), Y(lp.v), 3.5, 0, 7); cx.fill(); }
+  }
+
+  function frame() {
+    const now = Date.now();
+    const T = Math.floor(now / 300000) * 300;
+    if (T !== S.T) setWindow(T);
+    const left = Math.max(0, (S.T + 300) * 1000 - now);
+    const mm = Math.floor(left / 60000), ss = Math.floor(left / 1000) % 60, tenth = Math.floor(left / 100) % 10;
+    $('clock').innerHTML = mm + ':' + String(ss).padStart(2, '0') + '<small>.' + tenth + '</small>';
+    $('bar').style.width = (100 * (1 - left / 300000)) + '%';
+
+    const m = model(now);
+    const last = S.cl[S.cl.length - 1];
+    $('open').textContent = S.open != null ? fmt(S.open) : '—';
+    $('openNote').textContent = S.open == null ? 'waiting' : (S.openExact ? 'Chainlink at open' : 'approx (opened mid-window)');
+    $('cl').textContent = last ? fmt(last.v) : '—';
+    $('clAge').textContent = last ? ((now - last.t) / 1000).toFixed(1) + 's ago' : 'settles on this';
+    $('cb').textContent = S.cb != null ? fmt(S.cb) : '—';
+
+    const lean = $('lean');
+    if (m && last) {
+      const diff = last.v - S.open;
+      lean.className = 'lean ' + (diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : '');
+      $('leanBig').textContent = (diff >= 0 ? 'UP ' : 'DOWN ') + sgn(diff);
+      $('leanSub').textContent = 'Projected close ' + fmt(m.proj) + ' (' + sgn(m.proj - S.open) + ')';
+      const ld = $('lead'); ld.textContent = 'lead ' + (m.lead >= 0 ? '▲' : '▼') + ' $' + fmt(Math.abs(m.lead));
+      ld.className = 'd num ' + (Math.abs(m.lead) < 2 ? '' : m.lead > 0 ? 'u' : 'dn');
+      const pm = Math.round(m.pUp * 100);
+      $('pModel').textContent = pm + '%'; $('fModel').style.width = pm + '%';
+    }
+    if (S.up != null) { const pk = Math.round(S.up * 100); $('pMkt').textContent = pk + '%'; $('fMkt').style.width = pk + '%'; }
+    if (m && S.up != null) {
+      const edge = Math.round((m.pUp - S.up) * 100);
+      $('edgeTxt').textContent = 'Chance of Up · gap ' + (edge >= 0 ? '+' : '') + edge + ' pts';
+      const chip = $('chip');
+      if (Math.abs(edge) >= 10 && left > 3000) { chip.className = 'chip hot'; chip.textContent = edge > 0 ? 'Market lags on Up' : 'Market lags on Down'; }
+      else { chip.className = 'chip'; chip.textContent = 'In line'; }
+    }
+    const st = (k, name) => '<span class="' + (S.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
+    $('status').innerHTML = st('cl', 'Chainlink') + st('cb', 'Coinbase') + st('mkt', 'Odds');
+    draw(m);
+    requestAnimationFrame(frame);
+  }
+
+  connectCL(); connectCB(); pollOdds();
+  if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {});
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

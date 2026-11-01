@@ -4,6 +4,7 @@
 # The library is the thing that must never be lost: if it ever comes back smaller than it was restored, nothing is pushed.
 set -euo pipefail
 store=$(realpath "$1"); dist=$(realpath "$2")
+extra="$(cd "$(dirname "$0")/../.." && pwd)/pages-extra"   # extra standalone pages (e.g. btc5m) copied into the site
 remote="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
 before=$(cat "$store/.before" 2>/dev/null || echo 0); after=$(ls "$store/data/posts" 2>/dev/null | wc -l)
 if [ "$after" -lt "$before" ]; then echo "::error::the library shrank ($before to $after files); nothing was published"; exit 1; fi
@@ -16,6 +17,7 @@ rm -rf data && cp -r "$store/data" data && git add -A
 if git diff --cached --quiet; then echo "library unchanged"; else git commit -qm "library: $after files ($(date -u +%FT%TZ))" && git push -q origin "$DATA_BRANCH" && echo "library saved: $after file(s)"; fi
 echo "$after" > "$store/.before"
 
+if [ -d "$extra" ]; then cp -r "$extra"/. "$dist"/; fi
 cd "$dist" && rm -rf .git && git init -q -b "$DEPLOY_BRANCH" && git config user.name "truth-bot" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git add -A && git commit -qm "THE TRUTH $(date -u +%FT%TZ)" && git push -q --force "$remote" "$DEPLOY_BRANCH"
 rm -rf .git
