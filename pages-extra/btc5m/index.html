@@ -65,6 +65,9 @@ a.mk:focus-visible,.tabs button:focus-visible{outline:2px solid var(--clock);out
 .ev{font-size:13px;font-weight:700;font-family:var(--mono);text-align:center;padding:6px;border-radius:8px;background:var(--line)}
 .ev.pos{background:rgba(39,201,138,.16);color:var(--up)} .ev.neg{color:var(--dim)}
 .verdict{font-size:13px;text-align:center;color:var(--dim)}
+.stake{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--dim)}
+.stake input{width:84px;font:600 15px var(--mono);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:right}
+.stake input:focus-visible{outline:2px solid var(--clock);outline-offset:1px}
 .verdict b{color:var(--clock)}
 
 .snap{background:var(--panel);border-radius:14px;padding:12px 14px;display:grid;gap:6px;border:1px dashed var(--line)}
@@ -116,12 +119,15 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     <div class="sub" id="leanSub">Waiting for prices</div>
   </section>
 
+  <label class="stake" for="stakeIn">Stake $ <input id="stakeIn" type="number" inputmode="decimal" min="1" step="1" value="10"></label>
+
   <section class="sides">
     <div class="side upS" id="sUp">
       <h2>UP <span class="px" id="upPx">—</span></h2>
       <div class="kv"><span>Win chance</span><span id="upP">—</span></div>
       <div class="kv"><span>If right</span><span class="u" id="upWin">—</span></div>
-      <div class="kv"><span>If wrong</span><span class="dn">−$1.00</span></div>
+      <div class="kv"><span>If wrong</span><span class="dn" id="upLoss">—</span></div>
+      <div class="kv"><span>Shares</span><span id="upSh">—</span></div>
       <div class="kv"><span>Room ≤2¢</span><span id="upDepth">—</span></div>
       <div class="ev" id="upEv">EV —</div>
     </div>
@@ -129,12 +135,13 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
       <h2>DOWN <span class="px" id="dnPx">—</span></h2>
       <div class="kv"><span>Win chance</span><span id="dnP">—</span></div>
       <div class="kv"><span>If right</span><span class="u" id="dnWin">—</span></div>
-      <div class="kv"><span>If wrong</span><span class="dn">−$1.00</span></div>
+      <div class="kv"><span>If wrong</span><span class="dn" id="dnLoss">—</span></div>
+      <div class="kv"><span>Shares</span><span id="dnSh">—</span></div>
       <div class="kv"><span>Room ≤2¢</span><span id="dnDepth">—</span></div>
       <div class="ev" id="dnEv">EV —</div>
     </div>
   </section>
-  <div class="verdict" id="verdict">Per $1 staked, buying at the current ask, before fees</div>
+  <div class="verdict" id="verdict">Buying at the current ask, before fees</div>
 
   <section class="snap" id="snap">
     <div class="lbl" id="snapTitle">1:30 and 1:00 snapshot</div>
@@ -153,7 +160,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   <div class="status" id="status"></div>
 
   <footer>
-    Settles on Chainlink's BTC/USD 60-second TWAP at close versus the open. Win chance is a math model from recent volatility, Coinbase's lead and time left. EV is win chance ÷ price − 1, using the price you'd pay right now (best ask), before any fees. It's an estimate, not a sure thing; fast traders close gaps quickly. Price to beat is exact only if the page was open when the window started. Polymarket may be restricted where you live.
+    Settles on Chainlink's BTC/USD 60-second TWAP at close versus the open. Win chance is a math model from recent volatility, Coinbase's lead and time left. EV is your average result on the stake if the win chance is right, using the price you'd pay right now (best ask), before any fees. It's an estimate, not a sure thing; fast traders close gaps quickly. Price to beat is exact only if the page was open when the window started. Polymarket may be restricted where you live.
   </footer>
 </main>
 
@@ -174,7 +181,10 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
              book: { up: null, dn: null }, model: null, snap: null, marks: {} };
   }
   const M = { 5: makeMarket(300, '5m'), 15: makeMarket(900, '15m') };
-  let active = 5;
+  let active = 5, stake = 10;
+  try { const v = parseFloat(localStorage.getItem('btcRadarStake')); if (v > 0) stake = v; } catch (e) {}
+  document.getElementById('stakeIn').value = stake;
+  document.getElementById('stakeIn').addEventListener('input', (e) => { const v = parseFloat(e.target.value); if (v > 0) { stake = v; try { localStorage.setItem('btcRadarStake', String(v)); } catch (er) {} } });
   try { const s = localStorage.getItem('btcRadarTab'); if (s === '15') active = 15; } catch (e) {}
 
   const etFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
@@ -328,13 +338,16 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     box.classList.toggle('best', best);
     $(prefix + 'Px').textContent = s ? cents(s.ask) : '—';
     $(prefix + 'P').textContent = s && s.p != null ? pct(s.p) : '—';
-    $(prefix + 'Win').textContent = s ? '+$' + fmt(s.win) : '—';
-    $(prefix + 'Depth').textContent = s ? '$' + fmt(s.room, 0) : '—';
+    $(prefix + 'Win').textContent = s ? '+$' + fmt(s.win * stake) : '—';
+    $(prefix + 'Loss').textContent = '−$' + fmt(stake);
+    $(prefix + 'Sh').textContent = s ? fmt(stake / s.ask, 1) : '—';
+    const dep = $(prefix + 'Depth'); dep.textContent = s ? '$' + fmt(s.room, 0) : '—';
+    dep.className = s && s.room < stake ? 'dn' : '';
     const ev = $(prefix + 'Ev');
     if (!s || s.ev == null) { ev.textContent = 'EV —'; ev.className = 'ev'; return; }
-    const c = Math.round(s.ev * 100);
-    ev.textContent = 'EV ' + (c >= 0 ? '+' : '−') + Math.abs(c) + '¢ per $1';
-    ev.className = 'ev ' + (c > 0 ? 'pos' : 'neg');
+    const d = s.ev * stake;
+    ev.textContent = 'EV ' + (d >= 0 ? '+$' : '−$') + fmt(Math.abs(d)) + ' on $' + fmt(stake, 0);
+    ev.className = 'ev ' + (d > 0 ? 'pos' : 'neg');
   }
 
   function takeSnap(m, label, mo, su, sd) {
@@ -346,7 +359,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     if (!s || !s.su || s.su.ev == null) { $('snapTitle').textContent = '1:30 and 1:00 snapshot'; $('snapRows').innerHTML = '<div><span>Freezes the numbers when the clock hits 1:30 and 1:00.</span><span></span></div>'; return; }
     $('snapTitle').textContent = 'Snapshot at ' + s.label + ' left';
     const row = (k, v) => '<div><span>' + k + '</span><span>' + v + '</span></div>';
-    const side = (n, x) => x ? n + ' ' + cents(x.ask) + ' · ' + pct(x.p) + ' · EV ' + (x.ev >= 0 ? '+' : '−') + Math.abs(Math.round(x.ev * 100)) + '¢' : n + ' —';
+    const side = (n, x) => x ? cents(x.ask) + ' · ' + pct(x.p) + ' · win +$' + fmt(x.win * stake) + ' · EV ' + (x.ev >= 0 ? '+$' : '−$') + fmt(Math.abs(x.ev * stake)) : '—';
     $('snapRows').innerHTML =
       row('Gap to beat', sgn(s.cl - s.open)) +
       row('Coinbase lead', (s.lead >= 0 ? '▲ $' : '▼ $') + fmt(Math.abs(s.lead))) +
@@ -423,9 +436,9 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     const v = $('verdict');
     if (left < 3000) v.textContent = 'Window closing';
     else if (!m.openExact) { const nx = m.dur * 1000 - (now % (m.dur * 1000)); v.innerHTML = 'Opened mid-window, so the exact price to beat is unknown. <b>Win chance and EV start next window</b> (' + Math.floor(nx / 60000) + ':' + String(Math.floor(nx / 1000) % 60).padStart(2, '0') + ').'; }
-    else if (bestUp || bestDn) { const s = bestUp ? su : sd; v.innerHTML = 'Numbers favor <b>' + (bestUp ? 'Up' : 'Down') + '</b> by ' + Math.round(s.ev * 100) + '¢ per $1 · before fees'; }
+    else if (bestUp || bestDn) { const s = bestUp ? su : sd; v.innerHTML = 'Numbers favor <b>' + (bestUp ? 'Up' : 'Down') + '</b> · EV +$' + fmt(s.ev * stake) + ' on $' + fmt(stake, 0) + ' · before fees'; }
     else if (su && sd) v.textContent = 'No edge right now · both sides priced fair or worse';
-    else v.textContent = 'Per $1 staked, buying at the current ask, before fees';
+    else v.textContent = 'Buying at the current ask, before fees';
 
     renderSnap(m);
     const st = (k, name) => '<span class="' + (F.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
