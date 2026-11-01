@@ -1,0 +1,39 @@
+name: Polymarket reader (read-only)
+
+# Runs when polymarket-reader/run.txt changes, or manually from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - polymarket-reader/run.txt
+
+permissions:
+  contents: write   # only to commit the encrypted out.enc back
+
+concurrency:
+  group: polymarket-reader
+  cancel-in-progress: false
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install cryptography
+      - name: Read account (encrypted output, nothing logged)
+        env:
+          PM_KEY_ID: ${{ secrets.PM_KEY_ID }}
+          PM_SECRET: ${{ secrets.PM_SECRET }}
+        run: python polymarket-reader/read_portfolio.py
+      - name: Commit encrypted result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add polymarket-reader/out.enc
+          git commit -m "polymarket-reader: encrypted result [skip ci]" || echo "no change"
+          git pull --rebase origin main
+          git push
