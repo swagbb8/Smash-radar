@@ -37,6 +37,12 @@ a.mk:focus-visible,.tabs button:focus-visible{outline:2px solid var(--clock);out
 .clock{display:grid;gap:6px}
 .clock .t{font-size:56px;font-weight:600;line-height:1;color:var(--clock);letter-spacing:-.02em}
 .clock .t small{font-size:26px;color:var(--dim)}
+.clock .top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.live{text-align:right;min-width:0}
+.live .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.live .v{font-size:24px;font-weight:600;line-height:1.1;transition:color .25s}
+.live .v.tu{color:var(--up)} .live .v.td{color:var(--down)}
+.live .d{font-size:11px;color:var(--dim)}
 .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;position:relative}
 .bar i{display:block;height:100%;background:var(--clock);width:0}
 .bar b{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);opacity:.5}
@@ -97,7 +103,10 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   </div>
 
   <section class="clock">
-    <div class="t num" id="clock">–:––<small>.–</small></div>
+    <div class="top">
+      <div class="t num" id="clock">–:––<small>.–</small></div>
+      <div class="live"><div class="k">Polymarket BTC</div><div class="v num" id="pmBtc">—</div><div class="d num" id="pmChg">live · settles on this</div></div>
+    </div>
     <div class="bar"><i id="bar"></i><b id="m130"></b><b id="m100"></b></div>
   </section>
 
@@ -134,12 +143,12 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
 
   <section class="prices">
     <div class="p"><div class="k">To beat</div><div class="v num" id="open">—</div><div class="d" id="openNote">Chainlink at open</div></div>
-    <div class="p"><div class="k">Chainlink</div><div class="v num" id="cl">—</div><div class="d num" id="clAge">settles on this</div></div>
+    <div class="p"><div class="k">Polymarket</div><div class="v num" id="cl">—</div><div class="d num" id="clAge">settles on this</div></div>
     <div class="p"><div class="k">Coinbase</div><div class="v num" id="cb">—</div><div class="d num" id="lead">lead —</div></div>
   </section>
 
   <canvas id="chart" aria-label="Chainlink and Coinbase price this window against price to beat"></canvas>
-  <div class="legend"><span><b style="background:var(--fg)"></b>Chainlink</span><span><b style="background:var(--mkt)"></b>Coinbase (shifted)</span><span><b style="background:var(--clock)"></b>To beat</span></div>
+  <div class="legend"><span><b style="background:var(--fg)"></b>Polymarket (Chainlink)</span><span><b style="background:var(--mkt)"></b>Coinbase (shifted)</span><span><b style="background:var(--clock)"></b>To beat</span></div>
 
   <div class="status" id="status"></div>
 
@@ -352,6 +361,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   $('tab5').onclick = () => setTab(5); $('tab15').onclick = () => setTab(15);
   setTab(active);
 
+  let pmLastV = null, pmLastT = 0;
   function frame() {
     const now = Date.now(), sig = sigma();
     for (const k of [5, 15]) {
@@ -386,6 +396,13 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     $('cl').textContent = last ? fmt(last.v) : '—';
     $('clAge').textContent = last ? ((now - last.t) / 1000).toFixed(1) + 's ago' : 'settles on this';
     $('cb').textContent = F.cb != null ? fmt(F.cb) : '—';
+    if (last) {
+      const pv = $('pmBtc');
+      if (last.t !== pmLastT) { pv.className = 'v num ' + (pmLastV == null || last.v === pmLastV ? '' : last.v > pmLastV ? 'tu' : 'td'); pmLastV = last.v; pmLastT = last.t; }
+      pv.textContent = '$' + fmt(last.v);
+      const ago = F.cl.find(p => p.t >= last.t - 60000);
+      $('pmChg').textContent = ago ? '1m ' + sgn(last.v - ago.v) : 'live';
+    }
 
     const lean = $('lean');
     if (!mo) { lean.className = 'lean'; $('leanBig').textContent = '—'; $('leanSub').textContent = m.openExact ? 'Waiting for prices' : 'Waiting for the next window to lock the price to beat'; }
@@ -412,7 +429,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
 
     renderSnap(m);
     const st = (k, name) => '<span class="' + (F.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
-    $('status').innerHTML = st('cl', 'Chainlink') + st('cb', 'Coinbase') + st('mkt', 'Order book');
+    $('status').innerHTML = st('cl', 'Polymarket BTC') + st('cb', 'Coinbase') + st('mkt', 'Order book');
     if (mo) draw(m);
     requestAnimationFrame(frame);
   }
