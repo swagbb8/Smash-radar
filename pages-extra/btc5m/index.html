@@ -320,7 +320,51 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
 
   // order book: best ask (what you'd pay), best bid, and $ you can buy within 2¢ of best ask
   const readBook = E.readBook;
+  // ---- live order books (pushed by Polymarket, hundreds of updates a second) ----
+  const OB = {};            // asset id -> { bids: Map(price->size), asks: Map, dirty }
+  let obWs = null, obAssets = '', obLastMsg = 0;
+  function obSync() {
+    const ids = [M[5].upTok, M[5].dnTok, M[15].upTok, M[15].dnTok].filter(Boolean);
+    const key = ids.join(',');
+    if (key === obAssets && obWs && obWs.readyState < 2) return;
+    obAssets = key;
+    if (obWs) { obWs.onclose = null; try { obWs.close(); } catch (e) {} obWs = null; }
+    if (!ids.length) return;
+    const ws = new WebSocket('wss://ws-subscriptions-clob.polymarket.com/ws/market'); obWs = ws;
+    ws.onopen = () => { ws.send(JSON.stringify({ assets_ids: ids, type: 'market' })); ws._ping = setInterval(() => ws.readyState === 1 && ws.send('PING'), 10000); };
+    ws.onmessage = (e) => {
+      if (typeof e.data !== 'string' || (e.data[0] !== '{' && e.data[0] !== '[')) return;
+      let d; try { d = JSON.parse(e.data); } catch { return; }
+      obLastMsg = Date.now(); F.conn.mkt = true;
+      for (const x of (Array.isArray(d) ? d : [d])) {
+        if (x.event_type === 'book') {
+          OB[x.asset_id] = { bids: new Map((x.bids || []).map(l => [+l.price, +l.size])), asks: new Map((x.asks || []).map(l => [+l.price, +l.size])), dirty: true };
+        } else if (x.event_type === 'price_change') {
+          for (const pc of x.price_changes || []) {
+            const b = OB[pc.asset_id]; if (!b) continue;
+            const side = pc.side === 'BUY' ? b.bids : b.asks, px = +pc.price, sz = +pc.size;
+            if (sz > 0) side.set(px, sz); else side.delete(px);
+            b.dirty = true;
+          }
+        }
+      }
+    };
+    ws.onclose = () => { clearInterval(ws._ping); if (obWs === ws) { obWs = null; obAssets = ''; } };
+    ws.onerror = () => ws.close();
+  }
+  const obJson = (b) => ({ bids: [...b.bids].map(([price, size]) => ({ price, size })), asks: [...b.asks].map(([price, size]) => ({ price, size })) });
+  function obApply() {
+    for (const k of [5, 15]) {
+      const m = M[k];
+      for (const [side, tok] of [['up', m.upTok], ['dn', m.dnTok]]) {
+        const b = tok && OB[tok];
+        if (b && b.dirty) { m.book[side] = readBook(obJson(b)); b.dirty = false; }
+      }
+    }
+  }
+
   async function pollBooks() {
+    if (Date.now() - obLastMsg < 3000) { setTimeout(pollBooks, 1000); return; }   // stream is live: no polling needed
     const jobs = [];
     for (const k of [5, 15]) {   // both markets: the engine scans both
       const m = M[k];
@@ -733,12 +777,13 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     else v.textContent = 'Buying at the current ask, before fees';
 
     renderSnap(m);
+    obSync(); obApply();
     renderSignal(now); updatePaper(now);
     if (now - perfTick > 1000) { perfTick = now; renderPerf(); }
     for (const k of [5, 15]) { const mk = M[k]; checkEdge(mk, (mk.T + mk.dur) * 1000 - now); }
     trackBet(now);
     const st = (k, name) => '<span class="' + (F.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
-    $('status').innerHTML = st('cl', 'Polymarket BTC') + st('cb', 'Coinbase') + st('mkt', 'Order book');
+    $('status').innerHTML = st('cl', 'Polymarket BTC') + st('cb', 'Coinbase') + st('mkt', Date.now() - obLastMsg < 3000 ? 'Order book (live stream)' : 'Order book (polling)');
     draw(m);
     requestAnimationFrame(frame);
   }
