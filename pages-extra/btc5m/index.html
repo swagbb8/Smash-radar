@@ -17,6 +17,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{background:var(--bg);color:var(--fg)}
 body{margin:0;font-family:var(--display);-webkit-font-smoothing:antialiased;
   padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
@@ -149,14 +150,18 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
 
   <section class="sig" id="sig" aria-live="polite">
     <div class="top"><div class="lbl">Signal engine · scanning 5m + 15m</div><span class="badge" id="sigBadge">Unvalidated</span></div>
+    <div class="tabs" role="tablist" aria-label="Engine mode">
+      <button role="tab" id="modeStd" aria-selected="true">Standard<span class="mini">steady edges</span></button>
+      <button role="tab" id="modeLs" aria-selected="false">Longshot<span class="mini">1–10¢ flips</span></button>
+    </div>
     <div class="call none" id="sigCall">NO SETUP</div>
     <div class="grid" id="sigGrid" hidden>
       <div><div class="k">Entry price</div><div class="v" id="gEntry">—</div></div>
       <div><div class="k">Model win chance</div><div class="v" id="gP">—</div></div>
       <div><div class="k">Take profit (sell at)</div><div class="v u" id="gTp">—</div></div>
       <div><div class="k">Stop loss (exit at)</div><div class="v dn" id="gSl">—</div></div>
-      <div><div class="k">At take profit</div><div class="v u" id="gPlTp">—</div></div>
-      <div><div class="k">At stop</div><div class="v dn" id="gPlSl">—</div></div>
+      <div><div class="k" id="kPlTp">At take profit</div><div class="v u" id="gPlTp">—</div></div>
+      <div><div class="k" id="kPlSl">At stop</div><div class="v dn" id="gPlSl">—</div></div>
     </div>
     <div class="why" id="sigWhy">Waiting for data.</div>
     <div class="more" id="sigMore"></div>
@@ -375,7 +380,9 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
 
   // ---- model (shared with backtest + paper trading via engine.js) ----
   const ctxNow = (now) => ({ now, cl: F.cl, cb: F.cb, cbT: F.cbT, basis: F.basis });
-  const cfg = () => ({ stake, minEdge: num('cEdge', 8) / 100, minEv: num('cEv', 10) / 100 });
+  let mode = 'standard';
+  try { if (localStorage.getItem('btcRadarMode') === 'longshot') mode = 'longshot'; } catch (e) {}
+  const cfg = () => ({ stake, mode, minEdge: num('cEdge', 8) / 100, minEv: num('cEv', 10) / 100 });
   function sideMath(p, book) {
     if (!book || book.ask == null) return null;
     const a = book.ask;
@@ -537,19 +544,24 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     box.classList.toggle('on', !!best); $('sigGrid').hidden = !best;
     if (best) {
       const nm = best.side === 'up' ? 'UP' : 'DOWN';
-      call.textContent = 'SETUP · ' + best.market + ' ' + nm; call.className = 'call ' + best.side;
+      call.textContent = (best.mode === 'longshot' ? 'LONGSHOT · ' : 'SETUP · ') + best.market + ' ' + nm; call.className = 'call ' + best.side;
       $('gEntry').textContent = '≤ ' + cents(best.ask);
       $('gP').textContent = pct(best.p) + ' (est.)';
-      $('gTp').textContent = cents(best.tp); $('gSl').textContent = cents(best.sl);
-      $('gPlTp').textContent = '+$' + fmt(best.plTp); $('gPlSl').textContent = '−$' + fmt(-best.plSl);
+      const ls = best.mode === 'longshot';
+      $('gTp').textContent = cents(best.tp) + (ls ? ' or hold' : '');
+      $('gSl').textContent = ls ? 'none' : cents(best.sl);
+      $('kPlTp').textContent = ls ? 'If it hits (hold)' : 'At take profit';
+      $('kPlSl').textContent = ls ? 'If it misses' : 'At stop';
+      $('gPlTp').textContent = '+$' + fmt(ls ? best.plWin : best.plTp); $('gPlSl').textContent = '−$' + fmt(-best.plSl);
       const l = Math.round(best.left);
-      $('sigWhy').textContent = 'Entry: now, while ' + nm + ' costs ' + cents(best.ask) + ' or less. Edge ' + Math.round(best.edge * 100) + ' pts · hold-to-end EV +$' + fmt(best.evHold) +
+      if (ls) $('sigWhy').textContent = 'Longshot: ' + nm + ' at ' + cents(best.ask) + ' or less. Model rates it ' + best.ratio.toFixed(1) + 'x its price (est. ' + pct(best.p) + ', unvalidated). Sell at ' + cents(best.tp) + ' to double, or hold for +$' + fmt(best.plWin) + '. Most longshots lose the full stake. ' + Math.floor(Math.round(best.left) / 60) + ':' + String(Math.round(best.left) % 60).padStart(2, '0') + ' left · before fees';
+      else $('sigWhy').textContent = 'Entry: now, while ' + nm + ' costs ' + cents(best.ask) + ' or less. Edge ' + Math.round(best.edge * 100) + ' pts · hold-to-end EV +$' + fmt(best.evHold) +
         ' on $' + fmt(stake, 0) + ' · ' + Math.floor(l / 60) + ':' + String(l % 60).padStart(2, '0') + ' left · spread ' + cents(best.spread) + ' · book ' + (best.imbalance >= 0 ? '+' : '') + Math.round(best.imbalance * 100) + '% · before fees';
       $('sigMore').innerHTML = q.slice(1, 4).map(c => '<div>Also: ' + c.market + ' ' + (c.side === 'up' ? 'Up' : 'Down') + ' at ' + cents(c.ask) + ' · edge ' + Math.round(c.edge * 100) + ' pts</div>').join('');
-      const key = best.slug + best.side;
-      if (!seenSetup[key]) { seenSetup[key] = 1; fire('SETUP ' + best.market + ' ' + nm + ' ≤ ' + cents(best.ask) + ' · TP ' + cents(best.tp) + ' · stop ' + cents(best.sl) + ' · est. ' + pct(best.p)); }
+      const key = mode + best.slug + best.side;
+      if (!seenSetup[key]) { seenSetup[key] = 1; fire((ls ? 'LONGSHOT ' : 'SETUP ') + best.market + ' ' + nm + ' ≤ ' + cents(best.ask) + ' · TP ' + cents(best.tp) + (ls ? ' · hold pays +$' + fmt(best.plWin) : ' · stop ' + cents(best.sl)) + ' · est. ' + pct(best.p)); }
     } else {
-      call.textContent = 'NO SETUP'; call.className = 'call none';
+      call.textContent = mode === 'longshot' ? 'NO LONGSHOT' : 'NO SETUP'; call.className = 'call none';
       const near = all.filter(c => c.edge != null).sort((a, b) => b.score - a.score)[0];
       $('sigWhy').textContent = near ? 'Closest: ' + near.market + ' ' + (near.side === 'up' ? 'Up' : 'Down') + ' at ' + cents(near.ask) + ' — blocked by ' + near.fails.slice(0, 2).join(', ') + '.'
         : (all.some(c => c.fails[0] === 'price to beat not locked') ? 'Waiting for a new window to lock the price to beat.' : 'Waiting for data.');
@@ -564,8 +576,8 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   try { paper = JSON.parse(localStorage.getItem('btcRadarPaper') || '[]'); } catch (e) {}
   const savePaper = () => { try { localStorage.setItem('btcRadarPaper', JSON.stringify(paper.slice(-300))); } catch (e) {} };
   function openPaper(m, c, now) {
-    if (paper.some(t => t.slug === m.slug)) return;
-    paper.push({ slug: m.slug, key: m.key, end: (m.T + m.dur) * 1000, side: c.side, ask: c.ask, p: c.p, edge: c.edge, tp: c.tp, sl: c.sl, stake, at: now, status: 'open' });
+    if (paper.some(t => t.slug === m.slug && (t.mode || 'standard') === mode)) return;
+    paper.push({ mode, slug: m.slug, key: m.key, end: (m.T + m.dur) * 1000, side: c.side, ask: c.ask, p: c.p, edge: c.edge, tp: c.tp, sl: c.sl, stake, at: now, status: 'open' });
     savePaper();
   }
   function updatePaper(now) {
@@ -577,7 +589,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
         const bk = t.side === 'up' ? m.book.up : m.book.dn;
         if (bk && bk.bid != null) {
           if (bk.bid >= t.tp) { t.status = 'closed'; t.exit = 'take profit'; t.exitPx = t.tp; changed = true; }
-          else if (bk.bid <= t.sl) { t.status = 'closed'; t.exit = 'stop'; t.exitPx = bk.bid; changed = true; }
+          else if (t.sl != null && bk.bid <= t.sl) { t.status = 'closed'; t.exit = 'stop'; t.exitPx = bk.bid; changed = true; }
         }
       } else if (now >= t.end && !t.checking && (!t.lastCheck || now - t.lastCheck > 20000)) {
         t.checking = true; t.lastCheck = now;
@@ -594,7 +606,8 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     if (changed) savePaper();
   }
   function renderPerf() {
-    const done = paper.filter(t => t.status === 'closed' && t.pnl != null);
+    const mine = paper.filter(t => (t.mode || 'standard') === mode);
+    const done = mine.filter(t => t.status === 'closed' && t.pnl != null);
     const st = E.stats(done, stake);
     const scale = (t) => t.pnl * (stake / t.stake);
     const tot = done.reduce((a, t) => a + scale(t), 0);
@@ -602,8 +615,8 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     $('ppN').textContent = st.n + (st.n ? ' (' + st.wins + 'W ' + st.losses + 'L)' : '');
     $('ppPl').textContent = st.n ? sgn(tot) : '—';
     $('ppAvg').textContent = st.n ? sgn(tot / st.n) : '—';
-    $('ppOpen').textContent = String(paper.filter(t => t.status === 'open').length);
-    const list = paper.filter(t => t.status !== 'void').slice(-6).reverse();
+    $('ppOpen').textContent = String(mine.filter(t => t.status === 'open').length);
+    const list = mine.filter(t => t.status !== 'void').slice(-6).reverse();
     $('tlist').innerHTML = list.map(t => '<div><span>' + t.key + ' ' + (t.side === 'up' ? 'Up' : 'Dn') + ' @' + cents(t.ask) + '</span><span>' +
       (t.status === 'open' ? 'open' : t.exit + ' ' + sgn(scale(t))) + '</span></div>').join('');
   }
@@ -639,9 +652,17 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     badge.textContent = validated ? 'Backtest +' + Math.round(s.avgPct * 100) + '%/trade' : 'Unvalidated';
     badge.className = 'badge' + (validated ? ' ok' : '');
   }
+  function setMode(md) {
+    mode = md; try { localStorage.setItem('btcRadarMode', md); } catch (e) {}
+    $('modeStd').setAttribute('aria-selected', md === 'standard'); $('modeLs').setAttribute('aria-selected', md === 'longshot');
+    $('cEdge').disabled = $('cEv').disabled = md === 'longshot';
+    runBacktest(); renderPerf();
+  }
+  $('modeStd').onclick = () => setMode('standard'); $('modeLs').onclick = () => setMode('longshot');
   $('btRun').onclick = () => { $('btWin').textContent = 'Loading…'; loadData(); };
   ['cEdge', 'cEv'].forEach(id => $(id).addEventListener('change', () => { try { localStorage.setItem('btcRadar_' + id, $(id).value); } catch (e) {} runBacktest(); }));
   ['cEdge', 'cEv'].forEach(id => { try { const v = localStorage.getItem('btcRadar_' + id); if (v) $(id).value = v; } catch (e) {} });
+  setMode(mode);
   loadData(); setInterval(loadData, 10 * 60 * 1000);
 
   let perfTick = 0;

@@ -26,6 +26,14 @@
     needMomentum: true,
     tpShare: 0.8,       // take profit at 80% of the way from entry to estimated fair price
     riskReward: 1,      // stop distance = take-profit distance * riskReward
+    mode: 'standard',   // 'standard' | 'longshot'
+    // Longshot mode: cheap sides (≤ lsMaxAsk) the model rates well above their price,
+    // with the price moving toward them. No stop: the most you can lose is the stake.
+    lsMaxAsk: 0.10,
+    lsMinRatio: 1.8,    // model win chance must be at least 1.8x the price
+    lsMinP: 0.03,
+    lsMinLeft: 10,
+    lsMaxLeft: { 300: 180, 900: 360 },
   };
 
   // ---- math ----
@@ -114,9 +122,24 @@
       c.imbalance = bd + ad > 0 ? (bd - ad) / (bd + ad) : 0;
       c.momentum = mom * dir;          // + means moving toward this side
       c.lead = mo.lead * dir;
+      const sh = cfg.stake / bk.ask; c.shares = sh; c.evHold = cfg.stake * c.ev; c.mode = cfg.mode;
+      if (cfg.mode === 'longshot') {
+        c.ratio = p / bk.ask;
+        c.tp = clamp(r2(Math.max(bk.ask * 2, bk.ask + 0.05)), r2(bk.ask + 0.01), 0.99); c.sl = null;
+        c.plTp = sh * (c.tp - bk.ask); c.plSl = -cfg.stake; c.plWin = sh * (1 - bk.ask);
+        if (bk.ask > cfg.lsMaxAsk + 1e-9) c.fails.push('not cheap (' + Math.round(bk.ask * 100) + '¢)');
+        if (p < cfg.lsMinP) c.fails.push('chance under ' + Math.round(cfg.lsMinP * 100) + '%');
+        if (c.ratio < cfg.lsMinRatio) c.fails.push('odds only ' + c.ratio.toFixed(1) + 'x price');
+        if (c.room < cfg.stake) c.fails.push('thin book');
+        if (left < cfg.lsMinLeft) c.fails.push('too late');
+        if (left > (cfg.lsMaxLeft[m.dur] || 180)) c.fails.push('too early');
+        if (!(c.momentum > 0 || c.lead > 0)) c.fails.push('no move toward it');
+        c.score = c.ratio * 10 + clamp(c.momentum, -10, 10) * 0.3 + clamp(c.lead, -10, 10) * 0.3;
+        c.qualified = c.fails.length === 0;
+        continue;
+      }
       const lv = E.levels(bk.ask, p, cfg); c.tp = lv.tp; c.sl = lv.sl;
-      const sh = cfg.stake / bk.ask; c.shares = sh;
-      c.plTp = sh * (c.tp - bk.ask); c.plSl = sh * (c.sl - bk.ask); c.evHold = cfg.stake * c.ev;
+      c.plTp = sh * (c.tp - bk.ask); c.plSl = sh * (c.sl - bk.ask);
       if (c.edge < cfg.minEdge) c.fails.push('edge ' + Math.round(c.edge * 100) + ' pts < ' + Math.round(cfg.minEdge * 100));
       if (c.ev < cfg.minEv) c.fails.push('EV ' + Math.round(c.ev * 100) + '% < ' + Math.round(cfg.minEv * 100) + '%');
       if (c.spread > cfg.maxSpread + 1e-9) c.fails.push('spread ' + Math.round(c.spread * 100) + '¢');
@@ -139,7 +162,7 @@
     for (const s of path) {
       if (s.bid == null) continue;
       if (s.bid >= entry.tp) return { exit: 'take profit', px: entry.tp, t: s.t };
-      if (s.bid <= entry.sl) return { exit: 'stop', px: s.bid, t: s.t };
+      if (entry.sl != null && s.bid <= entry.sl) return { exit: 'stop', px: s.bid, t: s.t };
     }
     if (!outcome) return null;
     const won = (outcome === 'up') === (entry.side === 'up');
