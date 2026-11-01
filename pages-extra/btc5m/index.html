@@ -90,10 +90,24 @@ canvas{width:100%;height:110px;display:block;background:var(--panel);border-radi
 .status{font-size:11px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
 .status .ok{color:var(--up)} .status .bad{color:var(--down)}
 footer{font-size:11px;line-height:1.5;color:var(--dim)}
+.panel{background:var(--panel);border-radius:14px;padding:12px 14px;display:grid;gap:8px}
+.panel .hd{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;color:var(--dim)}
+.f input,.f select{font:600 14px var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:76px}
+.f select{width:auto;font-family:var(--display)}
+.f input:focus-visible,.f select:focus-visible,.btn:focus-visible{outline:2px solid var(--clock);outline-offset:1px}
+.btn{all:unset;cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;background:var(--line);color:var(--fg)}
+.btn.on{background:var(--clock);color:#1a1300}
+.pos-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.pos-grid div{background:var(--bg);border-radius:8px;padding:8px;min-width:0}
+.pos-grid .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.pos-grid .v{font:600 14px var(--mono);margin-top:3px}
+.banner{position:fixed;left:0;right:0;top:0;z-index:20;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));background:var(--clock);color:#1a1300;font-weight:800;font-size:15px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)}
 @media (prefers-reduced-motion:reduce){.snap.flash{animation:none;border-color:var(--clock)}}
 </style>
 </head>
 <body>
+<div class="banner" id="banner" role="alert" hidden></div>
 <main>
   <header>
     <div><h1>BTC <span id="tfName">5m</span> Radar</h1><div class="win" id="win">Loading window…</div></div>
@@ -142,6 +156,33 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     </div>
   </section>
   <div class="verdict" id="verdict">Buying at the current ask, before fees</div>
+
+  <section class="panel" id="alertsP">
+    <div class="hd"><div class="lbl">Edge alert</div><button class="btn" id="alertBtn" type="button">Turn on alerts</button></div>
+    <div class="f">
+      <label for="aEv">Ping when EV on stake ≥ $</label><input id="aEv" type="number" inputmode="decimal" step="0.25" min="0" value="1">
+      <label for="aWin">with ≤</label><input id="aWin" type="number" inputmode="numeric" step="5" min="5" value="120"><span>sec left</span>
+    </div>
+  </section>
+
+  <section class="panel" id="betP">
+    <div class="hd"><div class="lbl">My bet</div><button class="btn" id="betBtn" type="button">Track bet</button></div>
+    <div class="f" id="betForm">
+      <select id="bSide" aria-label="Side"><option value="up">Up</option><option value="dn">Down</option></select>
+      <label for="bPx">at ¢</label><input id="bPx" type="number" inputmode="numeric" min="1" max="99" step="1" placeholder="55">
+      <label for="bAmt">$</label><input id="bAmt" type="number" inputmode="decimal" min="1" step="1" value="10">
+    </div>
+    <div class="f">
+      <label for="tp">Take profit +$</label><input id="tp" type="number" inputmode="decimal" step="0.5" min="0" value="4">
+      <label for="sl">Stop −$</label><input id="sl" type="number" inputmode="decimal" step="0.5" min="0" value="5">
+    </div>
+    <div class="pos-grid" id="posGrid" hidden>
+      <div><div class="k">Cash out now</div><div class="v" id="pCash">—</div></div>
+      <div><div class="k">P/L now</div><div class="v" id="pPL">—</div></div>
+      <div><div class="k">Hold worth ~</div><div class="v" id="pHold">—</div></div>
+    </div>
+    <div class="verdict" id="pNote">Enter the side, the price you got, and the amount after you bet.</div>
+  </section>
 
   <section class="snap" id="snap">
     <div class="lbl" id="snapTitle">1:30 and 1:00 snapshot</div>
@@ -375,6 +416,85 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   setTab(active);
 
   let pmLastV = null, pmLastT = 0;
+
+  // ---- alerts (only on the viewer's own rules) ----
+  let audioCtx = null, alertsOn = false, bannerTimer = null;
+  const num = (id, d) => { const v = parseFloat($(id).value); return isFinite(v) ? v : d; };
+  function beep(times = 3) {
+    if (!audioCtx) return;
+    for (let i = 0; i < times; i++) {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime + i * 0.22;
+      o.frequency.value = 1180; o.type = 'square'; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g).connect(audioCtx.destination); o.start(t); o.stop(t + 0.18);
+    }
+  }
+  function fire(msg) {
+    const b = $('banner'); b.textContent = msg; b.hidden = false;
+    clearTimeout(bannerTimer); bannerTimer = setTimeout(() => { b.hidden = true; }, 6000);
+    if (alertsOn) beep();
+    try { if (window.Notification && Notification.permission === 'granted' && document.visibilityState !== 'visible') new Notification('BTC Radar', { body: msg }); } catch (e) {}
+  }
+  $('banner').onclick = () => { $('banner').hidden = true; };
+  $('alertBtn').onclick = () => {
+    alertsOn = !alertsOn;
+    if (alertsOn) {
+      try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+      try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
+      beep(1);
+    }
+    $('alertBtn').classList.toggle('on', alertsOn); $('alertBtn').textContent = alertsOn ? 'Alerts on' : 'Turn on alerts';
+  };
+  const fired = {};   // key -> true, reset per window
+  function checkEdge(m, left) {
+    if (!alertsOn || left / 1000 > num('aWin', 120) || left < 2000) return;
+    const need = num('aEv', 1);
+    for (const [k, nm] of [['su', 'Up'], ['sd', 'Down']]) {
+      const x = m[k]; if (!x || x.ev == null) continue;
+      const key = m.slug + k;
+      if (x.ev * stake >= need && !fired[key]) { fired[key] = 1; fire(m.key + ' ' + nm + ': EV +$' + fmt(x.ev * stake) + ' on $' + fmt(stake, 0) + ' at ' + cents(x.ask) + ' (your alert)'); }
+    }
+  }
+
+  // ---- my bet tracker ----
+  let bet = null;
+  try { bet = JSON.parse(localStorage.getItem('btcRadarBet') || 'null'); } catch (e) {}
+  function saveBet() { try { localStorage.setItem('btcRadarBet', JSON.stringify(bet)); } catch (e) {} }
+  function showBetUi() {
+    const on = !!bet;
+    $('betBtn').textContent = on ? 'Clear bet' : 'Track bet'; $('betBtn').classList.toggle('on', on);
+    $('posGrid').hidden = !on;
+    ['bSide', 'bPx', 'bAmt'].forEach(id => $(id).disabled = on);
+    if (on) { $('bSide').value = bet.side; $('bPx').value = Math.round(bet.px * 100); $('bAmt').value = bet.amt; }
+  }
+  $('betBtn').onclick = () => {
+    if (bet) { bet = null; saveBet(); showBetUi(); $('pNote').textContent = 'Enter the side, the price you got, and the amount after you bet.'; return; }
+    const px = num('bPx', NaN) / 100, amt = num('bAmt', NaN);
+    if (!(px > 0 && px < 1) || !(amt > 0)) { $('pNote').textContent = 'Fill in the price you got (1–99¢) and the amount.'; return; }
+    const m = M[active];
+    bet = { side: $('bSide').value, px, amt, slug: m.slug, tf: active, end: (m.T + m.dur) * 1000, tpHit: false, slHit: false };
+    saveBet(); showBetUi();
+  };
+  showBetUi();
+  function trackBet(now) {
+    if (!bet) return;
+    const m = M[bet.tf];
+    const shares = bet.amt / bet.px;
+    if (now >= bet.end || m.slug !== bet.slug) { $('pNote').textContent = 'That window has closed. Check the result in Polymarket, then clear this bet.'; $('pCash').textContent = $('pPL').textContent = $('pHold').textContent = '—'; return; }
+    const book = bet.side === 'up' ? m.book.up : m.book.dn;
+    const p = m.model ? (bet.side === 'up' ? m.model.pUp : 1 - m.model.pUp) : null;
+    const cash = book && book.bid != null ? shares * book.bid : null;
+    const pl = cash != null ? cash - bet.amt : null;
+    const hold = p != null ? shares * p : null;
+    $('pCash').textContent = cash != null ? '$' + fmt(cash) : '—';
+    const plEl = $('pPL'); plEl.textContent = pl != null ? (pl >= 0 ? '+$' : '−$') + fmt(Math.abs(pl)) : '—'; plEl.className = 'v ' + (pl == null ? '' : pl >= 0 ? 'u' : 'dn');
+    $('pHold').textContent = hold != null ? '$' + fmt(hold) : '—';
+    $('pNote').textContent = (bet.side === 'up' ? 'Up' : 'Down') + ' · ' + fmt(shares, 1) + ' shares at ' + cents(bet.px) + ' · pays $' + fmt(shares) + ' if right' + (hold != null && cash != null ? ' · hold ' + (hold >= cash ? '>' : '<') + ' cash out by $' + fmt(Math.abs(hold - cash)) : '');
+    if (pl != null) {
+      const tp = num('tp', 0), sl = num('sl', 0);
+      if (tp > 0 && pl >= tp && !bet.tpHit) { bet.tpHit = true; saveBet(); fire('Take profit hit: cash out now = $' + fmt(cash) + ' (+$' + fmt(pl) + ') · your rule'); }
+      if (sl > 0 && pl <= -sl && !bet.slHit) { bet.slHit = true; saveBet(); fire('Stop hit: cash out now = $' + fmt(cash) + ' (−$' + fmt(-pl) + ') · your rule'); }
+    }
+  }
   function frame() {
     const now = Date.now(), sig = sigma();
     for (const k of [5, 15]) {
@@ -441,9 +561,11 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     else v.textContent = 'Buying at the current ask, before fees';
 
     renderSnap(m);
+    for (const k of [5, 15]) { const mk = M[k]; checkEdge(mk, (mk.T + mk.dur) * 1000 - now); }
+    trackBet(now);
     const st = (k, name) => '<span class="' + (F.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
     $('status').innerHTML = st('cl', 'Polymarket BTC') + st('cb', 'Coinbase') + st('mkt', 'Order book');
-    if (mo) draw(m);
+    draw(m);
     requestAnimationFrame(frame);
   }
 
