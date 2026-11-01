@@ -1,0 +1,10 @@
+{
+  "name": "btc-radar-recorder",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "https-proxy-agent": "7.0.5",
+    "undici": "6.21.0",
+    "ws": "8.18.0"
+  }
+}

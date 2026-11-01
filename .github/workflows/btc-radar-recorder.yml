@@ -1,0 +1,48 @@
+name: BTC Radar recorder
+
+# Records every BTC 5m / 15m Polymarket window (prices, order books, results) to the
+# btc-radar-data branch so the BTC Radar page can backtest its signal engine.
+# Each run lasts ~5h50m; hourly triggers queue behind it so coverage stays continuous.
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['btc-radar/**', '.github/workflows/btc-radar-recorder.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btc-radar-recorder
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: btc-radar
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        working-directory: btc-radar
+        run: npm install --no-audit --no-fund ws@8.18.0
+      - name: Restore saved data
+        run: |
+          mkdir -p btc-data
+          if git fetch -q --depth 1 origin btc-radar-data 2>/dev/null; then git --work-tree=btc-data checkout FETCH_HEAD -- . ; fi
+          ls btc-data
+      - name: Record
+        working-directory: btc-radar
+        env:
+          DATA_DIR: ${{ github.workspace }}/btc-data
+          RUN_SECONDS: '20700'
+          PUSH: '1'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: node recorder.mjs

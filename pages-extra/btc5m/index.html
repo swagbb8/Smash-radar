@@ -102,6 +102,26 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
 .pos-grid div{background:var(--bg);border-radius:8px;padding:8px;min-width:0}
 .pos-grid .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 .pos-grid .v{font:600 14px var(--mono);margin-top:3px}
+.sig{background:var(--panel);border-radius:16px;padding:14px 16px;display:grid;gap:10px;border:2px solid var(--line)}
+.sig.on{border-color:var(--clock)}
+.sig .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sig .badge{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--line);color:var(--dim)}
+.sig .badge.ok{background:rgba(39,201,138,.18);color:var(--up)}
+.sig .call{font-size:34px;font-weight:800;line-height:1}
+.sig .call.up{color:var(--up)} .sig .call.dn{color:var(--down)} .sig .call.none{color:var(--dim);font-size:28px}
+.sig .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sig .grid div{background:var(--bg);border-radius:8px;padding:8px;min-width:0}
+.sig .grid .k{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.sig .grid .v{font:600 15px var(--mono);margin-top:3px}
+.sig .why{font-size:12px;color:var(--dim);line-height:1.45}
+.sig .more{font-size:12px;color:var(--dim);display:grid;gap:4px}
+.perf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.perf .col{background:var(--bg);border-radius:10px;padding:10px;display:grid;gap:4px;min-width:0}
+.perf .col h3{margin:0;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.perf .big{font:600 20px var(--mono)}
+.perf .kv span:last-child{font-size:12px}
+.tlist{display:grid;gap:4px;font-size:12px;font-family:var(--mono)}
+.tlist div{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:4px}
 .banner{position:fixed;left:0;right:0;top:0;z-index:20;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));background:var(--clock);color:#1a1300;font-weight:800;font-size:15px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)}
 @media (prefers-reduced-motion:reduce){.snap.flash{animation:none;border-color:var(--clock)}}
 </style>
@@ -125,6 +145,21 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
       <div class="live"><div class="k">Polymarket BTC</div><div class="v num" id="pmBtc">—</div><div class="d num" id="pmChg">live · settles on this</div></div>
     </div>
     <div class="bar"><i id="bar"></i><b id="m130"></b><b id="m100"></b></div>
+  </section>
+
+  <section class="sig" id="sig" aria-live="polite">
+    <div class="top"><div class="lbl">Signal engine · scanning 5m + 15m</div><span class="badge" id="sigBadge">Unvalidated</span></div>
+    <div class="call none" id="sigCall">NO SETUP</div>
+    <div class="grid" id="sigGrid" hidden>
+      <div><div class="k">Entry price</div><div class="v" id="gEntry">—</div></div>
+      <div><div class="k">Model win chance</div><div class="v" id="gP">—</div></div>
+      <div><div class="k">Take profit (sell at)</div><div class="v u" id="gTp">—</div></div>
+      <div><div class="k">Stop loss (exit at)</div><div class="v dn" id="gSl">—</div></div>
+      <div><div class="k">At take profit</div><div class="v u" id="gPlTp">—</div></div>
+      <div><div class="k">At stop</div><div class="v dn" id="gPlSl">—</div></div>
+    </div>
+    <div class="why" id="sigWhy">Waiting for data.</div>
+    <div class="more" id="sigMore"></div>
   </section>
 
   <section class="lean" id="lean">
@@ -158,9 +193,9 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   <div class="verdict" id="verdict">Buying at the current ask, before fees</div>
 
   <section class="panel" id="alertsP">
-    <div class="hd"><div class="lbl">Edge alert</div><button class="btn" id="alertBtn" type="button">Turn on alerts</button></div>
+    <div class="hd"><div class="lbl">Alerts · setups + edge</div><button class="btn" id="alertBtn" type="button">Turn on alerts</button></div>
     <div class="f">
-      <label for="aEv">Ping when EV on stake ≥ $</label><input id="aEv" type="number" inputmode="decimal" step="0.25" min="0" value="1">
+      <label for="aEv">Also ping when EV on stake ≥ $</label><input id="aEv" type="number" inputmode="decimal" step="0.25" min="0" value="1">
       <label for="aWin">with ≤</label><input id="aWin" type="number" inputmode="numeric" step="5" min="5" value="120"><span>sec left</span>
     </div>
   </section>
@@ -184,6 +219,29 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     <div class="verdict" id="pNote">Enter the side, the price you got, and the amount after you bet.</div>
   </section>
 
+  <section class="panel" id="perfP">
+    <div class="hd"><div class="lbl">Does it work? · track record</div><button class="btn" id="btRun" type="button">Re-run backtest</button></div>
+    <div class="f">
+      <label for="cEdge">Min edge pts</label><input id="cEdge" type="number" inputmode="numeric" step="1" min="1" value="8">
+      <label for="cEv">Min EV %</label><input id="cEv" type="number" inputmode="numeric" step="1" min="0" value="10">
+    </div>
+    <div class="perf">
+      <div class="col"><h3>Backtest</h3><div class="big" id="btWin">—</div>
+        <div class="kv"><span>Trades</span><span id="btN">—</span></div>
+        <div class="kv"><span>P/L on stake</span><span id="btPl">—</span></div>
+        <div class="kv"><span>Avg per trade</span><span id="btAvg">—</span></div>
+        <div class="kv"><span>Hold-only P/L</span><span id="btHold">—</span></div></div>
+      <div class="col"><h3>Paper (live)</h3><div class="big" id="ppWin">—</div>
+        <div class="kv"><span>Trades</span><span id="ppN">—</span></div>
+        <div class="kv"><span>P/L on stake</span><span id="ppPl">—</span></div>
+        <div class="kv"><span>Avg per trade</span><span id="ppAvg">—</span></div>
+        <div class="kv"><span>Open now</span><span id="ppOpen">—</span></div></div>
+    </div>
+    <div class="verdict" id="calibTxt">Model vs market accuracy: waiting for recorded data.</div>
+    <div class="tlist" id="tlist"></div>
+    <div class="verdict" id="btNote">Backtest uses windows recorded around the clock by the repo's recorder. Paper trades log on this phone while the page is open.</div>
+  </section>
+
   <section class="snap" id="snap">
     <div class="lbl" id="snapTitle">1:30 and 1:00 snapshot</div>
     <div class="rows" id="snapRows"><div><span>Freezes the numbers when the clock hits 1:30 and 1:00.</span><span></span></div></div>
@@ -205,8 +263,10 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   </footer>
 </main>
 
+<script src="engine.js"></script>
 <script>
 (() => {
+  const E = window.RadarEngine;
   const $ = (id) => document.getElementById(id);
   const fmt = (v, d = 2) => v == null || !isFinite(v) ? '—' : v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
   const sgn = (v, d = 2) => (v >= 0 ? '+$' : '−$') + fmt(Math.abs(v), d);
@@ -254,17 +314,10 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   }
 
   // order book: best ask (what you'd pay), best bid, and $ you can buy within 2¢ of best ask
-  function readBook(b) {
-    const asks = (b.asks || []).map(x => ({ p: +x.price, s: +x.size })).sort((a, z) => a.p - z.p);
-    const bids = (b.bids || []).map(x => ({ p: +x.price, s: +x.size })).sort((a, z) => z.p - a.p);
-    if (!asks.length) return { ask: null, bid: bids[0] ? bids[0].p : null, room: 0 };
-    const best = asks[0].p; let room = 0;
-    for (const a of asks) { if (a.p > best + 0.0201) break; room += a.p * a.s; }
-    return { ask: best, bid: bids[0] ? bids[0].p : null, room };
-  }
+  const readBook = E.readBook;
   async function pollBooks() {
     const jobs = [];
-    for (const k of [active, active === 5 ? 15 : 5]) {   // active tab first
+    for (const k of [5, 15]) {   // both markets: the engine scans both
       const m = M[k];
       if (!m.upTok) continue;
       jobs.push(Promise.all([m.upTok, m.dnTok].map(t => fetch('https://clob.polymarket.com/book?token_id=' + t).then(r => r.json())))
@@ -320,31 +373,9 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     ws.onerror = () => ws.close();
   }
 
-  // ---- model ----
-  function erf(x) { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
-    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
-  const Phi = (z) => 0.5 * (1 + erf(z / Math.SQRT2));
-
-  function sigma() {
-    const pts = F.cl.slice(-240); let sum = 0, n = 0;
-    for (let i = 1; i < pts.length; i++) { const dt = (pts[i].t - pts[i - 1].t) / 1000; if (dt > 0 && dt <= 3) { const r = (pts[i].v - pts[i - 1].v) / Math.sqrt(dt); sum += r * r; n++; } }
-    return n > 10 ? Math.sqrt(sum / n) : 8;
-  }
-  function model(m, nowMs, sig) {
-    if (m.open == null || !m.openExact || !F.cl.length) return null;
-    const last = F.cl[F.cl.length - 1];
-    const lead = (F.cb != null && F.basis != null && nowMs - F.cbT < 5000) ? (F.cb - last.v) - F.basis : 0;
-    const level = last.v + lead;
-    const end = (m.T + m.dur) * 1000, left = Math.max(0, (end - nowMs) / 1000);
-    const known = F.cl.filter(p => p.t >= end - 60000 && p.t <= nowMs);
-    const unknownSec = Math.min(60, left), knownSec = 60 - unknownSec;
-    const knownAvg = known.length ? known.reduce((a, p) => a + p.v, 0) / known.length : level;
-    const proj = (knownAvg * knownSec + level * unknownSec) / 60;
-    const varr = left >= 60 ? sig * sig * ((left - 60) + 20) : sig * sig * Math.pow(left, 3) / 10800;
-    const sd = Math.sqrt(Math.max(varr, 1e-6));
-    const pUp = left === 0 ? (proj >= m.open ? 1 : 0) : Phi((proj - m.open) / sd);
-    return { pUp, proj, lead, left, last };
-  }
+  // ---- model (shared with backtest + paper trading via engine.js) ----
+  const ctxNow = (now) => ({ now, cl: F.cl, cb: F.cb, cbT: F.cbT, basis: F.basis });
+  const cfg = () => ({ stake, minEdge: num('cEdge', 8) / 100, minEv: num('cEv', 10) / 100 });
   function sideMath(p, book) {
     if (!book || book.ask == null) return null;
     const a = book.ask;
@@ -495,12 +526,132 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
       if (sl > 0 && pl <= -sl && !bet.slHit) { bet.slHit = true; saveBet(); fire('Stop hit: cash out now = $' + fmt(cash) + ' (−$' + fmt(-pl) + ') · your rule'); }
     }
   }
+  // ---- signal engine: rank qualified setups across both markets ----
+  const seenSetup = {};
+  function renderSignal(now) {
+    const all = [];
+    for (const k of [5, 15]) if (M[k].eval) all.push(...M[k].eval.cands);
+    const q = all.filter(c => c.qualified).sort((a, b) => b.score - a.score);
+    const best = q[0];
+    const box = $('sig'), call = $('sigCall');
+    box.classList.toggle('on', !!best); $('sigGrid').hidden = !best;
+    if (best) {
+      const nm = best.side === 'up' ? 'UP' : 'DOWN';
+      call.textContent = 'SETUP · ' + best.market + ' ' + nm; call.className = 'call ' + best.side;
+      $('gEntry').textContent = '≤ ' + cents(best.ask);
+      $('gP').textContent = pct(best.p) + ' (est.)';
+      $('gTp').textContent = cents(best.tp); $('gSl').textContent = cents(best.sl);
+      $('gPlTp').textContent = '+$' + fmt(best.plTp); $('gPlSl').textContent = '−$' + fmt(-best.plSl);
+      const l = Math.round(best.left);
+      $('sigWhy').textContent = 'Entry: now, while ' + nm + ' costs ' + cents(best.ask) + ' or less. Edge ' + Math.round(best.edge * 100) + ' pts · hold-to-end EV +$' + fmt(best.evHold) +
+        ' on $' + fmt(stake, 0) + ' · ' + Math.floor(l / 60) + ':' + String(l % 60).padStart(2, '0') + ' left · spread ' + cents(best.spread) + ' · book ' + (best.imbalance >= 0 ? '+' : '') + Math.round(best.imbalance * 100) + '% · before fees';
+      $('sigMore').innerHTML = q.slice(1, 4).map(c => '<div>Also: ' + c.market + ' ' + (c.side === 'up' ? 'Up' : 'Down') + ' at ' + cents(c.ask) + ' · edge ' + Math.round(c.edge * 100) + ' pts</div>').join('');
+      const key = best.slug + best.side;
+      if (!seenSetup[key]) { seenSetup[key] = 1; fire('SETUP ' + best.market + ' ' + nm + ' ≤ ' + cents(best.ask) + ' · TP ' + cents(best.tp) + ' · stop ' + cents(best.sl) + ' · est. ' + pct(best.p)); }
+    } else {
+      call.textContent = 'NO SETUP'; call.className = 'call none';
+      const near = all.filter(c => c.edge != null).sort((a, b) => b.score - a.score)[0];
+      $('sigWhy').textContent = near ? 'Closest: ' + near.market + ' ' + (near.side === 'up' ? 'Up' : 'Down') + ' at ' + cents(near.ask) + ' — blocked by ' + near.fails.slice(0, 2).join(', ') + '.'
+        : (all.some(c => c.fails[0] === 'price to beat not locked') ? 'Waiting for a new window to lock the price to beat.' : 'Waiting for data.');
+      $('sigMore').innerHTML = '';
+    }
+    // every qualified setup opens a paper trade (one per market window)
+    for (const k of [5, 15]) { const b = M[k].eval && M[k].eval.best; if (b) openPaper(M[k], b, now); }
+  }
+
+  // ---- paper trading (this device) ----
+  let paper = [];
+  try { paper = JSON.parse(localStorage.getItem('btcRadarPaper') || '[]'); } catch (e) {}
+  const savePaper = () => { try { localStorage.setItem('btcRadarPaper', JSON.stringify(paper.slice(-300))); } catch (e) {} };
+  function openPaper(m, c, now) {
+    if (paper.some(t => t.slug === m.slug)) return;
+    paper.push({ slug: m.slug, key: m.key, end: (m.T + m.dur) * 1000, side: c.side, ask: c.ask, p: c.p, edge: c.edge, tp: c.tp, sl: c.sl, stake, at: now, status: 'open' });
+    savePaper();
+  }
+  function updatePaper(now) {
+    let changed = false;
+    for (const t of paper) {
+      if (t.status !== 'open') continue;
+      const m = Object.values(M).find(x => x.slug === t.slug);
+      if (m && now < t.end) {
+        const bk = t.side === 'up' ? m.book.up : m.book.dn;
+        if (bk && bk.bid != null) {
+          if (bk.bid >= t.tp) { t.status = 'closed'; t.exit = 'take profit'; t.exitPx = t.tp; changed = true; }
+          else if (bk.bid <= t.sl) { t.status = 'closed'; t.exit = 'stop'; t.exitPx = bk.bid; changed = true; }
+        }
+      } else if (now >= t.end && !t.checking && (!t.lastCheck || now - t.lastCheck > 20000)) {
+        t.checking = true; t.lastCheck = now;
+        fetch('https://gamma-api.polymarket.com/events?slug=' + t.slug).then(r => r.json()).then(evs => {
+          const mk = evs[0].markets[0], op = JSON.parse(mk.outcomePrices).map(Number), o = JSON.parse(mk.outcomes);
+          if (mk.umaResolutionStatus === 'resolved' || (op.includes(1) && op.includes(0))) {
+            const outcome = o[op.indexOf(1)] === 'Up' ? 'up' : 'down', won = (outcome === 'up') === (t.side === 'up');
+            t.status = 'closed'; t.exit = won ? 'settled win' : 'settled loss'; t.exitPx = won ? 1 : 0; t.outcome = outcome; savePaper();
+          } else if (now - t.end > 30 * 60 * 1000) { t.status = 'void'; savePaper(); }
+        }).catch(() => {}).finally(() => { t.checking = false; });
+      }
+      if (t.status === 'closed' && t.pnl == null) { t.pnl = t.stake / t.ask * (t.exitPx - t.ask); changed = true; }
+    }
+    if (changed) savePaper();
+  }
+  function renderPerf() {
+    const done = paper.filter(t => t.status === 'closed' && t.pnl != null);
+    const st = E.stats(done, stake);
+    const scale = (t) => t.pnl * (stake / t.stake);
+    const tot = done.reduce((a, t) => a + scale(t), 0);
+    $('ppWin').textContent = st.n ? Math.round(st.winRate * 100) + '% won' : 'No trades yet';
+    $('ppN').textContent = st.n + (st.n ? ' (' + st.wins + 'W ' + st.losses + 'L)' : '');
+    $('ppPl').textContent = st.n ? sgn(tot) : '—';
+    $('ppAvg').textContent = st.n ? sgn(tot / st.n) : '—';
+    $('ppOpen').textContent = String(paper.filter(t => t.status === 'open').length);
+    const list = paper.filter(t => t.status !== 'void').slice(-6).reverse();
+    $('tlist').innerHTML = list.map(t => '<div><span>' + t.key + ' ' + (t.side === 'up' ? 'Up' : 'Dn') + ' @' + cents(t.ask) + '</span><span>' +
+      (t.status === 'open' ? 'open' : t.exit + ' ' + sgn(scale(t))) + '</span></div>').join('');
+  }
+
+  // ---- backtest on recorded windows ----
+  const DATA = 'https://raw.githubusercontent.com/swagbb8/Smash-radar/btc-radar-data/';
+  let windows = null, btRes = null;
+  async function loadData() {
+    try {
+      const idx = await (await fetch(DATA + 'index.json?t=' + Date.now())).json();
+      const days = idx.days.slice(-3);
+      const arrs = await Promise.all(days.map(d => fetch(DATA + d.day + '.json?t=' + Date.now()).then(r => r.json()).catch(() => [])));
+      windows = arrs.flat();
+    } catch (e) { windows = []; }
+    runBacktest();
+  }
+  function runBacktest() {
+    if (!windows) return;
+    btRes = E.backtest(windows, cfg());
+    const s = btRes.stats, c = btRes.calibStats;
+    $('btWin').textContent = s.n ? Math.round(s.winRate * 100) + '% won' : (windows.length ? 'No signals' : 'Collecting');
+    $('btN').textContent = s.n + ' of ' + windows.length + ' windows';
+    $('btPl').textContent = s.n ? sgn(s.total) : '—';
+    $('btAvg').textContent = s.n ? sgn(s.avg) + ' (' + (s.avgPct >= 0 ? '+' : '') + Math.round(s.avgPct * 100) + '%)' : '—';
+    $('btHold').textContent = s.n ? sgn(s.holdTotal) : '—';
+    if (c.n >= 20) {
+      const better = c.model < c.market;
+      $('calibTxt').innerHTML = 'Model vs market accuracy (' + c.n + ' checks): model ' + c.model.toFixed(3) + ', market ' + c.market.toFixed(3) + ' (lower is better). ' +
+        (better ? '<b>Model is beating the market price so far.</b>' : '<b>Model is not beating the market yet</b>, so treat its edge as noise.');
+    } else $('calibTxt').textContent = 'Model vs market accuracy: needs more recorded windows (' + c.n + ' checks so far).';
+    const badge = $('sigBadge');
+    const validated = s.n >= 100 && s.total > 0 && c.n >= 100 && c.model < c.market;
+    badge.textContent = validated ? 'Backtest +' + Math.round(s.avgPct * 100) + '%/trade' : 'Unvalidated';
+    badge.className = 'badge' + (validated ? ' ok' : '');
+  }
+  $('btRun').onclick = () => { $('btWin').textContent = 'Loading…'; loadData(); };
+  ['cEdge', 'cEv'].forEach(id => $(id).addEventListener('change', () => { try { localStorage.setItem('btcRadar_' + id, $(id).value); } catch (e) {} runBacktest(); }));
+  ['cEdge', 'cEv'].forEach(id => { try { const v = localStorage.getItem('btcRadar_' + id); if (v) $(id).value = v; } catch (e) {} });
+  loadData(); setInterval(loadData, 10 * 60 * 1000);
+
+  let perfTick = 0;
   function frame() {
-    const now = Date.now(), sig = sigma();
+    const now = Date.now(), ctx = ctxNow(now);
     for (const k of [5, 15]) {
       const m = M[k], T = Math.floor(now / (m.dur * 1000)) * m.dur;
       if (T !== m.T) rollover(m, T);
-      m.model = model(m, now, sig);
+      m.eval = E.evaluate(m, ctx, cfg());
+      m.model = m.eval.model;
       const mo = m.model;
       const su = sideMath(mo ? mo.pUp : null, m.book.up), sd = sideMath(mo ? 1 - mo.pUp : null, m.book.dn);
       m.su = su; m.sd = sd;
@@ -561,6 +712,8 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     else v.textContent = 'Buying at the current ask, before fees';
 
     renderSnap(m);
+    renderSignal(now); updatePaper(now);
+    if (now - perfTick > 1000) { perfTick = now; renderPerf(); }
     for (const k of [5, 15]) { const mk = M[k]; checkEdge(mk, (mk.T + mk.dur) * 1000 - now); }
     trackBet(now);
     const st = (k, name) => '<span class="' + (F.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
