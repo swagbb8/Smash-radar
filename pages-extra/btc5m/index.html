@@ -9,10 +9,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: one phone screen, top to bottom = clock -> lean -> prices -> odds -> chart. Read it in one glance. */
+/* Layout: one phone screen, top to bottom = tabs -> clock -> lean -> the two sides' math -> prices -> chart. */
 :root{
   --bg:#0e1320; --panel:#151c2e; --line:#26304a; --fg:#e8ecf6; --dim:#8a93ab;
-  --clock:#f2b33d; --up:#27c98a; --down:#ff5a6a; --flat:#8a93ab;
+  --clock:#f2b33d; --up:#27c98a; --down:#ff5a6a; --flat:#8a93ab; --mkt:#5b8cff;
   --display:"Sora",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
   color-scheme:dark;
 }
@@ -22,62 +22,83 @@ body{margin:0;font-family:var(--display);-webkit-font-smoothing:antialiased;
   padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
 main{max-width:460px;margin:0 auto;display:grid;gap:12px}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-header{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px}
 h1{font-size:15px;font-weight:800;letter-spacing:.02em;margin:0}
 h1 span{color:var(--clock)}
 .win{font-size:12px;color:var(--dim)}
 a.mk{color:var(--fg);font-size:12px;text-decoration:none;border:1px solid var(--line);padding:5px 9px;border-radius:999px;white-space:nowrap}
-a.mk:focus-visible{outline:2px solid var(--clock);outline-offset:2px}
+a.mk:focus-visible,.tabs button:focus-visible{outline:2px solid var(--clock);outline-offset:2px}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--panel);padding:4px;border-radius:12px}
+.tabs button{all:unset;cursor:pointer;text-align:center;padding:8px 6px;border-radius:9px;font-size:13px;font-weight:700;color:var(--dim)}
+.tabs button[aria-selected="true"]{background:var(--line);color:var(--fg)}
+.tabs button .mini{display:block;font-family:var(--mono);font-weight:400;font-size:11px;margin-top:2px}
 
 .clock{display:grid;gap:6px}
 .clock .t{font-size:56px;font-weight:600;line-height:1;color:var(--clock);letter-spacing:-.02em}
 .clock .t small{font-size:26px;color:var(--dim)}
-.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;position:relative}
 .bar i{display:block;height:100%;background:var(--clock);width:0}
+.bar b{position:absolute;top:0;bottom:0;width:2px;background:var(--fg);opacity:.5}
 
-.lean{background:var(--panel);border-radius:14px;padding:16px;display:grid;gap:4px;border-left:6px solid var(--flat)}
+.lean{background:var(--panel);border-radius:14px;padding:14px 16px;display:grid;gap:4px;border-left:6px solid var(--flat)}
 .lean.up{border-left-color:var(--up)} .lean.down{border-left-color:var(--down)}
-.lean .lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
-.lean .big{font-size:40px;font-weight:800;line-height:1.05}
+.lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.lean .big{font-size:36px;font-weight:800;line-height:1.05}
 .lean.up .big{color:var(--up)} .lean.down .big{color:var(--down)}
 .lean .sub{font-size:13px;color:var(--dim)}
+
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.side{background:var(--panel);border-radius:14px;padding:12px;display:grid;gap:6px;border:2px solid transparent;min-width:0}
+.side.best{border-color:var(--clock)}
+.side h2{margin:0;font-size:16px;font-weight:800;display:flex;justify-content:space-between;align-items:baseline}
+.side.upS h2{color:var(--up)} .side.dnS h2{color:var(--down)}
+.side h2 .px{font-family:var(--mono);font-size:15px;color:var(--fg)}
+.kv{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--dim)}
+.kv span:last-child{font-family:var(--mono);color:var(--fg);font-variant-numeric:tabular-nums;text-align:right}
+.ev{font-size:13px;font-weight:700;font-family:var(--mono);text-align:center;padding:6px;border-radius:8px;background:var(--line)}
+.ev.pos{background:rgba(39,201,138,.16);color:var(--up)} .ev.neg{color:var(--dim)}
+.verdict{font-size:13px;text-align:center;color:var(--dim)}
+.verdict b{color:var(--clock)}
+
+.snap{background:var(--panel);border-radius:14px;padding:12px 14px;display:grid;gap:6px;border:1px dashed var(--line)}
+.snap.flash{animation:fl 1.2s ease-out 3}
+@keyframes fl{0%{background:var(--clock);color:#1a1300}100%{background:var(--panel)}}
+.snap .rows{display:grid;gap:4px;font-size:12px}
+.snap .rows div{display:flex;justify-content:space-between;gap:8px}
+.snap .rows span:last-child{font-family:var(--mono);text-align:right}
 
 .prices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .p{background:var(--panel);border-radius:10px;padding:10px;min-width:0}
 .p .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
-.p .v{font-size:15px;font-weight:600;margin-top:4px;overflow-wrap:anywhere}
+.p .v{font-size:14px;font-weight:600;margin-top:4px;overflow-wrap:anywhere}
 .p .d{font-size:11px;margin-top:2px;color:var(--dim)}
 .u{color:var(--up)} .dn{color:var(--down)}
 
-.odds{background:var(--panel);border-radius:14px;padding:14px;display:grid;gap:10px}
-.row{display:grid;grid-template-columns:64px 1fr 52px;align-items:center;gap:8px;font-size:12px}
-.row .track{height:14px;background:var(--line);border-radius:7px;overflow:hidden;position:relative}
-.row .fill{position:absolute;inset:0 auto 0 0;background:var(--up);width:50%;transition:width .2s}
-.row .fill.mkt{background:#5b8cff}
-.row .pct{text-align:right;font-size:14px;font-weight:600}
-.edge{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim)}
-.chip{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--line);color:var(--dim)}
-.chip.hot{background:var(--clock);color:#1a1300}
-
-canvas{width:100%;height:120px;display:block;background:var(--panel);border-radius:14px}
-.legend{display:flex;gap:14px;font-size:11px;color:var(--dim)}
+canvas{width:100%;height:110px;display:block;background:var(--panel);border-radius:14px}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--dim);flex-wrap:wrap}
 .legend b{display:inline-block;width:10px;height:3px;vertical-align:middle;margin-right:4px}
 .status{font-size:11px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap}
 .status .ok{color:var(--up)} .status .bad{color:var(--down)}
 footer{font-size:11px;line-height:1.5;color:var(--dim)}
-@media (prefers-reduced-motion:reduce){.row .fill{transition:none}}
+@media (prefers-reduced-motion:reduce){.snap.flash{animation:none;border-color:var(--clock)}}
 </style>
 </head>
 <body>
 <main>
   <header>
-    <div><h1>BTC <span>5m</span> Radar</h1><div class="win" id="win">Loading window…</div></div>
+    <div><h1>BTC <span id="tfName">5m</span> Radar</h1><div class="win" id="win">Loading window…</div></div>
     <a class="mk" id="mk" href="https://polymarket.com" target="_blank" rel="noopener">Open market ↗</a>
   </header>
 
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab5" aria-selected="true">5 min<span class="mini" id="mini5">—</span></button>
+    <button role="tab" id="tab15" aria-selected="false">15 min<span class="mini" id="mini15">—</span></button>
+  </div>
+
   <section class="clock">
     <div class="t num" id="clock">–:––<small>.–</small></div>
-    <div class="bar"><i id="bar"></i></div>
+    <div class="bar"><i id="bar"></i><b id="m130"></b><b id="m100"></b></div>
   </section>
 
   <section class="lean" id="lean">
@@ -86,25 +107,44 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     <div class="sub" id="leanSub">Waiting for prices</div>
   </section>
 
+  <section class="sides">
+    <div class="side upS" id="sUp">
+      <h2>UP <span class="px" id="upPx">—</span></h2>
+      <div class="kv"><span>Win chance</span><span id="upP">—</span></div>
+      <div class="kv"><span>If right</span><span class="u" id="upWin">—</span></div>
+      <div class="kv"><span>If wrong</span><span class="dn">−$1.00</span></div>
+      <div class="kv"><span>Room ≤2¢</span><span id="upDepth">—</span></div>
+      <div class="ev" id="upEv">EV —</div>
+    </div>
+    <div class="side dnS" id="sDn">
+      <h2>DOWN <span class="px" id="dnPx">—</span></h2>
+      <div class="kv"><span>Win chance</span><span id="dnP">—</span></div>
+      <div class="kv"><span>If right</span><span class="u" id="dnWin">—</span></div>
+      <div class="kv"><span>If wrong</span><span class="dn">−$1.00</span></div>
+      <div class="kv"><span>Room ≤2¢</span><span id="dnDepth">—</span></div>
+      <div class="ev" id="dnEv">EV —</div>
+    </div>
+  </section>
+  <div class="verdict" id="verdict">Per $1 staked, buying at the current ask, before fees</div>
+
+  <section class="snap" id="snap">
+    <div class="lbl" id="snapTitle">1:30 and 1:00 snapshot</div>
+    <div class="rows" id="snapRows"><div><span>Freezes the numbers when the clock hits 1:30 and 1:00.</span><span></span></div></div>
+  </section>
+
   <section class="prices">
     <div class="p"><div class="k">To beat</div><div class="v num" id="open">—</div><div class="d" id="openNote">Chainlink at open</div></div>
     <div class="p"><div class="k">Chainlink</div><div class="v num" id="cl">—</div><div class="d num" id="clAge">settles on this</div></div>
     <div class="p"><div class="k">Coinbase</div><div class="v num" id="cb">—</div><div class="d num" id="lead">lead —</div></div>
   </section>
 
-  <section class="odds">
-    <div class="row"><span>Estimate</span><div class="track"><div class="fill" id="fModel"></div></div><span class="pct num" id="pModel">—</span></div>
-    <div class="row"><span>Market</span><div class="track"><div class="fill mkt" id="fMkt"></div></div><span class="pct num" id="pMkt">—</span></div>
-    <div class="edge"><span id="edgeTxt">Chance of Up</span><span class="chip" id="chip">—</span></div>
-  </section>
-
   <canvas id="chart" aria-label="Chainlink and Coinbase price this window against price to beat"></canvas>
-  <div class="legend"><span><b style="background:var(--fg)"></b>Chainlink</span><span><b style="background:#5b8cff"></b>Coinbase (shifted)</span><span><b style="background:var(--clock)"></b>To beat</span></div>
+  <div class="legend"><span><b style="background:var(--fg)"></b>Chainlink</span><span><b style="background:var(--mkt)"></b>Coinbase (shifted)</span><span><b style="background:var(--clock)"></b>To beat</span></div>
 
   <div class="status" id="status"></div>
 
   <footer>
-    Settles on Chainlink's BTC/USD 60-second TWAP at close versus the open. The estimate is a math model using recent volatility, Coinbase's lead and the time left. It's a rough read, not a sure thing, and fast traders close gaps quickly. Polymarket may be restricted where you live.
+    Settles on Chainlink's BTC/USD 60-second TWAP at close versus the open. Win chance is a math model from recent volatility, Coinbase's lead and time left. EV is win chance ÷ price − 1, using the price you'd pay right now (best ask), before any fees. It's an estimate, not a sure thing; fast traders close gaps quickly. Price to beat is exact only if the page was open when the window started. Polymarket may be restricted where you live.
   </footer>
 </main>
 
@@ -113,55 +153,66 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   const $ = (id) => document.getElementById(id);
   const fmt = (v, d = 2) => v == null || !isFinite(v) ? '—' : v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
   const sgn = (v, d = 2) => (v >= 0 ? '+$' : '−$') + fmt(Math.abs(v), d);
+  const cents = (p) => p == null ? '—' : Math.round(p * 100) + '¢';
+  const pct = (p) => p == null ? '—' : Math.round(p * 100) + '%';
 
-  const S = {
-    T: 0,                 // window start (unix s)
-    cl: [],               // chainlink [{t(ms), v}]
-    cb: null, cbT: 0,     // coinbase last price
-    basis: null,          // EMA of (coinbase - chainlink)
-    open: null, openExact: false,
-    up: null, upTok: null, downTok: null, slug: '',
-    conn: { cl: false, cb: false, mkt: false },
-  };
+  // ---- shared price feeds ----
+  const F = { cl: [], cb: null, cbT: 0, basis: null, cbHist: [], conn: { cl: false, cb: false, mkt: false } };
 
-  // ---- window bookkeeping ----
+  // ---- one market per timeframe ----
+  function makeMarket(dur, key) {
+    return { dur, key, T: 0, open: null, openExact: false, upTok: null, dnTok: null, slug: '',
+             book: { up: null, dn: null }, model: null, snap: null, marks: {} };
+  }
+  const M = { 5: makeMarket(300, '5m'), 15: makeMarket(900, '15m') };
+  let active = 5;
+  try { const s = localStorage.getItem('btcRadarTab'); if (s === '15') active = 15; } catch (e) {}
+
   const etFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
-  function setWindow(T) {
-    S.T = T; S.open = null; S.openExact = false; S.up = null; S.upTok = S.downTok = null;
-    S.slug = 'btc-updown-5m-' + T;
-    $('win').textContent = etFmt.format(new Date(T * 1000)) + '–' + etFmt.format(new Date((T + 300) * 1000)) + ' ET';
-    $('mk').href = 'https://polymarket.com/event/' + S.slug;
-    pickOpen();
-    loadMarket(T);
+
+  function rollover(m, T) {
+    m.T = T; m.open = null; m.openExact = false; m.upTok = m.dnTok = null; m.book = { up: null, dn: null };
+    m.slug = 'btc-updown-' + m.key + '-' + T; m.snap = null; m.marks = {};
+    pickOpen(m); loadMarket(m, T);
   }
-  function pickOpen() {
-    const t0 = S.T * 1000;
-    const exact = S.cl.find(p => p.t === t0) || S.cl.find(p => p.t > t0 && p.t - t0 <= 2000);
-    if (exact) { S.open = exact.v; S.openExact = true; return; }
-    if (!S.open) { const first = S.cl.find(p => p.t >= t0); if (first) { S.open = first.v; S.openExact = false; } }
+  function pickOpen(m) {
+    const t0 = m.T * 1000;
+    const exact = F.cl.find(p => p.t === t0) || F.cl.find(p => p.t > t0 && p.t - t0 <= 2000);
+    if (exact) { m.open = exact.v; m.openExact = true; try { localStorage.setItem('open:' + m.slug, String(exact.v)); } catch (e) {} return; }
+    try { const saved = parseFloat(localStorage.getItem('open:' + m.slug)); if (isFinite(saved)) { m.open = saved; m.openExact = true; return; } } catch (e) {}
+    if (!m.open) { const first = F.cl.find(p => p.t >= t0); if (first) { m.open = first.v; m.openExact = false; } }
+  }
+  async function loadMarket(m, T) {
+    try {
+      const r = await fetch('https://gamma-api.polymarket.com/events?slug=' + m.slug);
+      const ev = (await r.json())[0];
+      if (!ev || m.T !== T) return;
+      const mk = ev.markets[0];
+      const outs = JSON.parse(mk.outcomes), toks = JSON.parse(mk.clobTokenIds);
+      m.upTok = toks[outs.indexOf('Up')]; m.dnTok = toks[outs.indexOf('Down')];
+    } catch (e) { setTimeout(() => m.T === T && loadMarket(m, T), 3000); }
   }
 
-  // ---- Polymarket market (token ids + odds) ----
-  async function loadMarket(T) {
-    try {
-      const r = await fetch('https://gamma-api.polymarket.com/events?slug=btc-updown-5m-' + T);
-      const ev = (await r.json())[0];
-      if (!ev || S.T !== T) return;
-      const m = ev.markets[0];
-      const outs = JSON.parse(m.outcomes), toks = JSON.parse(m.clobTokenIds);
-      S.upTok = toks[outs.indexOf('Up')]; S.downTok = toks[outs.indexOf('Down')];
-    } catch (e) { S.conn.mkt = false; setTimeout(() => S.T === T && loadMarket(T), 3000); }
+  // order book: best ask (what you'd pay), best bid, and $ you can buy within 2¢ of best ask
+  function readBook(b) {
+    const asks = (b.asks || []).map(x => ({ p: +x.price, s: +x.size })).sort((a, z) => a.p - z.p);
+    const bids = (b.bids || []).map(x => ({ p: +x.price, s: +x.size })).sort((a, z) => z.p - a.p);
+    if (!asks.length) return { ask: null, bid: bids[0] ? bids[0].p : null, room: 0 };
+    const best = asks[0].p; let room = 0;
+    for (const a of asks) { if (a.p > best + 0.0201) break; room += a.p * a.s; }
+    return { ask: best, bid: bids[0] ? bids[0].p : null, room };
   }
-  async function pollOdds() {
-    if (S.upTok) {
-      try {
-        const [a, b] = await Promise.all([S.upTok, S.downTok].map(t => fetch('https://clob.polymarket.com/midpoint?token_id=' + t).then(r => r.json())));
-        const u = parseFloat(a.mid), d = parseFloat(b.mid);
-        if (isFinite(u) && isFinite(d) && u + d > 0) S.up = u / (u + d);
-        S.conn.mkt = true;
-      } catch (e) { S.conn.mkt = false; }
+  async function pollBooks() {
+    const jobs = [];
+    for (const k of [active, active === 5 ? 15 : 5]) {   // active tab first
+      const m = M[k];
+      if (!m.upTok) continue;
+      jobs.push(Promise.all([m.upTok, m.dnTok].map(t => fetch('https://clob.polymarket.com/book?token_id=' + t).then(r => r.json())))
+        .then(([u, d]) => { m.book.up = readBook(u); m.book.dn = readBook(d); F.conn.mkt = true; })
+        .catch(() => { F.conn.mkt = false; }));
     }
-    setTimeout(pollOdds, 1000);
+    await Promise.all(jobs);
+    setTimeout(pollBooks, 900);
   }
 
   // ---- Chainlink via Polymarket live data ----
@@ -169,7 +220,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     const ws = new WebSocket('wss://ws-live-data.polymarket.com');
     let ping;
     ws.onopen = () => {
-      S.conn.cl = true;
+      F.conn.cl = true;
       ws.send(JSON.stringify({ action: 'subscribe', subscriptions: [{ topic: 'crypto_prices_chainlink', type: '*', filters: '{"symbol":"btc/usd"}' }] }));
       ping = setInterval(() => ws.readyState === 1 && ws.send('PING'), 5000);
     };
@@ -180,33 +231,32 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
       if (Array.isArray(p.data)) p.data.forEach(x => addCL(x.timestamp, x.value));
       else if (p.value != null && p.timestamp) addCL(p.timestamp, p.value);
     };
-    ws.onclose = () => { S.conn.cl = false; clearInterval(ping); setTimeout(connectCL, 1500); };
+    ws.onclose = () => { F.conn.cl = false; clearInterval(ping); setTimeout(connectCL, 1500); };
     ws.onerror = () => ws.close();
   }
   function addCL(t, v) {
     v = +v; if (!isFinite(v)) return;
-    const last = S.cl[S.cl.length - 1];
-    if (last && t <= last.t) { if (t === last.t) last.v = v; else if (!S.cl.some(p => p.t === t)) { S.cl.push({ t, v }); S.cl.sort((a, b) => a.t - b.t); } }
-    else S.cl.push({ t, v });
-    const cut = Date.now() - 15 * 60 * 1000; while (S.cl.length && S.cl[0].t < cut) S.cl.shift();
-    if (!S.openExact) pickOpen();
-    if (S.cb != null) { const diff = S.cb - v; S.basis = S.basis == null ? diff : S.basis + (diff - S.basis) * 0.02; }
+    const last = F.cl[F.cl.length - 1];
+    if (last && t <= last.t) { if (t === last.t) last.v = v; else if (!F.cl.some(p => p.t === t)) { F.cl.push({ t, v }); F.cl.sort((a, b) => a.t - b.t); } }
+    else F.cl.push({ t, v });
+    const cut = Date.now() - 20 * 60 * 1000; while (F.cl.length && F.cl[0].t < cut) F.cl.shift();
+    for (const k in M) if (!M[k].openExact && M[k].T) pickOpen(M[k]);
+    if (F.cb != null && Date.now() - F.cbT < 3000) { const diff = F.cb - v; F.basis = F.basis == null ? diff : F.basis + (diff - F.basis) * 0.02; }
   }
 
   // ---- Coinbase spot ----
-  const cbHist = [];
   function connectCB() {
     const ws = new WebSocket('wss://ws-feed.exchange.coinbase.com');
-    ws.onopen = () => { S.conn.cb = true; ws.send(JSON.stringify({ type: 'subscribe', product_ids: ['BTC-USD'], channels: ['ticker'] })); };
+    ws.onopen = () => { F.conn.cb = true; ws.send(JSON.stringify({ type: 'subscribe', product_ids: ['BTC-USD'], channels: ['ticker'] })); };
     ws.onmessage = (e) => {
       let d; try { d = JSON.parse(e.data); } catch { return; }
       if (d.type === 'ticker' && d.price) {
-        S.cb = +d.price; S.cbT = Date.now();
-        cbHist.push({ t: S.cbT, v: S.cb });
-        const cut = S.cbT - 6 * 60 * 1000; while (cbHist.length && cbHist[0].t < cut) cbHist.shift();
+        F.cb = +d.price; F.cbT = Date.now();
+        F.cbHist.push({ t: F.cbT, v: F.cb });
+        const cut = F.cbT - 16 * 60 * 1000; while (F.cbHist.length && F.cbHist[0].t < cut) F.cbHist.shift();
       }
     };
-    ws.onclose = () => { S.conn.cb = false; setTimeout(connectCB, 1500); };
+    ws.onclose = () => { F.conn.cb = false; setTimeout(connectCB, 1500); };
     ws.onerror = () => ws.close();
   }
 
@@ -215,99 +265,161 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
   const Phi = (z) => 0.5 * (1 + erf(z / Math.SQRT2));
 
-  function model(nowMs) {
-    if (S.open == null || !S.cl.length) return null;
-    const last = S.cl[S.cl.length - 1];
-    const lead = (S.cb != null && S.basis != null && nowMs - S.cbT < 5000) ? (S.cb - last.v) - S.basis : 0;
-    const level = last.v + lead;                         // best guess of where Chainlink is heading
-    // per-second volatility from recent 1s changes
-    const pts = S.cl.slice(-180); let sum = 0, n = 0;
+  function sigma() {
+    const pts = F.cl.slice(-240); let sum = 0, n = 0;
     for (let i = 1; i < pts.length; i++) { const dt = (pts[i].t - pts[i - 1].t) / 1000; if (dt > 0 && dt <= 3) { const r = (pts[i].v - pts[i - 1].v) / Math.sqrt(dt); sum += r * r; n++; } }
-    const sig = n > 10 ? Math.sqrt(sum / n) : 8;
-    const end = (S.T + 300) * 1000, left = Math.max(0, (end - nowMs) / 1000);
-    // projected 60s TWAP at close: known part + unknown part held at `level`
-    const winStart = end - 60000;
-    const known = S.cl.filter(p => p.t >= winStart && p.t <= nowMs);
-    const unknownSec = Math.min(60, left);
-    const knownSec = 60 - unknownSec;
+    return n > 10 ? Math.sqrt(sum / n) : 8;
+  }
+  function model(m, nowMs, sig) {
+    if (m.open == null || !m.openExact || !F.cl.length) return null;
+    const last = F.cl[F.cl.length - 1];
+    const lead = (F.cb != null && F.basis != null && nowMs - F.cbT < 5000) ? (F.cb - last.v) - F.basis : 0;
+    const level = last.v + lead;
+    const end = (m.T + m.dur) * 1000, left = Math.max(0, (end - nowMs) / 1000);
+    const known = F.cl.filter(p => p.t >= end - 60000 && p.t <= nowMs);
+    const unknownSec = Math.min(60, left), knownSec = 60 - unknownSec;
     const knownAvg = known.length ? known.reduce((a, p) => a + p.v, 0) / known.length : level;
     const proj = (knownAvg * knownSec + level * unknownSec) / 60;
-    // spread of the closing average around proj
-    let varr;
-    if (left >= 60) varr = sig * sig * ((left - 60) + 60 / 3);
-    else varr = sig * sig * Math.pow(left, 3) / (3 * 3600);
+    const varr = left >= 60 ? sig * sig * ((left - 60) + 20) : sig * sig * Math.pow(left, 3) / 10800;
     const sd = Math.sqrt(Math.max(varr, 1e-6));
-    const pUp = left === 0 ? (proj >= S.open ? 1 : 0) : Phi((proj - S.open) / sd);
-    return { pUp, proj, lead, level, sig, left, last };
+    const pUp = left === 0 ? (proj >= m.open ? 1 : 0) : Phi((proj - m.open) / sd);
+    return { pUp, proj, lead, left, last };
+  }
+  function sideMath(p, book) {
+    if (!book || book.ask == null) return null;
+    const a = book.ask;
+    return { p, ask: a, win: (1 - a) / a, ev: p == null ? null : p / a - 1, room: book.room };
   }
 
   // ---- render ----
   const cv = $('chart'), cx = cv.getContext('2d');
   function draw(m) {
     const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
-    if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
     cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, w, h);
-    const t0 = S.T * 1000, t1 = t0 + 300000;
-    const cl = S.cl.filter(p => p.t >= t0 - 5000);
-    const shift = S.basis || 0;
-    const cb = cbHist.filter(p => p.t >= t0).map(p => ({ t: p.t, v: p.v - shift }));
-    const vals = cl.map(p => p.v).concat(cb.map(p => p.v)); if (S.open != null) vals.push(S.open);
+    const t0 = m.T * 1000, t1 = t0 + m.dur * 1000;
+    const cl = F.cl.filter(p => p.t >= t0 - 5000);
+    const shift = F.basis || 0;
+    const cb = F.basis == null ? [] : F.cbHist.filter(p => p.t >= t0).map(p => ({ t: p.t, v: p.v - shift }));
+    const vals = cl.map(p => p.v).concat(cb.map(p => p.v)); if (m.open != null) vals.push(m.open);
     if (vals.length < 2) return;
     let lo = Math.min(...vals), hi = Math.max(...vals); const pad = Math.max((hi - lo) * 0.15, 5); lo -= pad; hi += pad;
     const X = t => 8 + (w - 16) * Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
     const Y = v => h - 8 - (h - 16) * (v - lo) / (hi - lo);
     const css = getComputedStyle(document.documentElement);
-    if (S.open != null) { cx.strokeStyle = css.getPropertyValue('--clock'); cx.setLineDash([5, 4]); cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(8, Y(S.open)); cx.lineTo(w - 8, Y(S.open)); cx.stroke(); cx.setLineDash([]); }
+    if (m.open != null) { cx.strokeStyle = css.getPropertyValue('--clock'); cx.setLineDash([5, 4]); cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(8, Y(m.open)); cx.lineTo(w - 8, Y(m.open)); cx.stroke(); cx.setLineDash([]); }
     const line = (arr, col, lw) => { if (arr.length < 2) return; cx.strokeStyle = col; cx.lineWidth = lw; cx.beginPath(); arr.forEach((p, i) => i ? cx.lineTo(X(p.t), Y(p.v)) : cx.moveTo(X(p.t), Y(p.v))); cx.stroke(); };
-    line(cb, 'rgba(91,140,255,.75)', 1.2);
+    line(cb, css.getPropertyValue('--mkt'), 1.2);
     line(cl, css.getPropertyValue('--fg'), 2);
     const lp = cl[cl.length - 1]; if (lp) { cx.fillStyle = css.getPropertyValue('--fg'); cx.beginPath(); cx.arc(X(lp.t), Y(lp.v), 3.5, 0, 7); cx.fill(); }
   }
 
+  function renderSide(prefix, s, best) {
+    const box = $(prefix === 'up' ? 'sUp' : 'sDn');
+    box.classList.toggle('best', best);
+    $(prefix + 'Px').textContent = s ? cents(s.ask) : '—';
+    $(prefix + 'P').textContent = s && s.p != null ? pct(s.p) : '—';
+    $(prefix + 'Win').textContent = s ? '+$' + fmt(s.win) : '—';
+    $(prefix + 'Depth').textContent = s ? '$' + fmt(s.room, 0) : '—';
+    const ev = $(prefix + 'Ev');
+    if (!s || s.ev == null) { ev.textContent = 'EV —'; ev.className = 'ev'; return; }
+    const c = Math.round(s.ev * 100);
+    ev.textContent = 'EV ' + (c >= 0 ? '+' : '−') + Math.abs(c) + '¢ per $1';
+    ev.className = 'ev ' + (c > 0 ? 'pos' : 'neg');
+  }
+
+  function takeSnap(m, label, mo, su, sd) {
+    m.snap = { label, at: new Date(), open: m.open, cl: mo.last.v, lead: mo.lead, su, sd };
+    const snap = $('snap'); if (M[active] === m) { snap.classList.remove('flash'); void snap.offsetWidth; snap.classList.add('flash'); }
+  }
+  function renderSnap(m) {
+    const s = m.snap;
+    if (!s || !s.su || s.su.ev == null) { $('snapTitle').textContent = '1:30 and 1:00 snapshot'; $('snapRows').innerHTML = '<div><span>Freezes the numbers when the clock hits 1:30 and 1:00.</span><span></span></div>'; return; }
+    $('snapTitle').textContent = 'Snapshot at ' + s.label + ' left';
+    const row = (k, v) => '<div><span>' + k + '</span><span>' + v + '</span></div>';
+    const side = (n, x) => x ? n + ' ' + cents(x.ask) + ' · ' + pct(x.p) + ' · EV ' + (x.ev >= 0 ? '+' : '−') + Math.abs(Math.round(x.ev * 100)) + '¢' : n + ' —';
+    $('snapRows').innerHTML =
+      row('Gap to beat', sgn(s.cl - s.open)) +
+      row('Coinbase lead', (s.lead >= 0 ? '▲ $' : '▼ $') + fmt(Math.abs(s.lead))) +
+      row('Up', side('', s.su)) + row('Down', side('', s.sd));
+  }
+
+  function setTab(k) {
+    active = k;
+    $('tab5').setAttribute('aria-selected', k === 5); $('tab15').setAttribute('aria-selected', k === 15);
+    try { localStorage.setItem('btcRadarTab', String(k)); } catch (e) {}
+  }
+  $('tab5').onclick = () => setTab(5); $('tab15').onclick = () => setTab(15);
+  setTab(active);
+
   function frame() {
-    const now = Date.now();
-    const T = Math.floor(now / 300000) * 300;
-    if (T !== S.T) setWindow(T);
-    const left = Math.max(0, (S.T + 300) * 1000 - now);
+    const now = Date.now(), sig = sigma();
+    for (const k of [5, 15]) {
+      const m = M[k], T = Math.floor(now / (m.dur * 1000)) * m.dur;
+      if (T !== m.T) rollover(m, T);
+      m.model = model(m, now, sig);
+      const mo = m.model;
+      const su = sideMath(mo ? mo.pUp : null, m.book.up), sd = sideMath(mo ? 1 - mo.pUp : null, m.book.dn);
+      m.su = su; m.sd = sd;
+      const left = (m.T + m.dur) * 1000 - now;
+      for (const [mark, label] of [[90000, '1:30'], [60000, '1:00']]) {
+        if (left <= mark && left > mark - 3000 && !m.marks[label] && mo) { m.marks[label] = 1; takeSnap(m, label, mo, su, sd); }
+      }
+      const mini = $('mini' + k), l2 = Math.max(0, left);
+      mini.textContent = Math.floor(l2 / 60000) + ':' + String(Math.floor(l2 / 1000) % 60).padStart(2, '0') + (mo ? ' · Up ' + pct(mo.pUp) : '');
+    }
+
+    const m = M[active], mo = m.model;
+    const left = Math.max(0, (m.T + m.dur) * 1000 - now);
+    $('tfName').textContent = m.key;
+    $('win').textContent = etFmt.format(new Date(m.T * 1000)) + '–' + etFmt.format(new Date((m.T + m.dur) * 1000)) + ' ET';
+    $('mk').href = 'https://polymarket.com/event/' + m.slug;
     const mm = Math.floor(left / 60000), ss = Math.floor(left / 1000) % 60, tenth = Math.floor(left / 100) % 10;
     $('clock').innerHTML = mm + ':' + String(ss).padStart(2, '0') + '<small>.' + tenth + '</small>';
-    $('bar').style.width = (100 * (1 - left / 300000)) + '%';
+    $('bar').style.width = (100 * (1 - left / (m.dur * 1000))) + '%';
+    $('m130').style.left = (100 * (1 - 90 / m.dur)) + '%'; $('m100').style.left = (100 * (1 - 60 / m.dur)) + '%';
 
-    const m = model(now);
-    const last = S.cl[S.cl.length - 1];
-    $('open').textContent = S.open != null ? fmt(S.open) : '—';
-    $('openNote').textContent = S.open == null ? 'waiting' : (S.openExact ? 'Chainlink at open' : 'approx (opened mid-window)');
+    const last = F.cl[F.cl.length - 1];
+    $('open').textContent = m.open != null ? fmt(m.open) : '—';
+    $('openNote').textContent = m.openExact ? 'Chainlink at open' : 'next window';
+    if (!m.openExact) $('open').textContent = '—';
     $('cl').textContent = last ? fmt(last.v) : '—';
     $('clAge').textContent = last ? ((now - last.t) / 1000).toFixed(1) + 's ago' : 'settles on this';
-    $('cb').textContent = S.cb != null ? fmt(S.cb) : '—';
+    $('cb').textContent = F.cb != null ? fmt(F.cb) : '—';
 
     const lean = $('lean');
-    if (m && last) {
-      const diff = last.v - S.open;
+    if (!mo) { lean.className = 'lean'; $('leanBig').textContent = '—'; $('leanSub').textContent = m.openExact ? 'Waiting for prices' : 'Waiting for the next window to lock the price to beat'; }
+    if (mo) {
+      const diff = mo.last.v - m.open;
       lean.className = 'lean ' + (diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : '');
       $('leanBig').textContent = (diff >= 0 ? 'UP ' : 'DOWN ') + sgn(diff);
-      $('leanSub').textContent = 'Projected close ' + fmt(m.proj) + ' (' + sgn(m.proj - S.open) + ')';
-      const ld = $('lead'); ld.textContent = 'lead ' + (m.lead >= 0 ? '▲' : '▼') + ' $' + fmt(Math.abs(m.lead));
-      ld.className = 'd num ' + (Math.abs(m.lead) < 2 ? '' : m.lead > 0 ? 'u' : 'dn');
-      const pm = Math.round(m.pUp * 100);
-      $('pModel').textContent = pm + '%'; $('fModel').style.width = pm + '%';
+      $('leanSub').textContent = 'Projected close ' + fmt(mo.proj) + ' (' + sgn(mo.proj - m.open) + ')';
+      const ld = $('lead'); ld.textContent = 'lead ' + (mo.lead >= 0 ? '▲' : '▼') + ' $' + fmt(Math.abs(mo.lead));
+      ld.className = 'd num ' + (Math.abs(mo.lead) < 2 ? '' : mo.lead > 0 ? 'u' : 'dn');
     }
-    if (S.up != null) { const pk = Math.round(S.up * 100); $('pMkt').textContent = pk + '%'; $('fMkt').style.width = pk + '%'; }
-    if (m && S.up != null) {
-      const edge = Math.round((m.pUp - S.up) * 100);
-      $('edgeTxt').textContent = 'Chance of Up · gap ' + (edge >= 0 ? '+' : '') + edge + ' pts';
-      const chip = $('chip');
-      if (Math.abs(edge) >= 10 && left > 3000) { chip.className = 'chip hot'; chip.textContent = edge > 0 ? 'Market lags on Up' : 'Market lags on Down'; }
-      else { chip.className = 'chip'; chip.textContent = 'In line'; }
-    }
-    const st = (k, name) => '<span class="' + (S.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
-    $('status').innerHTML = st('cl', 'Chainlink') + st('cb', 'Coinbase') + st('mkt', 'Odds');
-    draw(m);
+
+    const su = m.su, sd = m.sd;
+    const evOf = (x) => x && x.ev != null ? x.ev : -9;
+    const bestUp = evOf(su) > 0.02 && evOf(su) >= evOf(sd);
+    const bestDn = evOf(sd) > 0.02 && evOf(sd) > evOf(su);
+    renderSide('up', su, !!bestUp); renderSide('dn', sd, !!bestDn);
+    const v = $('verdict');
+    if (left < 3000) v.textContent = 'Window closing';
+    else if (!m.openExact) { const nx = m.dur * 1000 - (now % (m.dur * 1000)); v.innerHTML = 'Opened mid-window, so the exact price to beat is unknown. <b>Win chance and EV start next window</b> (' + Math.floor(nx / 60000) + ':' + String(Math.floor(nx / 1000) % 60).padStart(2, '0') + ').'; }
+    else if (bestUp || bestDn) { const s = bestUp ? su : sd; v.innerHTML = 'Numbers favor <b>' + (bestUp ? 'Up' : 'Down') + '</b> by ' + Math.round(s.ev * 100) + '¢ per $1 · before fees'; }
+    else if (su && sd) v.textContent = 'No edge right now · both sides priced fair or worse';
+    else v.textContent = 'Per $1 staked, buying at the current ask, before fees';
+
+    renderSnap(m);
+    const st = (k, name) => '<span class="' + (F.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
+    $('status').innerHTML = st('cl', 'Chainlink') + st('cb', 'Coinbase') + st('mkt', 'Order book');
+    if (mo) draw(m);
     requestAnimationFrame(frame);
   }
 
-  connectCL(); connectCB(); pollOdds();
-  if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {});
+  connectCL(); connectCB(); pollBooks();
+  let lock = null; const wake = () => navigator.wakeLock && navigator.wakeLock.request('screen').then(l => lock = l).catch(() => {});
+  wake(); document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
   requestAnimationFrame(frame);
 })();
 </script>
