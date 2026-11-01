@@ -9,14 +9,15 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['btc-radar/**', '.github/workflows/btc-radar-recorder.yml']
+    paths: ['btc-radar/**', 'pages-extra/btc5m/engine.js', '.github/workflows/btc-radar-recorder.yml']
 
 permissions:
   contents: write
 
 concurrency:
   group: btc-radar-recorder
-  cancel-in-progress: false
+  # a code push replaces the running recorder right away; hourly runs just queue behind it
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   record:
@@ -25,7 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: btc-radar
+          sparse-checkout: |
+            btc-radar
+            pages-extra/btc5m
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

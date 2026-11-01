@@ -123,6 +123,23 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
 .perf .kv span:last-child{font-size:12px}
 .tlist{display:grid;gap:4px;font-size:12px;font-family:var(--mono)}
 .tlist div{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:4px}
+details.panel>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary::after{content:'＋';color:var(--dim);font-size:14px}
+details.panel[open]>summary::after{content:'－'}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-weight:600;color:var(--dim);text-align:right;padding:4px 4px;font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl td{padding:5px 4px;border-top:1px solid var(--line);text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tbl tr.hl td{color:var(--clock)}
+.tbl .ev{display:block;font-family:var(--display);font-size:11px;color:var(--dim);text-align:left;padding:0;background:none;font-weight:400}
+.scroll{overflow-x:auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--line);color:var(--dim)}
+.chip.block{background:rgba(255,90,106,.18);color:var(--down)} .chip.warn{background:rgba(242,179,61,.18);color:var(--clock)} .chip.good{background:rgba(39,201,138,.16);color:var(--up)}
+.verdict-big{font-size:15px;font-weight:700;line-height:1.35}
+.inv{font-size:12px;line-height:1.45;border-top:1px solid var(--line);padding-top:6px}
+.inv b{font-family:var(--mono)}
 .banner{position:fixed;left:0;right:0;top:0;z-index:20;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));background:var(--clock);color:#1a1300;font-weight:800;font-size:15px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)}
 @media (prefers-reduced-motion:reduce){.snap.flash{animation:none;border-color:var(--clock)}}
 </style>
@@ -154,6 +171,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
       <button role="tab" id="modeStd" aria-selected="true">Standard<span class="mini">steady edges</span></button>
       <button role="tab" id="modeLs" aria-selected="false">Longshot<span class="mini">1–10¢ flips</span></button>
     </div>
+    <div class="chips" id="sigChips"></div>
     <div class="call none" id="sigCall">NO SETUP</div>
     <div class="grid" id="sigGrid" hidden>
       <div><div class="k">Entry price</div><div class="v" id="gEntry">—</div></div>
@@ -247,6 +265,55 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     <div class="verdict" id="btNote">Backtest uses windows recorded around the clock by the repo's recorder. Paper trades log on this phone while the page is open.</div>
   </section>
 
+  <details class="panel" id="engP" open>
+    <summary><span class="lbl">Engines · live, this market</span><span class="chip" id="engModel">model —</span></summary>
+    <div class="scroll"><table class="tbl" id="engTbl"></table></div>
+    <div class="chips" id="anomChips"></div>
+  </details>
+
+  <details class="panel" id="horP">
+    <summary><span class="lbl">BTC forecasts · 10s to 1h</span><span class="chip" id="horQ">—</span></summary>
+    <div class="scroll"><table class="tbl" id="horTbl"></table></div>
+    <div class="verdict">Direction odds for BTC itself (Coinbase/Kraken median), not for any Polymarket contract. Trends are heavily discounted because most short-term moves don't continue. "Live hit" scores this phone's own past forecasts.</div>
+  </details>
+
+  <details class="panel" id="proofP" open>
+    <summary><span class="lbl">Proof · does it beat the market?</span><span class="chip" id="proofChip">—</span></summary>
+    <div class="verdict-big" id="proofVerdict">Loading the latest report…</div>
+    <div class="verdict" id="proofTest"></div>
+    <div class="lbl">Tournament · walk-forward, out-of-sample</div>
+    <div class="scroll"><table class="tbl" id="tourTbl"></table></div>
+    <div class="lbl">Live scoreboard · predictions logged before the result</div>
+    <div class="scroll"><table class="tbl" id="liveTbl"></table></div>
+    <div class="lbl">By regime</div>
+    <div class="scroll"><table class="tbl" id="regTbl"></table></div>
+    <div class="verdict">Brier score: lower is better. Skill = how much better than the market's own price (0% = same, negative = worse). The model only counts as "validated" when it beats the market on 100+ unseen windows with the whole 90% confidence interval on the right side of zero.</div>
+  </details>
+
+  <details class="panel" id="pmP" open>
+    <summary><span class="lbl">Polymarket performance · 24/7 paper, real fills</span><span class="chip" id="pmChip">—</span></summary>
+    <div class="scroll"><table class="tbl" id="pmTbl"></table></div>
+    <canvas id="pmCurve" style="height:70px" aria-label="Paper-trading profit over time"></canvas>
+    <div class="tlist" id="pmRecent"></div>
+    <div class="verdict">Recorded by the GitHub recorder for every setup: buys $10 by walking the real ask book (slippage), pays Polymarket's taker fee, sells into the real bids at take-profit/stop or holds to the official result.</div>
+  </details>
+
+  <details class="panel" id="invP">
+    <summary><span class="lbl">Failure investigations</span><span class="chip" id="invChip">—</span></summary>
+    <div class="chips" id="invCauses"></div>
+    <div id="invList"></div>
+  </details>
+
+  <section class="panel" id="acctP">
+    <div class="hd"><div class="lbl">Paper account · this phone</div><button class="btn" id="acctReset" type="button">Reset to $100</button></div>
+    <div class="pos-grid">
+      <div><div class="k">Balance</div><div class="v" id="acBal">—</div></div>
+      <div><div class="k">Today</div><div class="v" id="acDay">—</div></div>
+      <div><div class="k">Status</div><div class="v" id="acStat">—</div></div>
+    </div>
+    <div class="verdict" id="acRules">Rules: fixed stake (no doubling after losses), max $20 open, stops for the day after −$30, no trades on stale feeds, anomalies, engine disagreement or thin books. Fees included.</div>
+  </section>
+
   <section class="snap" id="snap">
     <div class="lbl" id="snapTitle">1:30 and 1:00 snapshot</div>
     <div class="rows" id="snapRows"><div><span>Freezes the numbers when the clock hits 1:30 and 1:00.</span><span></span></div></div>
@@ -279,7 +346,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   const pct = (p) => p == null ? '—' : Math.round(p * 100) + '%';
 
   // ---- shared price feeds ----
-  const F = { cl: [], cb: null, cbT: 0, basis: null, cbHist: [], conn: { cl: false, cb: false, mkt: false } };
+  const F = { cl: [], cb: null, cbT: 0, basis: null, cbHist: [], ex: {}, exBasis: null, krImb: 0, perp: {}, series: [], conn: { cl: false, cb: false, mkt: false, kr: false, drb: false, hl: false } };
 
   // ---- one market per timeframe ----
   function makeMarket(dur, key) {
@@ -358,7 +425,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
       const m = M[k];
       for (const [side, tok] of [['up', m.upTok], ['dn', m.dnTok]]) {
         const b = tok && OB[tok];
-        if (b && b.dirty) { m.book[side] = readBook(obJson(b)); b.dirty = false; }
+        if (b && b.dirty) { m.book[side] = readBook(obJson(b), stake); b.dirty = false; }
       }
     }
   }
@@ -370,7 +437,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
       const m = M[k];
       if (!m.upTok) continue;
       jobs.push(Promise.all([m.upTok, m.dnTok].map(t => fetch('https://clob.polymarket.com/book?token_id=' + t).then(r => r.json())))
-        .then(([u, d]) => { m.book.up = readBook(u); m.book.dn = readBook(d); F.conn.mkt = true; })
+        .then(([u, d]) => { m.book.up = readBook(u, stake); m.book.dn = readBook(d, stake); F.conn.mkt = true; bookPollT = Date.now(); })
         .catch(() => { F.conn.mkt = false; }));
     }
     await Promise.all(jobs);
@@ -404,6 +471,8 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     const cut = Date.now() - 20 * 60 * 1000; while (F.cl.length && F.cl[0].t < cut) F.cl.shift();
     for (const k in M) if (!M[k].openExact && M[k].T) pickOpen(M[k]);
     if (F.cb != null && Date.now() - F.cbT < 3000) { const diff = F.cb - v; F.basis = F.basis == null ? diff : F.basis + (diff - F.basis) * 0.02; }
+    const xs = Object.values(F.ex).filter(e => Date.now() - e.t < 3000).map(e => e.v).sort((a, b) => a - b);
+    if (xs.length) { const med = xs.length % 2 ? xs[(xs.length - 1) / 2] : (xs[xs.length / 2 - 1] + xs[xs.length / 2]) / 2; const d = med - v; F.exBasis = F.exBasis == null ? d : F.exBasis + (d - F.exBasis) * 0.02; }
   }
 
   // ---- Coinbase spot ----
@@ -414,7 +483,7 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
       let d; try { d = JSON.parse(e.data); } catch { return; }
       if (d.type === 'ticker' && d.price) {
         F.cb = +d.price; F.cbT = Date.now();
-        F.cbHist.push({ t: F.cbT, v: F.cb });
+        F.cbHist.push({ t: F.cbT, v: F.cb }); F.ex.cb = { v: F.cb, t: F.cbT };
         const cut = F.cbT - 16 * 60 * 1000; while (F.cbHist.length && F.cbHist[0].t < cut) F.cbHist.shift();
       }
     };
@@ -422,8 +491,49 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     ws.onerror = () => ws.close();
   }
 
+  // ---- Kraken (price + book pressure), Deribit + Hyperliquid perps ----
+  function connectKraken() {
+    const ws = new WebSocket('wss://ws.kraken.com/v2'); const bids = new Map(), asks = new Map();
+    ws.onopen = () => { F.conn.kr = true; ws.send(JSON.stringify({ method: 'subscribe', params: { channel: 'ticker', symbol: ['BTC/USD'] } })); ws.send(JSON.stringify({ method: 'subscribe', params: { channel: 'book', symbol: ['BTC/USD'], depth: 25 } })); };
+    ws.onmessage = (e) => {
+      let d; try { d = JSON.parse(e.data); } catch { return; }
+      if (d.channel === 'ticker' && d.data && d.data[0]) { const t = d.data[0]; if (t.bid && t.ask) F.ex.kr = { v: (t.bid + t.ask) / 2, t: Date.now() }; }
+      if (d.channel === 'book' && d.data && d.data[0]) {
+        const b = d.data[0]; if (d.type === 'snapshot') { bids.clear(); asks.clear(); }
+        for (const l of b.bids || []) l.qty > 0 ? bids.set(l.price, l.qty) : bids.delete(l.price);
+        for (const l of b.asks || []) l.qty > 0 ? asks.set(l.price, l.qty) : asks.delete(l.price);
+        const bb = [...bids.keys()].sort((x, y) => y - x).slice(0, 10).reduce((a, k) => a + bids.get(k), 0);
+        const aa = [...asks.keys()].sort((x, y) => x - y).slice(0, 10).reduce((a, k) => a + asks.get(k), 0);
+        if (bb + aa > 0) F.krImb = (bb - aa) / (bb + aa);
+        if (bids.size && asks.size) F.ex.kr = { v: (Math.max(...bids.keys()) + Math.min(...asks.keys())) / 2, t: Date.now() };
+      }
+    };
+    ws.onclose = () => { F.conn.kr = false; setTimeout(connectKraken, 2000); }; ws.onerror = () => ws.close();
+  }
+  function connectDeribit() {
+    const ws = new WebSocket('wss://www.deribit.com/ws/api/v2');
+    let hb; ws.onopen = () => { F.conn.drb = true; ws.send(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'public/subscribe', params: { channels: ['ticker.BTC-PERPETUAL.1000ms'] } })); hb = setInterval(() => ws.readyState === 1 && ws.send(JSON.stringify({ jsonrpc: '2.0', id: 9, method: 'public/test' })), 20000); };
+    ws.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch { return; } const x = d.params && d.params.data; if (x && x.index_price) { F.perp.drbPrem = x.mark_price / x.index_price - 1; F.perp.drbFund = x.funding_8h; F.perp.drbT = Date.now(); } };
+    ws.onclose = () => { F.conn.drb = false; clearInterval(hb); setTimeout(connectDeribit, 3000); }; ws.onerror = () => ws.close();
+  }
+  function connectHL() {
+    const ws = new WebSocket('wss://api.hyperliquid.xyz/ws'); let ping;
+    ws.onopen = () => { F.conn.hl = true; ws.send(JSON.stringify({ method: 'subscribe', subscription: { type: 'activeAssetCtx', coin: 'BTC' } })); ping = setInterval(() => ws.readyState === 1 && ws.send(JSON.stringify({ method: 'ping' })), 30000); };
+    ws.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch { return; } const c = d.channel === 'activeAssetCtx' && d.data && d.data.ctx; if (c) { F.perp.hlPrem = +c.premium; F.perp.hlFund = +c.funding; F.perp.hlT = Date.now(); } };
+    ws.onclose = () => { F.conn.hl = false; clearInterval(ping); setTimeout(connectHL, 3000); }; ws.onerror = () => ws.close();
+  }
+  // 1-second composite BTC price (median of fresh exchanges) for the horizon forecasts
+  setInterval(() => {
+    const now = Date.now(), xs = Object.values(F.ex).filter(e => now - e.t < 4000).map(e => e.v).sort((a, b) => a - b);
+    if (!xs.length) return;
+    const v = xs.length % 2 ? xs[(xs.length - 1) / 2] : (xs[xs.length / 2 - 1] + xs[xs.length / 2]) / 2;
+    F.series.push({ t: now, v }); const cut = now - 75 * 60 * 1000; while (F.series.length && F.series[0].t < cut) F.series.shift();
+  }, 1000);
+
   // ---- model (shared with backtest + paper trading via engine.js) ----
-  const ctxNow = (now) => ({ now, cl: F.cl, cb: F.cb, cbT: F.cbT, basis: F.basis });
+  let bookPollT = 0;
+  const perpNow = (now) => ({ drbPrem: now - (F.perp.drbT || 0) < 10000 ? F.perp.drbPrem : null, hlPrem: now - (F.perp.hlT || 0) < 90000 ? F.perp.hlPrem : null });
+  const ctxNow = (now) => ({ now, cl: F.cl, cb: F.cb, cbT: F.cbT, ex: F.ex, exBasis: F.exBasis, krImb: F.krImb, perp: perpNow(now), bookT: Math.max(obLastMsg, bookPollT) || 0 });
   let mode = 'standard';
   try { if (localStorage.getItem('btcRadarMode') === 'longshot') mode = 'longshot'; } catch (e) {}
   const cfg = () => ({ stake, mode, minEdge: num('cEdge', 8) / 100, minEv: num('cEv', 10) / 100 });
@@ -619,8 +729,26 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   let paper = [];
   try { paper = JSON.parse(localStorage.getItem('btcRadarPaper') || '[]'); } catch (e) {}
   const savePaper = () => { try { localStorage.setItem('btcRadarPaper', JSON.stringify(paper.slice(-300))); } catch (e) {} };
+  let acct = { start: 100 };
+  try { acct = JSON.parse(localStorage.getItem('btcRadarAcct') || '{"start":100}'); } catch (e) {}
+  const dayKey = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+  function acctState(now) {
+    const live = paper.filter(t => t.status !== 'void' && (!acct.resetAt || t.at >= acct.resetAt));
+    const closed = live.filter(t => t.status === 'closed' && t.pnl != null);
+    const realized = closed.reduce((a, t) => a + t.pnl, 0);
+    const today = closed.filter(t => dayKey(t.at) === dayKey(now)).reduce((a, t) => a + t.pnl, 0);
+    const openAmt = live.filter(t => t.status === 'open').reduce((a, t) => a + t.stake, 0);
+    const bal = acct.start + realized - openAmt;
+    let stop = null;
+    if (today <= -30) stop = 'Daily loss limit hit (−$30): no new trades until tomorrow';
+    else if (openAmt + stake > 20) stop = 'Max $20 open';
+    else if (bal < stake) stop = 'Balance below stake';
+    return { bal, today, openAmt, stop };
+  }
+  $('acctReset').onclick = () => { acct = { start: 100, resetAt: Date.now() }; try { localStorage.setItem('btcRadarAcct', JSON.stringify(acct)); } catch (e) {} };
   function openPaper(m, c, now) {
     if (paper.some(t => t.slug === m.slug && (t.mode || 'standard') === mode)) return;
+    if (acctState(now).stop) return;
     paper.push({ mode, slug: m.slug, key: m.key, end: (m.T + m.dur) * 1000, side: c.side, ask: c.ask, p: c.p, edge: c.edge, tp: c.tp, sl: c.sl, stake, at: now, status: 'open' });
     savePaper();
   }
@@ -645,7 +773,10 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
           } else if (now - t.end > 30 * 60 * 1000) { t.status = 'void'; savePaper(); }
         }).catch(() => {}).finally(() => { t.checking = false; });
       }
-      if (t.status === 'closed' && t.pnl == null) { t.pnl = t.stake / t.ask * (t.exitPx - t.ask); changed = true; }
+      if (t.status === 'closed' && t.pnl == null) {   // fees: taker fee on entry, and on exit if sold before settlement
+        const sh = t.stake / t.ask, sold = t.exit === 'take profit' || t.exit === 'stop';
+        t.pnl = sh * (t.exitPx - t.ask) - E.fee(sh, t.ask) - (sold ? E.fee(sh, t.exitPx) : 0); changed = true;
+      }
     }
     if (changed) savePaper();
   }
@@ -708,6 +839,102 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
   ['cEdge', 'cEv'].forEach(id => { try { const v = localStorage.getItem('btcRadar_' + id); if (v) $(id).value = v; } catch (e) {} });
   setMode(mode);
   loadData(); setInterval(loadData, 10 * 60 * 1000);
+
+  // ---- engines panel ----
+  function renderEngines(m) {
+    const run = m.eval && m.eval.run;
+    const mdl = E.getModel();
+    $('engModel').textContent = (mdl.validated ? 'model ' : 'default blend · ') + mdl.version;
+    if (!run) { $('engTbl').innerHTML = '<tr><td>' + (m.openExact ? 'Waiting for prices' : 'Waiting for the next window to lock the price to beat') + '</td></tr>'; $('anomChips').innerHTML = ''; return; }
+    const w = (mdl.regimes && mdl.regimes[run.regime.key] && mdl.regimes[run.regime.key].validated) ? mdl.regimes[run.regime.key].w : mdl.w;
+    let h = '<tr><th>Engine</th><th>P(Up)</th><th>Weight</th></tr>';
+    E.ENGINES.forEach((e, i) => { const r = run.engines[e.id]; h += '<tr><td>' + e.name + '<span class="ev">' + r.ev + '</span></td><td>' + (r.p == null ? '—' : pct(r.p)) + '</td><td>' + w[i].toFixed(2) + '</td></tr>'; });
+    h += '<tr class="hl"><td>Ensemble<span class="ev">disagreement ' + Math.round(run.disagree * 100) + ' pts</span></td><td>' + pct(run.pUp) + '</td><td></td></tr>';
+    $('engTbl').innerHTML = h;
+    $('anomChips').innerHTML = run.anomalies.length ? run.anomalies.map(a => '<span class="chip ' + a.level + '">' + a.msg + '</span>').join('') : '<span class="chip good">No anomalies</span>';
+  }
+  // ---- horizon forecasts + live scoring on this phone ----
+  let horLog = []; try { horLog = JSON.parse(localStorage.getItem('btcRadarHor') || '[]'); } catch (e) {}
+  let horLastLog = 0;
+  function renderHorizons(now) {
+    const hs = E.horizons(F.series, now);
+    const fresh = Object.values(F.ex).filter(e => now - e.t < 4000).length;
+    $('horQ').textContent = fresh >= 2 ? 'data good · ' + fresh + ' exchanges' : fresh === 1 ? 'data thin · 1 exchange' : 'no data';
+    $('horQ').className = 'chip ' + (fresh >= 2 ? 'good' : fresh ? 'warn' : 'block');
+    if (!hs) { $('horTbl').innerHTML = '<tr><td>Warming up (needs 30s of prices)</td></tr>'; return; }
+    const last = F.series[F.series.length - 1];
+    if (now - horLastLog > 15000) { horLastLog = now; for (const x of hs) horLog.push({ t: now, h: x.h, p: x.pUp, v: last.v }); }
+    for (const r of horLog) if (r.y == null && now >= r.t + r.h * 1000) { const at = F.series.find(p => p.t >= r.t + r.h * 1000); if (at) r.y = at.v > r.v ? 1 : at.v < r.v ? 0 : 0.5; else if (now - r.t > (r.h + 120) * 1000) r.y = -1; }
+    horLog = horLog.filter(r => r.y !== -1 && now - r.t < 26 * 3600 * 1000).slice(-4000);
+    if (Math.random() < 0.02) { try { localStorage.setItem('btcRadarHor', JSON.stringify(horLog)); } catch (e) {} }
+    const lbl = (h) => h < 60 ? h + 's' : h < 3600 ? (h / 60) + 'm' : (h / 3600) + 'h';
+    let t = '<tr><th>In</th><th>Up</th><th>Flat ±$</th><th>Move</th><th>80% range</th><th>Live hit</th></tr>';
+    for (const x of hs) {
+      const sc = horLog.filter(r => r.h === x.h && r.y != null && r.y !== 0.5);
+      const brier = sc.length ? sc.reduce((a, r) => a + (r.p - r.y) ** 2, 0) / sc.length : null;
+      const hit = sc.length ? sc.filter(r => (r.p >= 0.5) === (r.y === 1)).length / sc.length : null;
+      t += '<tr' + (x.actionable ? ' class="hl"' : '') + '><td>' + lbl(x.h) + '</td><td>' + pct(x.pUp) + '</td><td>' + x.band + ' · ' + pct(x.pRange) + '</td><td>$' + fmt(x.expMove, 0) + '</td><td>' + fmt(x.lo, 0) + '–' + fmt(x.hi, 0) +
+        '</td><td>' + (sc.length >= 10 ? Math.round(hit * 100) + '% (' + sc.length + ', B ' + brier.toFixed(3) + ')' : sc.length + ' scored') + '</td></tr>';
+    }
+    $('horTbl').innerHTML = t;
+  }
+  // ---- proof / performance / investigations (from the recorder's data branch) ----
+  let report = null, perfJ = null, invJ = null;
+  async function loadReports() {
+    const get = (f) => fetch(DATA + f + '?t=' + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null);
+    [report, perfJ, invJ] = await Promise.all([get('report.json'), get('perf.json'), get('inv.json')]);
+    const mdl = await get('model.json');
+    if (mdl && mdl.validated) E.setModel(mdl); else E.setModel(E.DEFAULT_MODEL);
+    renderProof(); renderPm(); renderInv();
+  }
+  const skillS = (v) => v == null ? '—' : (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%';
+  const NAME = Object.fromEntries(E.ENGINES.map(e => [e.id, e.name]).concat([['default', 'Default blend'], ['ensemble', 'Ensemble (global)'], ['adaptive', 'Ensemble (by regime)']]));
+  function renderProof() {
+    const chip = $('proofChip');
+    if (!report) { $('proofVerdict').textContent = 'No report yet. The recorder trains once it has data (first report within the hour).'; chip.textContent = 'no report'; return; }
+    $('proofVerdict').textContent = report.verdict;
+    chip.textContent = report.validated ? 'PROVEN' : 'NOT PROVEN'; chip.className = 'chip ' + (report.validated ? 'good' : 'warn');
+    const wf = report.walkForward || {};
+    if (wf.enough) {
+      const t = wf.test;
+      $('proofTest').textContent = 'Model ' + report.version + ' · ' + report.windows + ' windows recorded · ' + t.testWindows + ' unseen test windows · best ensemble vs market Brier difference ' + t.meanDiff.toFixed(4) + ' (90% CI ' + t.ci90[0].toFixed(4) + ' to ' + t.ci90[1].toFixed(4) + '; below zero = better than market)';
+      let h = '<tr><th>#</th><th>Competitor</th><th>Brier</th><th>Skill</th><th>Hit</th></tr>';
+      wf.tournament.forEach((x, i) => { h += '<tr' + (x.benchmark ? ' class="hl"' : '') + '><td>' + (x.benchmark ? '—' : i) + '</td><td>' + (NAME[x.id] || x.id) + (x.benchmark ? ' (benchmark)' : '') + '</td><td>' + x.brier.toFixed(4) + '</td><td>' + skillS(x.skill) + '</td><td>' + Math.round(x.hit * 100) + '%</td></tr>'; });
+      $('tourTbl').innerHTML = h;
+      let r = '<tr><th>Regime</th><th>Windows</th><th>Ens skill</th><th>Best engine</th></tr>';
+      for (const [k, v] of Object.entries(wf.byRegime || {})) { const best = E.ENGINES.map(e => e.id).filter(id => id !== 'mkt').sort((a, b) => v[a].brier - v[b].brier)[0]; r += '<tr><td>' + k + '</td><td>' + v.windows + '</td><td>' + skillS(v[t.competitor].skill) + '</td><td>' + NAME[best] + ' ' + skillS(v[best].skill) + '</td></tr>'; }
+      $('regTbl').innerHTML = r;
+    } else { $('proofTest').textContent = (report.windows || 0) + ' windows recorded so far.'; $('tourTbl').innerHTML = '<tr><td>Ranks appear after 30+ recorded windows</td></tr>'; $('regTbl').innerHTML = ''; }
+    const live = invJ && invJ.live;
+    if (live && live.length && live[0].n) {
+      let h = '<tr><th>Competitor</th><th>Brier</th><th>Skill</th><th>Hit</th><th>n</th></tr>';
+      for (const x of live) h += '<tr' + (x.id === 'mkt' ? ' class="hl"' : '') + '><td>' + (NAME[x.id] || x.id) + '</td><td>' + (x.brier == null ? '—' : x.brier.toFixed(4)) + '</td><td>' + skillS(x.skill) + '</td><td>' + (x.hit == null ? '—' : Math.round(x.hit * 100) + '%') + '</td><td>' + x.n + '</td></tr>';
+      $('liveTbl').innerHTML = h;
+    } else $('liveTbl').innerHTML = '<tr><td>Fills in as live predictions resolve</td></tr>';
+  }
+  function renderPm() {
+    if (!perfJ) { $('pmTbl').innerHTML = '<tr><td>No ledger yet</td></tr>'; $('pmChip').textContent = '—'; return; }
+    let h = '<tr><th></th><th>Trades</th><th>Won</th><th>P/L</th><th>Fees</th><th>Slip</th></tr>';
+    for (const [k, v] of Object.entries(perfJ.modes)) h += '<tr><td>' + (k === 'standard' ? 'Standard' : 'Longshot') + '</td><td>' + v.trades + (v.open ? ' +' + v.open : '') + '</td><td>' + (v.winRate == null ? '—' : Math.round(v.winRate * 100) + '%') + '</td><td>' + (v.trades ? sgn(v.pnl) : '—') + '</td><td>$' + fmt(v.fees) + '</td><td>' + (v.avgSlippage == null ? '—' : (v.avgSlippage * 100).toFixed(2) + '¢') + '</td></tr>';
+    $('pmTbl').innerHTML = h;
+    const st = perfJ.modes.standard; $('pmChip').textContent = st.trades ? sgn(st.pnl) + ' on $' + perfJ.stake + ' bets' : 'no trades yet';
+    const cur = perfJ.modes[mode] || st, cv = $('pmCurve'), cx2 = cv.getContext('2d'), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, hh = cv.clientHeight;
+    cv.width = w * dpr; cv.height = hh * dpr; cx2.setTransform(dpr, 0, 0, dpr, 0, 0); cx2.clearRect(0, 0, w, hh);
+    const c = [0].concat(cur.curve || []);
+    if (c.length > 1) { const lo = Math.min(0, ...c), hi = Math.max(0, ...c), Y = v => hh - 6 - (hh - 12) * (v - lo) / ((hi - lo) || 1), X = i => 6 + (w - 12) * i / (c.length - 1);
+      const css = getComputedStyle(document.documentElement); cx2.strokeStyle = css.getPropertyValue('--line'); cx2.beginPath(); cx2.moveTo(6, Y(0)); cx2.lineTo(w - 6, Y(0)); cx2.stroke();
+      cx2.strokeStyle = css.getPropertyValue(c[c.length - 1] >= 0 ? '--up' : '--down'); cx2.lineWidth = 2; cx2.beginPath(); c.forEach((v, i) => i ? cx2.lineTo(X(i), Y(v)) : cx2.moveTo(X(i), Y(v))); cx2.stroke(); }
+    $('pmRecent').innerHTML = (cur.recent || []).slice(0, 6).map(t => '<div><span>' + t.key + ' ' + (t.side === 'up' ? 'Up' : 'Dn') + ' fill ' + cents(t.fillAvg) + (t.slippage ? ' (+' + (t.slippage * 100).toFixed(1) + '¢)' : '') + '</span><span>' + (t.status === 'open' ? 'open' : t.exit + ' ' + sgn(t.pnl)) + '</span></div>').join('');
+  }
+  function renderInv() {
+    if (!invJ || !invJ.predictions) { $('invChip').textContent = 'none yet'; $('invCauses').innerHTML = ''; $('invList').innerHTML = '<div class="verdict">Every live prediction that turns out wrong gets investigated here automatically.</div>'; return; }
+    $('invChip').textContent = invJ.wrong + ' wrong of ' + invJ.predictions;
+    $('invCauses').innerHTML = invJ.causes.map(([c, n]) => '<span class="chip warn">' + c + ' ×' + n + '</span>').join('');
+    $('invList').innerHTML = invJ.latest.slice(0, 5).map(r => '<div class="inv"><b>' + r.slug.replace('btc-updown-', '') + '</b> · said Up ' + pct(r.pEns) + ' with ' + r.left + 's left, went <b>' + r.outcome + '</b>' +
+      (r.regimeAt ? ' · regime ' + r.regimeAt + (r.regimeEnd && r.regimeEnd !== r.regimeAt ? ' → ' + r.regimeEnd : '') : '') + '<br>' + r.causes.join(' · ') +
+      (r.betterAlternative ? '<br>Right instead: ' + r.betterAlternative.map(id => NAME[id] || id).join(', ') : '') + '</div>').join('');
+  }
+  loadReports(); setInterval(loadReports, 5 * 60 * 1000);
 
   let perfTick = 0;
   function frame() {
@@ -779,16 +1006,22 @@ footer{font-size:11px;line-height:1.5;color:var(--dim)}
     renderSnap(m);
     obSync(); obApply();
     renderSignal(now); updatePaper(now);
-    if (now - perfTick > 1000) { perfTick = now; renderPerf(); }
+    if (now - perfTick > 500) {
+      perfTick = now; renderPerf(); renderEngines(m); renderHorizons(now);
+      const a = acctState(now); $('acBal').textContent = '$' + fmt(a.bal); const de = $('acDay'); de.textContent = sgn(a.today); de.className = 'v ' + (a.today >= 0 ? 'u' : 'dn');
+      $('acStat').textContent = a.stop ? 'Paused' : 'Active'; $('acStat').className = 'v ' + (a.stop ? 'dn' : 'u'); if (a.stop) $('acRules').textContent = a.stop + '.';
+      const run = m.eval && m.eval.run;
+      $('sigChips').innerHTML = run ? '<span class="chip">Regime: ' + run.regime.key + '</span>' + run.anomalies.filter(x => x.level === 'block').map(x => '<span class="chip block">' + x.msg + '</span>').join('') : '';
+    }
     for (const k of [5, 15]) { const mk = M[k]; checkEdge(mk, (mk.T + mk.dur) * 1000 - now); }
     trackBet(now);
     const st = (k, name) => '<span class="' + (F.conn[k] ? 'ok' : 'bad') + '">● ' + name + '</span>';
-    $('status').innerHTML = st('cl', 'Polymarket BTC') + st('cb', 'Coinbase') + st('mkt', Date.now() - obLastMsg < 3000 ? 'Order book (live stream)' : 'Order book (polling)');
+    $('status').innerHTML = st('cl', 'Polymarket BTC') + st('cb', 'Coinbase') + st('kr', 'Kraken') + st('drb', 'Deribit') + st('hl', 'Hyperliquid') + st('mkt', Date.now() - obLastMsg < 3000 ? 'Order book (live stream)' : 'Order book (polling)');
     draw(m);
     requestAnimationFrame(frame);
   }
 
-  connectCL(); connectCB(); pollBooks();
+  connectCL(); connectCB(); connectKraken(); connectDeribit(); connectHL(); pollBooks();
   let lock = null; const wake = () => navigator.wakeLock && navigator.wakeLock.request('screen').then(l => lock = l).catch(() => {});
   wake(); document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && wake());
   requestAnimationFrame(frame);
