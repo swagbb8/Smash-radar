@@ -1,6 +1,6 @@
 # Monkey's Life — RESUME (read first; no secrets in here)
 
-Last updated: 2026-10-29 16:30 CDT.
+Last updated: 2026-11-02 14:50 CDT.
 
 ## Sources of truth
 - Story: `STORY.md` ("Oct 25 outline" supersedes everything older). Shots: `blender/ep1_*.py` (class docstring = action,

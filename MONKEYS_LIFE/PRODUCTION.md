@@ -111,3 +111,7 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   Clips B06 D11 launched (`ml-clips14` v12, test14/r5).
 - 12:35 Scene 1 v5 cut: 9 shots, 52.7 s. qa FAILED "black 3.0 s": the B07 screen insert, too dark after the film grade.
   inserts.py: brighter screen background, grid and scan lines; re-cutting.
+- 14:45 Clips B06 D11 looked at: APPROVED (B06 tower grows under his hands; D11 he tops the tower, then climbs down to the
+  stool). Scene 1 v6: 11 shots, 62.8 s, qa PASS (phone/scene1_v6.mp4).
+- 14:50 Empty shots (C04, D05: no people) get a set picture as their reference (cast/set_lab.jpg = approved B02 keyframe), via
+  ai_scene.ref_files; C04 staged in STILL_ACT. Keyframes B08 B09 C03 D04 C04 D05 launched (`ml-keys`).

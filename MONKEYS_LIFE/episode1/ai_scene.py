@@ -94,6 +94,8 @@ STILL_ACT = {'C01': 'Medium shot, waist up. Seven sits at the steel table holdin
              'B06': 'Medium shot. Seven sits on a steel stool at the steel table and, with both of his own hands, sets a red '
                     'wooden block on top of a small tower of coloured wooden blocks in front of him. Dr B, the woman, stands '
                     'a step back from the table holding a stopwatch, watching him; her hands are not on the blocks.',
+             'C04': 'Wide shot from behind the steel table, looking across the white room at the heavy steel door; its small '
+                    'square window glows with daylight, far away.',
              'D11': 'Wide shot, full body. A tall tower of coloured wooden blocks stands on the steel table, taller than a '
                     'man. Seven is standing upright on top of the steel stool beside the table, stretching one long arm up '
                     'to set the last block on the very top. Dr B stands back by the wall, staring up at him.'}
@@ -141,6 +143,8 @@ def ref_files(who, s, cast, limit=3):
     if 'seven' in who and not s.get('frame', '').startswith(('Extreme', 'Close')) and len(files) < limit:
         body = 'seven_stool.jpg' if s['place'] == 'lab' and os.path.exists(os.path.join(cast, 'seven_stool.jpg')) else 'seven_body.jpg'
         if os.path.exists(os.path.join(cast, body)): files.insert(1 + [k for k, _ in files].index('seven'), ('seven', body))
+    if not files and os.path.exists(os.path.join(cast, f"set_{s['place']}.jpg")):     # nobody in it: the model still needs a
+        files = [('set', f"set_{s['place']}.jpg")]                                       # picture, so give it the room (B07 failed)
     return files[:limit]
 
 
@@ -188,7 +192,8 @@ def plan(s, cast):
         'reference image ' + idx[k], ('reference images ' if ' and ' in idx[k] else 'reference image ') + idx[k]) for k in who)
     act = STILL_ACT.get(s['name']) or props(re.sub(r'^(Black\. Then |White\. )', '', s['act']))   # first visible frame
     if s.get('frame') and not re.match(r'(wide|close|extreme|medium|insert|pov|his pov|over)', act.lower()): act = s['frame'] + ' ' + act
-    still = (f"{act} Setting: {SETS.get(s['place'], SETS['forest'])}. " + (f'In the shot: {cast_txt}. ' if who else '') +
+    still = (f"{act} Setting: {SETS.get(s['place'], SETS['forest'])}. " + (f'In the shot: {cast_txt}. ' if who else
+              'The same room as reference image 1, seen from a new angle; nobody is in the shot. ' if files else '') +
              (f"All {len(who)} of them are clearly visible in frame; no other people or animals. " if len(who) > 1 else
               'Nobody else is in the shot. ' if who else '') +
              ('Overexposed, dreamlike memory flash, very shallow focus. ' if flash else '') +
