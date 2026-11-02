@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 W, H, FPS = 1280, 720, 24          # finish.py crops to 2.39: keep content within y 95..625
 MONO = 'C:/Windows/Fonts/consola.ttf'
-BG, GRID, LINE, TXT, DIM = (6, 14, 22), (18, 42, 58), (90, 220, 255), (170, 230, 245), (70, 120, 140)
+BG, GRID, LINE, TXT, DIM = (22, 44, 60), (40, 78, 98), (90, 220, 255), (170, 230, 245), (70, 120, 140)
 
 
 def b07(t, dur):
@@ -28,9 +28,9 @@ def b07(t, dur):
     val = 4 + 13 * max(0, shown / n - 0.45) / 0.55
     d.text((W - 360, 115), f'RECALL  +{val:4.1f}%', font=mid, fill=LINE)
     d.text((W - 360, 160), 'IMPLANT  STABLE', font=small, fill=DIM)
-    glow = im.filter(ImageFilter.GaussianBlur(6)); im = Image.blend(im, glow, 0.35)
+    glow = im.filter(ImageFilter.GaussianBlur(6)); im = Image.blend(im, glow, 0.45)
     d = ImageDraw.Draw(im)
-    for yy in range(0, H, 3): d.line([(0, yy), (W, yy)], fill=(0, 0, 0))   # screen lines, seen up close
+    for yy in range(0, H, 3): d.line([(0, yy), (W, yy)], fill=(12, 26, 36))   # screen lines, seen up close
     return im
 
 

@@ -105,3 +105,9 @@ A clip is approved only after qa.py PASS **and** someone has looked at its conta
   recall trace climbing, content kept inside the 2.39 crop).
 - 16:55 Launched together, one shared ml-input upload (cast + C02 + D02): keyframes B06 D11 (`ml-keys` v16) and clips C02 D02
   (`ml-clips14` v11, test14/r4).
+- 2026-11-02 12:30 Keyframes B06 D11 round 2 (STILL_ACT) looked at: B06 APPROVED (Seven stacks the blocks himself, Dr B times
+  him). D11 APPROVED with a deviation: he stands on the table, not the stool; the tower and Dr B's stare carry the beat.
+  Clips C02 D02 looked at: APPROVED (pen to his mouth, take-back not visible; handshake, then he looks down at his hand).
+  Clips B06 D11 launched (`ml-clips14` v12, test14/r5).
+- 12:35 Scene 1 v5 cut: 9 shots, 52.7 s. qa FAILED "black 3.0 s": the B07 screen insert, too dark after the film grade.
+  inserts.py: brighter screen background, grid and scan lines; re-cutting.
