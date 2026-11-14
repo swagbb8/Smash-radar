@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /Smash-radar/studio/
+Sitemap: https://swagbb8.github.io/Smash-radar/sitemap.xml
